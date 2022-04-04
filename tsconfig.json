@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "module": "esnext",
+    "lib": ["esnext", "DOM"],
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "resolveJsonModule": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "jsx": "preserve",
+    "paths": {
+      "@/*": ["src/*"],
+      "@fourze/core": ["packages/core/src/index.ts"],
+      "@fourze/shared": ["packages/shared/src/index.ts"],
+      "@fourze/vite": ["packages/vite/src/index.ts"]
+    }
+  },
+  "include": ["examples/**/*.ts", "examples/**/*.tsx", "packages/**/*.ts"]
+}
