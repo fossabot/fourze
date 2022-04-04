@@ -1,15 +1,27 @@
-import { FSWatcher, watch } from "chokidar";
+import type { FSWatcher } from "chokidar";
+import { FourzeRoute } from "@fourze/shared";
+import chokidar from "chokidar";
 import { build } from "esbuild";
 import fs from "fs";
 import path from "path";
-import { FourzeRoute } from "@fourze/shared";
 
-interface WatcherOptions {
+export interface FourzeRouterOptions {
+  base?: string;
+  dir?: string;
   watcher?: FSWatcher;
   pattern?: (string | RegExp)[];
-  dir?: string;
-  hmr?: boolean;
   moduleNames?: string[];
+}
+
+export interface FourzeRouter {
+  load(): void | Promise<void>;
+  load(moduleName: string): void | Promise<void>;
+  remove(moduleName: string): void | Promise<void>;
+  watch(watcher?: FSWatcher): void;
+  watch(dir?: string, watcher?: FSWatcher): void;
+  routes: FourzeRoute[];
+  moduleNames: string[];
+  base: string;
 }
 
 const TEMPORARY_FILE_SUFFIX = ".tmp.js";
@@ -23,26 +35,24 @@ function transformPattern(pattern: (string | RegExp)[]) {
   });
 }
 
-export function watchRoutes(options: WatcherOptions) {
-  const watchDir = path.resolve(process.cwd(), options.dir ?? "./routes");
+export function createRouter(options: FourzeRouterOptions): FourzeRouter {
+  const base = options.base ?? "/";
+  const rootDir = path.resolve(process.cwd(), options.dir ?? "./routes");
   const pattern = transformPattern(options.pattern ?? [".ts", ".js"]);
-
-  const watcher = options.watcher ?? watch(watchDir);
   const moduleNames: string[] = options.moduleNames ?? [];
-  const hmr = options.hmr ?? true;
 
-  const loadMockModules = async (dir: string) => {
-    const stat = await fs.promises.stat(dir);
+  const load = async (moduleName: string = rootDir) => {
+    const stat = await fs.promises.stat(moduleName);
     if (stat.isDirectory()) {
-      const files = await fs.promises.readdir(dir);
+      const files = await fs.promises.readdir(moduleName);
       for (let name of files) {
-        loadMockModules(path.join(dir, name));
+        load(path.join(moduleName, name));
       }
     } else if (stat.isFile()) {
-      if (!pattern.some((e) => e.test(dir))) {
+      if (!pattern.some((e) => e.test(moduleName))) {
         return;
       }
-      await loadMockModule(dir);
+      await loadMockModule(moduleName);
     }
   };
 
@@ -56,7 +66,7 @@ export function watchRoutes(options: WatcherOptions) {
   };
 
   const loadJsMockModule = async (moduleName: string) => {
-    await deleteMockModule(moduleName);
+    await remove(moduleName);
     require(moduleName);
     moduleNames.push(moduleName);
   };
@@ -83,7 +93,7 @@ export function watchRoutes(options: WatcherOptions) {
     });
   };
 
-  const deleteMockModule = async (moduleName: string) => {
+  const remove = async (moduleName: string) => {
     console.log("delete module cache", moduleName);
     delete require.cache[moduleName];
     for (const [i, modName] of moduleNames.entries()) {
@@ -93,7 +103,17 @@ export function watchRoutes(options: WatcherOptions) {
     }
   };
 
-  if (hmr) {
+  function watch(dir?: string | FSWatcher, customWatcher?: FSWatcher) {
+    let watchDir: string;
+    let watcher: FSWatcher;
+    if (typeof dir === "string") {
+      watchDir = dir;
+      watcher = customWatcher ?? chokidar.watch(dir);
+    } else {
+      watchDir = rootDir;
+      watcher = dir ?? chokidar.watch(rootDir);
+    }
+
     watcher.add(watchDir);
 
     watcher.on("all", async (event, path) => {
@@ -109,24 +129,27 @@ export function watchRoutes(options: WatcherOptions) {
       if (event === "unlinkDir") {
         for (const modName of Object.keys(require.cache)) {
           if (modName.startsWith(path)) {
-            await deleteMockModule(modName);
+            await remove(modName);
           }
         }
-        await loadMockModules(watchDir);
+        await load();
         return;
       }
 
       if (event === "add" || event === "change") {
-        await loadMockModule(path);
+        await load(path);
       } else if (event === "unlink") {
-        await deleteMockModule(path);
+        await remove(path);
       }
     });
   }
 
-  loadMockModules(watchDir);
-
   return {
+    base,
+    load,
+    watch,
+    remove,
+    moduleNames,
     get routes() {
       return moduleNames
         .map((modName) => {

@@ -1,26 +1,16 @@
 import { OutgoingMessage, IncomingMessage } from "http";
 import {
-  Fourze,
-  FourzeHandle,
+  FourzeMiddlewareContext,
   FourzeRequest,
   FourzeResponse,
-  FourzeRoute,
-  FourzeSetup,
-  FOURZE_METHODS,
   FouzeServerContext,
-  MOCKER_NOT_MATCH,
-  mockTransform,
-  RequestMethod,
+  FOURZE_NOT_MATCH,
+  transformRoute,
 } from "@fourze/shared";
 
 export type RequestPath = `${"get" | "post" | "delete"}:${string}` | string;
 
 export type DispatchFunction = (request: FourzeRequest) => any;
-
-export interface FourzeMiddlewareContext {
-  base: string;
-  routes: FourzeRoute[];
-}
 
 export function createResponse(res: OutgoingMessage) {
   const response = res as FourzeResponse;
@@ -63,10 +53,13 @@ function createReqRes(
       } as FourzeRequest;
       resolve({ request, response: createResponse(res) });
     });
+    req.on("error", () => {
+      reject(new Error("request error"));
+    });
   });
 }
 
-export function useMockMiddleware(context: FourzeMiddlewareContext) {
+export function createMiddleware(context: FourzeMiddlewareContext) {
   return async function (
     req: IncomingMessage,
     res: OutgoingMessage,
@@ -76,12 +69,12 @@ export function useMockMiddleware(context: FourzeMiddlewareContext) {
 
     let { routes } = context;
 
-    let dispatchers = Array.from(routes.map((e) => mockTransform(e).match));
+    let dispatchers = Array.from(routes.map((e) => transformRoute(e).match));
 
     for (let dispatch of dispatchers) {
       const result = dispatch(request, response);
 
-      if (result != MOCKER_NOT_MATCH) {
+      if (result != FOURZE_NOT_MATCH) {
         const resolve = (body: any) => {
           if (!response.writableEnded) {
             response.json(body);

@@ -11,7 +11,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@fourze/core": "workspace:*"
+    "fourze": "workspace:*"
   },
   "devDependencies": {
     "rollup": "^2.70.1",

@@ -25,6 +25,11 @@ export interface FourzeRoute {
   handle: FourzeHandle;
 }
 
+export interface FourzeMiddlewareContext {
+  base: string;
+  routes: FourzeRoute[];
+}
+
 export type FourzeHandle = (
   request: FourzeRequest,
   response: FourzeResponse
@@ -38,7 +43,7 @@ export type Fourze = {
 };
 
 export type FourzeSetup = (fourze: Fourze) => void | FourzeRoute[];
-export const MOCKER_NOT_MATCH = Symbol("MOCKER_NOT_MATCH");
+export const FOURZE_NOT_MATCH = Symbol("MOCKER_NOT_MATCH");
 
 export const FOURZE_METHODS: RequestMethod[] = ["get", "post", "delete"];
 
@@ -123,7 +128,7 @@ export function defineRoute(options: FourzeSetup | FourzeOptions) {
 
   return routes;
 }
-export function mockTransform(route: FourzeRoute) {
+export function transformRoute(route: FourzeRoute) {
   let { handle, method, path } = route;
 
   const regex = new RegExp(
@@ -156,7 +161,7 @@ export function mockTransform(route: FourzeRoute) {
           return handle(request, response);
         }
       }
-      return MOCKER_NOT_MATCH;
+      return FOURZE_NOT_MATCH;
     },
   };
 }
