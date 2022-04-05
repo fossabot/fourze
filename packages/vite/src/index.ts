@@ -1,6 +1,6 @@
 import { Plugin, normalizePath } from "vite";
 
-import { createMiddleware, createRouter } from "fourze";
+import { createMiddleware, createRouter } from "@fourze/core";
 
 const PLUGIN_NAME = "vite-plugin-fourze";
 

@@ -4,7 +4,10 @@
   "description": "",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
-  "types": "index.d.ts",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rollup -c"
@@ -12,7 +15,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "fourze": "workspace:*"
+    "@fourze/core": "workspace:*"
   },
   "devDependencies": {
     "rollup": "^2.70.1",

@@ -1,10 +1,13 @@
 {
-  "name": "fourze",
+  "name": "@fourze/core",
   "version": "0.0.1",
   "description": "",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rollup -c"

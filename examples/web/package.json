@@ -16,7 +16,7 @@
     "vite": "^2.9.1",
     "vue": "^3.2.31",
     "vue-tsc": "^0.33.9",
-    "fourze": "workspace:*",
+    "@fourze/core": "workspace:*",
     "@fourze/vite": "workspace:*"
   },
   "scripts": {
