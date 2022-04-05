@@ -1,6 +1,6 @@
 import { Plugin, normalizePath } from "vite";
 
-import { watchRoutes, FourzeRoute, useMockMiddleware } from "@fourze/core";
+import { createMiddleware, createRouter } from "fourze";
 
 const PLUGIN_NAME = "vite-plugin-fourze";
 
@@ -8,7 +8,7 @@ const CLIENT_ID = "@fourze/mock";
 
 const TEMPORARY_FILE_SUFFIX = ".tmp.js";
 
-interface MockPluginOptions {
+export interface VitePluginFourzeOptions {
   /**
    * @default 'src/mock'
    */
@@ -36,16 +36,25 @@ interface MockPluginOptions {
 }
 
 export default function VitePluginFourze(
-  options: Partial<MockPluginOptions> = {}
+  options: Partial<VitePluginFourzeOptions> = {}
 ): Plugin {
-  const dir = options.dir ?? "./src/mock";
+  const dir = (options.dir = options.dir ?? "./src/mock");
 
-  const contextPath = options.contextPath ?? "/api";
+  const base = (options.contextPath = options.contextPath ?? "/api");
 
-  const filePattern = options.filePattern ?? [".ts$", ".js$"];
-  const hmr = options.hmr ?? true;
+  const pattern = (options.filePattern = options.filePattern ?? [
+    ".ts$",
+    ".js$",
+  ]);
+  const hmr = (options.hmr = options.hmr ?? true);
 
-  const moduleNames: string[] = [];
+  const router = createRouter({
+    dir,
+    base,
+    pattern,
+  });
+
+  router.load();
 
   return {
     name: PLUGIN_NAME,
@@ -62,7 +71,7 @@ export default function VitePluginFourze(
         options.client ?? (env.command === "build" || env.mode === "mock");
       return {
         define: {
-          VITE_PLUGIN_MOCKER_CLIENT: options.client,
+          VITE_PLUGIN_FOURZE_MOCK: options.client,
         },
       };
     },
@@ -71,13 +80,13 @@ export default function VitePluginFourze(
         let code = "";
         if (options.client) {
           code += `
-                    import { mockTransform } from "@fourze/shared"
+                    import { transformRoute } from "@fourze/shared";
                     import { mock, setup } from "mockjs"`;
 
           const names: string[] = [];
-          for (let i = 0; i < moduleNames.length; i++) {
-            let modName = moduleNames[i];
-            names[i] = `mock_route_${i}`;
+          for (let i = 0; i < router.moduleNames.length; i++) {
+            let modName = router.moduleNames[i];
+            names[i] = `fourze_route_${i}`;
             modName = modName.replace(TEMPORARY_FILE_SUFFIX, "");
 
             modName = normalizePath(modName);
@@ -89,8 +98,7 @@ export default function VitePluginFourze(
                     const routes = [${names.join(",")}].flat()
 
                     for (let route of routes) {
-                        const { regex, method = "get", match } = mockTransform(route)
-                        console.log(regex)
+                        const { regex, method = "get", match } = transformRoute(route)
                         mock(regex, method, request => {
                             const { url, body, headers} = request
                             const data = JSON.parse(body)
@@ -109,24 +117,10 @@ export default function VitePluginFourze(
     },
 
     configureServer({ middlewares, watcher }) {
-      let context: { routes: FourzeRoute[] } = {
-        routes: [],
-      };
-
-      context = watchRoutes({
-        dir,
-        pattern: filePattern,
-        watcher,
-        hmr,
-        moduleNames,
-      });
-
-      const middleware = useMockMiddleware({
-        base: contextPath,
-        get routes() {
-          return context.routes;
-        },
-      });
+      if (hmr) {
+        router.watch(watcher);
+      }
+      const middleware = createMiddleware(router);
       middlewares.use(middleware);
     },
   };

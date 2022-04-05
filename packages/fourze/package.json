@@ -1,9 +1,10 @@
 {
-  "name": "@fourze/core",
+  "name": "fourze",
   "version": "0.0.1",
   "description": "",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rollup -c"
@@ -11,7 +12,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@fourze/shared": "workspace:*"
+    "@fourze/shared": "workspace:*",
+    "@fourze/vite": "workspace:*"
   },
   "devDependencies": {
     "rollup": "^2.70.1"

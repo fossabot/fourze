@@ -9,6 +9,7 @@ export interface FouzeServerContext {
 export interface FourzeRequest {
   url: string;
   method?: string;
+  params: Record<string, any>;
   data: Record<string, any>;
   headers: Record<string, string | string[]>;
 }
@@ -25,10 +26,15 @@ export interface FourzeRoute {
   handle: FourzeHandle;
 }
 
+export interface FourzeMiddlewareContext {
+  base: string;
+  routes: FourzeRoute[];
+}
+
 export type FourzeHandle = (
   request: FourzeRequest,
   response: FourzeResponse
-) => any;
+) => any | Promise<any>;
 
 export type Fourze = {
   [K in RequestMethod]: (path: string, handle: FourzeHandle) => Fourze;
@@ -38,14 +44,36 @@ export type Fourze = {
 };
 
 export type FourzeSetup = (fourze: Fourze) => void | FourzeRoute[];
-export const MOCKER_NOT_MATCH = Symbol("MOCKER_NOT_MATCH");
+export const FOURZE_NOT_MATCH = Symbol("FOURZE_NOT_MATCH");
 
-export const FOURZE_METHODS: RequestMethod[] = ["get", "post", "delete"];
+export const FOURZE_METHODS: RequestMethod[] = [
+  "get",
+  "post",
+  "delete",
+  "put",
+  "patch",
+  "options",
+  "head",
+  "trace",
+  "connect",
+];
 
-export type RequestMethod = "get" | "post" | "delete";
+export type RequestMethod =
+  | "get"
+  | "post"
+  | "delete"
+  | "put"
+  | "patch"
+  | "head"
+  | "options"
+  | "trace"
+  | "connect";
 
 function parseQuery(url: string) {
-  return qs.parse(url.slice(url.indexOf("?") + 1), { parseNumbers: true });
+  return qs.parse(url.slice(url.indexOf("?") + 1), {
+    parseNumbers: true,
+    parseBooleans: true,
+  });
 }
 
 export interface FourzeOptions {
@@ -63,7 +91,7 @@ export function defineRoute(options: FourzeSetup | FourzeOptions) {
   let extra: FourzeRoute[] | void;
 
   if (typeof setup === "function") {
-    const mocker = (
+    const fourze = (
       url: string,
       param1: string | FourzeHandle,
       param2?: FourzeHandle
@@ -83,21 +111,21 @@ export function defineRoute(options: FourzeSetup | FourzeOptions) {
         method,
         handle,
       });
-      return mocker;
+      return fourze;
     };
 
     Object.assign(
-      mocker,
+      fourze,
       Object.fromEntries(
         FOURZE_METHODS.map((method) => [
           method,
           (path: string, handle: FourzeHandle) => {
-            return mocker(path, method, handle);
+            return fourze(path, method, handle);
           },
         ])
       )
     );
-    extra = setup(mocker as Fourze);
+    extra = setup(fourze as Fourze);
   } else {
     extra = setup as FourzeRoute[];
   }
@@ -123,11 +151,11 @@ export function defineRoute(options: FourzeSetup | FourzeOptions) {
 
   return routes;
 }
-export function mockTransform(route: FourzeRoute) {
+export function transformRoute(route: FourzeRoute) {
   let { handle, method, path } = route;
 
   const regex = new RegExp(
-    `^${path.replace(/(\:\w+)/g, "([a-zA-Z0-9-\\s]+)?")}`
+    `^${path.replace(/(\:\w+)/g, "([a-zA-Z0-9-\\s]+)?")}$`
   );
 
   const pathParams = path.match(/(\:\w+)/g) || [];
@@ -136,27 +164,34 @@ export function mockTransform(route: FourzeRoute) {
     method,
     match(request: FourzeRequest, response: FourzeResponse) {
       if (!method || request.method?.toLowerCase() === method.toLowerCase()) {
-        const url = request.url;
+        let url = request.url;
+
+        const params: Record<string, any> = {};
+        let query: string | undefined = undefined;
+
+        const index = url.indexOf("?");
+        if (index > -1) {
+          query = url.slice(index + 1);
+          url = url.slice(0, url.indexOf("?"));
+        }
 
         const matches = url.match(regex);
 
-        const params: Record<string, any> = { ...request.data };
         if (matches) {
           for (let i = 0; i < pathParams.length; i++) {
             const key = pathParams[i].slice(1);
             const value = matches[i + 1];
             params[key] = value;
           }
-
-          if (url.includes("?")) {
-            const queryParams = parseQuery(url);
-            Object.assign(params, queryParams);
+          if (query) {
+            Object.assign(params, parseQuery(query));
           }
-          request.data = params;
+
+          request.params = params;
           return handle(request, response);
         }
       }
-      return MOCKER_NOT_MATCH;
+      return FOURZE_NOT_MATCH;
     },
   };
 }

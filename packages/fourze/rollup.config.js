@@ -3,14 +3,16 @@ import dts from "rollup-plugin-dts";
 import commonjs from "@rollup/plugin-commonjs";
 import { defineConfig } from "rollup";
 
-const entry = ["src/index.ts"];
+const entry = ["src/index.ts", "src/vite.ts", "src/shared.ts"];
 
 export default defineConfig(() => [
   {
     input: entry,
     external: ["esbuild"],
+
     output: {
-      file: "dist/index.js",
+      dir: "dist",
+      entryFileNames: "[name].js",
       format: "cjs",
     },
     plugins: [
@@ -23,7 +25,8 @@ export default defineConfig(() => [
   {
     input: entry,
     output: {
-      file: "dist/index.mjs",
+      dir: "dist",
+      entryFileNames: "[name].mjs",
       format: "esm",
     },
     plugins: [
@@ -33,12 +36,14 @@ export default defineConfig(() => [
       }),
     ],
   },
-  {
-    input: ["src/index.ts"],
-    output: {
-      file: "dist/index.d.ts",
-      format: "esm",
-    },
-    plugins: [dts()],
-  },
+  ...entry.map((e) => {
+    return {
+      input: e,
+      output: {
+        file: `${e.replace("src/", "dist/").replace(".ts", ".d.ts")}`,
+        format: "esm",
+      },
+      plugins: [dts()],
+    };
+  }),
 ]);
