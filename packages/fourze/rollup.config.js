@@ -3,7 +3,7 @@ import dts from "rollup-plugin-dts";
 import commonjs from "@rollup/plugin-commonjs";
 import { defineConfig } from "rollup";
 
-const entry = ["src/index.ts", "src/vite.ts", "src/shared.ts"];
+const entry = ["src/index.ts", "src/shared.ts"];
 
 export default defineConfig(() => [
   {

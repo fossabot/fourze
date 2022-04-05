@@ -35,7 +35,7 @@ export interface VitePluginFourzeOptions {
   hmr?: boolean;
 }
 
-export default function VitePluginFourze(
+export function VitePluginFourze(
   options: Partial<VitePluginFourzeOptions> = {}
 ): Plugin {
   const dir = (options.dir = options.dir ?? "./src/mock");
@@ -112,6 +112,7 @@ export default function VitePluginFourze(
             
                   `;
         }
+        console.log(code);
         return code;
       }
     },
@@ -125,3 +126,5 @@ export default function VitePluginFourze(
     },
   };
 }
+
+export default VitePluginFourze;

@@ -8,7 +8,6 @@ const entry = ["src/index.ts"];
 export default defineConfig(() => [
   {
     input: entry,
-    external: ["esbuild"],
     output: {
       file: "dist/index.js",
       format: "cjs",
@@ -34,7 +33,7 @@ export default defineConfig(() => [
     ],
   },
   {
-    input: ["src/index.ts"],
+    input: entry,
     output: {
       file: "dist/index.d.ts",
       format: "esm",

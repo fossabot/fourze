@@ -7,16 +7,17 @@
     "dist/*"
   ],
   "scripts": {
-    "build": "pnpm -r --filter !examples run build",
+    "build": "rimraf packages/*/dist && pnpm -r --filter !examples run build",
     "dev:web": "vite ./examples/web",
+    "dev:web-mock": "vite ./examples/web --mode mock",
+    "build:web-mock": "vite build ./examples/web --mode mock",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "apateat",
   "license": "MIT",
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
-      "prettier --write",
-      "git add"
+      "prettier --write"
     ]
   },
   "devDependencies": {
