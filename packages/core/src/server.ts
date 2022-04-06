@@ -6,7 +6,8 @@ import {
   FouzeServerContext,
   FOURZE_NOT_MATCH,
   transformRoute,
-} from "@fourze/shared";
+  logger,
+} from "./shared";
 
 export type RequestPath = `${"get" | "post" | "delete"}:${string}` | string;
 
@@ -15,13 +16,17 @@ export type DispatchFunction = (request: FourzeRequest) => any;
 export function createResponse(res: OutgoingMessage) {
   const response = res as FourzeResponse;
 
+  response.localData = {};
+
   response.json = function (data: any) {
+    this.localData.result = data;
     this.setHeader("Content-Type", "application/json");
     this.write(JSON.stringify(data));
     this.end();
   };
 
   response.text = function (data: string) {
+    this.localData.result = data;
     this.setHeader("Content-Type", "text/plain");
     this.end(data);
   };
@@ -72,9 +77,12 @@ export function createMiddleware(context: FourzeMiddlewareContext) {
     let dispatchers = Array.from(routes.map((e) => transformRoute(e).match));
 
     for (let dispatch of dispatchers) {
-      const result = dispatch(request, response);
+      let result = dispatch(request, response);
 
       if (result != FOURZE_NOT_MATCH) {
+        logger.info("request match", request.method, request.url);
+
+        result = result ?? response.localData.result;
         const resolve = (body: any) => {
           if (!response.writableEnded) {
             response.json(body);

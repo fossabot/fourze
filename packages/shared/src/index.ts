@@ -1,5 +1,6 @@
 import type { ServerResponse } from "http";
 import qs from "query-string";
+export { default as logger } from "./log";
 
 export interface FouzeServerContext {
   request: FourzeRequest;
@@ -18,6 +19,7 @@ export interface FourzeResponse extends ServerResponse {
   json(data: any): void;
   text(data: string): void;
   redirect(url: string): void;
+  localData: Record<string, any>;
 }
 
 export interface FourzeRoute {

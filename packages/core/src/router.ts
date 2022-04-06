@@ -1,5 +1,5 @@
 import type { FSWatcher } from "chokidar";
-import { FourzeRoute } from "@fourze/shared";
+import { FourzeRoute, logger } from "@fourze/shared";
 import chokidar from "chokidar";
 import { build } from "esbuild";
 import fs from "fs";
@@ -57,7 +57,7 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
   };
 
   const loadModule = async (moduleName: string) => {
-    console.log("loadMockModule", moduleName);
+    logger.info("loadMockModule", moduleName);
     if (moduleName.endsWith(".ts")) {
       await loadTsModule(moduleName);
     } else {
@@ -88,13 +88,12 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
     await loadJsModule(modName);
     fs.unlink(modName, (err) => {
       if (err) {
-        console.error("delete file " + modName + " error", err);
+        logger.error("delete file " + modName + " error", err);
       }
     });
   };
 
   const remove = async (moduleName: string) => {
-    console.log("delete module cache", moduleName);
     delete require.cache[moduleName];
     for (const [i, modName] of moduleNames.entries()) {
       if (modName === moduleName) {
@@ -117,29 +116,26 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
     watcher.add(watchDir);
 
     watcher.on("all", async (event, path) => {
-      if (!path.startsWith(watchDir)) {
-        return;
-      }
-      if (path.endsWith(TEMPORARY_FILE_SUFFIX)) {
-        return;
-      }
-      if (event === "addDir") {
-        return;
-      }
-      if (event === "unlinkDir") {
-        for (const modName of Object.keys(require.cache)) {
-          if (modName.startsWith(path)) {
-            await remove(modName);
-          }
-        }
-        await load();
+      if (!path.startsWith(watchDir) || path.endsWith(TEMPORARY_FILE_SUFFIX)) {
         return;
       }
 
-      if (event === "add" || event === "change") {
-        await load(path);
-      } else if (event === "unlink") {
-        await remove(path);
+      switch (event) {
+        case "add":
+        case "change":
+          await load(path);
+          break;
+        case "unlink":
+          await remove(path);
+          break;
+        case "unlinkDir":
+          for (const modName of Object.keys(require.cache)) {
+            if (modName.startsWith(path)) {
+              await remove(modName);
+            }
+          }
+          await load();
+          break;
       }
     });
   }

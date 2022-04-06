@@ -1,6 +1,6 @@
 import { Plugin, normalizePath } from "vite";
 
-import { createMiddleware, createRouter } from "@fourze/core";
+import { createMiddleware, createRouter, logger } from "@fourze/core";
 
 const PLUGIN_NAME = "vite-plugin-fourze";
 
@@ -17,7 +17,7 @@ export interface VitePluginFourzeOptions {
   /**
    * @default '/api'
    */
-  contextPath?: string;
+  base?: string;
 
   /**
    *  [".ts", ".js"]
@@ -33,6 +33,11 @@ export interface VitePluginFourzeOptions {
    *
    */
   hmr?: boolean;
+
+  /**
+   * @default "off"
+   */
+  logLevel: "off" | "info" | "warn" | "error";
 }
 
 export function VitePluginFourze(
@@ -40,7 +45,7 @@ export function VitePluginFourze(
 ): Plugin {
   const dir = (options.dir = options.dir ?? "./src/mock");
 
-  const base = (options.contextPath = options.contextPath ?? "/api");
+  const base = (options.base = options.base ?? "/api");
 
   const pattern = (options.filePattern = options.filePattern ?? [
     ".ts$",
@@ -48,13 +53,13 @@ export function VitePluginFourze(
   ]);
   const hmr = (options.hmr = options.hmr ?? true);
 
+  logger.level = options.logLevel ?? "off";
+
   const router = createRouter({
     dir,
     base,
     pattern,
   });
-
-  router.load();
 
   return {
     name: PLUGIN_NAME,
@@ -64,7 +69,9 @@ export function VitePluginFourze(
         return `/${id}`;
       }
     },
-    async buildStart() {},
+    async buildStart() {
+      await router.load();
+    },
 
     config(config, env) {
       options.client =
