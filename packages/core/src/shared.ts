@@ -9,6 +9,7 @@ export interface FouzeServerContext {
 export interface FourzeRequest {
   url: string;
   method?: string;
+  query: Record<string, any>;
   params: Record<string, any>;
   data: Record<string, any>;
   headers: Record<string, string | string[]>;
@@ -34,7 +35,8 @@ export interface FourzeMiddlewareContext {
 
 export type FourzeHandle = (
   request: FourzeRequest,
-  response: FourzeResponse
+  response: FourzeResponse,
+  allParams: Record<string, any>
 ) => any | Promise<any>;
 
 export type Fourze = {
@@ -156,7 +158,7 @@ export function transformRoute(route: FourzeRoute) {
   let { handle, method, path } = route;
 
   const regex = new RegExp(
-    `^${path.replace(/(\:\w+)/g, "([a-zA-Z0-9-\\s]+)?")}$`
+    `^${path.replace(/(\:\w+)/g, "([a-zA-Z0-9-\\s]+)?")}([^\?&#].*)?$`
   );
 
   const pathParams = path.match(/(\:\w+)/g) || [];
@@ -167,29 +169,24 @@ export function transformRoute(route: FourzeRoute) {
       if (!method || request.method?.toLowerCase() === method.toLowerCase()) {
         let url = request.url;
 
-        const params: Record<string, any> = {};
-        let query: string | undefined = undefined;
-
-        const index = url.indexOf("?");
-        if (index > -1) {
-          query = url.slice(index + 1);
-          url = url.slice(0, url.indexOf("?"));
-        }
-
         const matches = url.match(regex);
 
         if (matches) {
+          const params: Record<string, any> = {};
           for (let i = 0; i < pathParams.length; i++) {
             const key = pathParams[i].slice(1);
             const value = matches[i + 1];
             params[key] = value;
           }
-          if (query) {
-            Object.assign(params, parseQuery(query));
-          }
+          request.query = parseQuery(url);
 
           request.params = params;
-          return handle(request, response);
+          const allParams = {
+            ...request.data,
+            ...request.query,
+            ...request.params,
+          };
+          return handle(request, response, allParams);
         }
       }
       return FOURZE_NOT_MATCH;

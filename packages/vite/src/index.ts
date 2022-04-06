@@ -27,7 +27,7 @@ export interface VitePluginFourzeOptions {
   /**
    * @default env.command == 'build' || env.mode === 'mock'
    */
-  mock: boolean;
+  mock?: boolean;
 
   /**
    *  @default true
