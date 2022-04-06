@@ -15,6 +15,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@fourze/router": "workspace:*",
     "@fourze/core": "workspace:*"
   },
   "devDependencies": {

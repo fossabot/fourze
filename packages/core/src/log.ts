@@ -1,6 +1,4 @@
-export let LOG_LEVEL = "info";
-
-export default {
+export const logger = {
   level: "info",
   info(...args: any[]) {
     if (this.level === "info") {
@@ -13,3 +11,5 @@ export default {
     }
   },
 };
+
+export default logger;

@@ -6,8 +6,9 @@ import {
   FouzeServerContext,
   FOURZE_NOT_MATCH,
   transformRoute,
-  logger,
 } from "./shared";
+
+import logger from "./log";
 
 export type RequestPath = `${"get" | "post" | "delete"}:${string}` | string;
 
@@ -99,8 +100,4 @@ export function createMiddleware(context: FourzeMiddlewareContext) {
 
     next();
   };
-}
-
-export function setTimeoutAsync(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }

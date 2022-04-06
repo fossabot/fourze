@@ -2,14 +2,21 @@ import esbuild from "rollup-plugin-esbuild";
 import dts from "rollup-plugin-dts";
 import commonjs from "@rollup/plugin-commonjs";
 import { defineConfig } from "rollup";
+import { dependencies, devDependencies } from "../../package.json";
 
 const entry = ["src/index.ts"];
 
+const external = Object.keys(dependencies ?? {}).concat(
+  Object.keys(devDependencies ?? {})
+);
+
 export default defineConfig(() => [
   {
+    external,
     input: entry,
     output: {
-      file: "dist/index.js",
+      dir: "dist",
+      entryFileNames: "[name].js",
       format: "cjs",
     },
     plugins: [
@@ -20,9 +27,11 @@ export default defineConfig(() => [
     ],
   },
   {
+    external,
     input: entry,
     output: {
-      file: "dist/index.mjs",
+      dir: "dist",
+      entryFileNames: "[name].mjs",
       format: "esm",
     },
     plugins: [
@@ -33,6 +42,7 @@ export default defineConfig(() => [
     ],
   },
   {
+    external,
     input: entry,
     output: {
       file: "dist/index.d.ts",

@@ -63,15 +63,6 @@ importers:
 
   packages/core:
     specifiers:
-      '@fourze/shared': workspace:*
-      rollup: ^2.70.1
-    dependencies:
-      '@fourze/shared': link:../shared
-    devDependencies:
-      rollup: 2.70.1
-
-  packages/shared:
-    specifiers:
       query-string: ^7.1.1
       rollup: ^2.70.1
     dependencies:
@@ -79,13 +70,24 @@ importers:
     devDependencies:
       rollup: 2.70.1
 
+  packages/router:
+    specifiers:
+      '@fourze/core': workspace:*
+      rollup: ^2.70.1
+    dependencies:
+      '@fourze/core': link:../core
+    devDependencies:
+      rollup: 2.70.1
+
   packages/vite:
     specifiers:
       '@fourze/core': workspace:*
+      '@fourze/router': workspace:*
       rollup: ^2.70.1
       vite: ^2.9.1
     dependencies:
       '@fourze/core': link:../core
+      '@fourze/router': link:../router
     devDependencies:
       rollup: 2.70.1
       vite: 2.9.1

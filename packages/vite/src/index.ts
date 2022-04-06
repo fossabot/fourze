@@ -1,6 +1,9 @@
 import { Plugin, normalizePath } from "vite";
 
-import { createMiddleware, createRouter, logger } from "@fourze/core";
+import { createMiddleware, logger } from "@fourze/core";
+
+import { createRouter } from "@fourze/router";
+import { transformCode } from "./mock";
 
 const PLUGIN_NAME = "vite-plugin-fourze";
 
@@ -26,7 +29,7 @@ export interface VitePluginFourzeOptions {
   /**
    * @default env.command == 'build' || env.mode === 'mock'
    */
-  client: boolean;
+  mock: boolean;
 
   /**
    *  @default true
@@ -64,63 +67,47 @@ export function VitePluginFourze(
   return {
     name: PLUGIN_NAME,
 
-    resolveId(id) {
-      if (id === CLIENT_ID) {
-        return `/${id}`;
-      }
-    },
     async buildStart() {
       await router.load();
+      logger.info("buildStart", router.routes);
+    },
+
+    resolveId(id) {
+      if (id === CLIENT_ID || id === `/${CLIENT_ID}`) {
+        return `/${CLIENT_ID}`;
+      }
     },
 
     config(config, env) {
-      options.client =
-        options.client ?? (env.command === "build" || env.mode === "mock");
+      options.mock =
+        options.mock ?? (env.command === "build" || env.mode === "mock");
       return {
         define: {
-          VITE_PLUGIN_FOURZE_MOCK: options.client,
+          VITE_PLUGIN_FOURZE_MOCK: options.mock,
         },
       };
     },
-    load(id) {
-      if (id === `/${CLIENT_ID}`) {
-        let code = "";
-        if (options.client) {
-          code += `
-                    import { transformRoute } from "@fourze/shared";
-                    import { mock, setup } from "mockjs"`;
 
-          const names: string[] = [];
-          for (let i = 0; i < router.moduleNames.length; i++) {
-            let modName = router.moduleNames[i];
-            names[i] = `fourze_route_${i}`;
-            modName = modName.replace(TEMPORARY_FILE_SUFFIX, "");
-
-            modName = normalizePath(modName);
-
-            code += `
-            import ${names[i]} from "${modName}"`;
-          }
-          code += `
-                    const routes = [${names.join(",")}].flat()
-
-                    for (let route of routes) {
-                        const { regex, method = "get", match } = transformRoute(route)
-                        mock(regex, method, request => {
-                            const { url, body, headers} = request
-                            const data = JSON.parse(body)
-                            return match({ url, data, method, headers})
-                        })
-                    }
-                    
-                    setup({
-                        timeout: "30-500"
-                    })
-            
-                  `;
+    transformIndexHtml: {
+      enforce: "pre",
+      transform(html) {
+        if (options.mock) {
+          return {
+            html,
+            tags: [
+              {
+                tag: "script",
+                attrs: { type: "module", src: `/${CLIENT_ID}` },
+              },
+            ],
+          };
         }
-        console.log(code);
-        return code;
+        return html;
+      },
+    },
+    load(id) {
+      if (id === CLIENT_ID || id === `/${CLIENT_ID}`) {
+        return transformCode(router);
       }
     },
 

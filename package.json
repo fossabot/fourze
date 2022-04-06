@@ -12,6 +12,8 @@
     "dev:web-mock": "vite ./examples/web --mode mock",
     "build:web-mock": "vite build ./examples/web --mode mock",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "release": "bumpp package.json packages/*/package.json ",
+    "publish": "pnpm build && pnpm -r publish --access public",
     "postinstall": "husky install"
   },
   "author": "apateat",

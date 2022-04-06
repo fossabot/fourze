@@ -1,10 +1,13 @@
 {
-  "name": "@fourze/shared",
+  "name": "@fourze/router",
   "version": "0.0.2",
   "description": "",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rollup -c"
@@ -12,7 +15,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "query-string": "^7.1.1"
+    "@fourze/core": "workspace:*"
   },
   "devDependencies": {
     "rollup": "^2.70.1"

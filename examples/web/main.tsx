@@ -1,5 +1,4 @@
 import { createApp, renderList, ref, defineComponent } from "vue";
-import "@fourze/mock";
 import axios from "axios";
 
 const app = createApp(

@@ -1,5 +1,5 @@
 import type { FSWatcher } from "chokidar";
-import { FourzeRoute, logger } from "@fourze/shared";
+import { FourzeRoute, logger } from "@fourze/core";
 import chokidar from "chokidar";
 import { build } from "esbuild";
 import fs from "fs";
@@ -45,9 +45,8 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
     const stat = await fs.promises.stat(moduleName);
     if (stat.isDirectory()) {
       const files = await fs.promises.readdir(moduleName);
-      for (let name of files) {
-        load(path.join(moduleName, name));
-      }
+      const tasks = files.map((name) => load(path.join(moduleName, name)));
+      await Promise.all(tasks);
     } else if (stat.isFile()) {
       if (!pattern.some((e) => e.test(moduleName))) {
         return;

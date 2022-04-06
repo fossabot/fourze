@@ -8,9 +8,11 @@ export default defineConfig({
     VitePluginJsx(),
     VitePluginFourze({
       dir: path.resolve(__dirname, "mock"),
-      contextPath: "/api",
+      base: "/api",
       filePattern: [".ts$", ".js$"],
+      mock: true,
       hmr: true,
+      logLevel: "info",
     }),
   ],
 });

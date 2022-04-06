@@ -15,7 +15,7 @@
     "jsx": "preserve",
     "paths": {
       "@fourze/core": ["./packages/fourze/src/core/index.ts"],
-      "@fourze/shared": ["./packages/shared/src/index.ts"],
+      "@fourze/router": ["./packages/router/src/index.ts"],
       "@fourze/vite": ["./packages/vite/src/index.ts"]
     }
   },
