@@ -9,8 +9,6 @@ const PLUGIN_NAME = "vite-plugin-fourze";
 
 const CLIENT_ID = "@fourze/mock";
 
-const TEMPORARY_FILE_SUFFIX = ".tmp.js";
-
 export interface VitePluginFourzeOptions {
   /**
    * @default 'src/mock'
@@ -79,8 +77,7 @@ export function VitePluginFourze(
     },
 
     config(config, env) {
-      options.mock =
-        options.mock ?? (env.command === "build" || env.mode === "mock");
+      options.mock = options.mock ?? env.mode === "mock";
       return {
         define: {
           VITE_PLUGIN_FOURZE_MOCK: options.mock,
