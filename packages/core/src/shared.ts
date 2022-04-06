@@ -158,7 +158,7 @@ export function transformRoute(route: FourzeRoute) {
   let { handle, method, path } = route;
 
   const regex = new RegExp(
-    `^${path.replace(/(\:\w+)/g, "([a-zA-Z0-9-\\s]+)?")}([^\?&#].*)?$`
+    `^${path.replace(/(\:\w+)/g, "([a-zA-Z0-9-\\s]+)?")}([\?&#].*)?$`
   );
 
   const pathParams = path.match(/(\:\w+)/g) || [];
