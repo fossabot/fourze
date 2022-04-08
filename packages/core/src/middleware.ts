@@ -46,15 +46,15 @@ function createServerContext(
   res: OutgoingMessage
 ): Promise<FouzeServerContext> {
   return new Promise((resolve, reject) => {
-    let data = "";
+    let body = "";
     req.on("data", (chunk) => {
-      data += chunk;
+      body += chunk;
     });
     req.on("end", () => {
       const request = {
         url: req.url,
         method: req.method,
-        data: data ? JSON.parse(data) : {},
+        body: body ? JSON.parse(body) : {},
         headers: req.headers,
       } as FourzeRequest;
       resolve({ request, response: createResponse(res) });

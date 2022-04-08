@@ -11,6 +11,10 @@ export interface FourzeRequest {
   method?: string;
   query: Record<string, any>;
   params: Record<string, any>;
+  body: Record<string, any>;
+  /**
+   *  {...query, ...params, ...body}
+   */
   data: Record<string, any>;
   headers: Record<string, string | string[]>;
 }
@@ -35,8 +39,7 @@ export interface FourzeMiddlewareContext {
 
 export type FourzeHandle = (
   request: FourzeRequest,
-  response: FourzeResponse,
-  allParams: Record<string, any>
+  response: FourzeResponse
 ) => any | Promise<any>;
 
 export type Fourze = {
@@ -181,12 +184,12 @@ export function transformRoute(route: FourzeRoute) {
           request.query = parseQuery(url);
 
           request.params = params;
-          const allParams = {
-            ...request.data,
+          request.data = {
+            ...request.body,
             ...request.query,
             ...request.params,
           };
-          return handle(request, response, allParams);
+          return handle(request, response);
         }
       }
       return FOURZE_NOT_MATCH;
