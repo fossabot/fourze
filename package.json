@@ -6,6 +6,12 @@
   "files": [
     "dist/*"
   ],
+  "keywords": [
+    "mock",
+    "web",
+    "vite",
+    "hmr"
+  ],
   "scripts": {
     "build": "rimraf packages/*/dist && pnpm -r --filter !examples run build",
     "dev:web": "vite ./examples/web",
