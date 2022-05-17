@@ -1,23 +1,23 @@
 {
-  "compilerOptions": {
-    "target": "es2017",
-    "module": "esnext",
-    "lib": ["esnext", "DOM"],
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "resolveJsonModule": true,
-    "skipDefaultLibCheck": true,
-    "outDir": "./dist",
-    "declaration": true,
+    "compilerOptions": {
+        "target": "es2017",
+        "module": "esnext",
+        "lib": ["esnext", "DOM"],
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "strict": true,
+        "strictNullChecks": true,
+        "resolveJsonModule": true,
+        "skipDefaultLibCheck": true,
+        "outDir": "./dist",
+        "declaration": true,
 
-    "jsx": "preserve",
-    "paths": {
-      "@fourze/core": ["./packages/fourze/src/core/index.ts"],
-      "@fourze/router": ["./packages/router/src/index.ts"],
-      "@fourze/vite": ["./packages/vite/src/index.ts"]
-    }
-  },
-  "include": ["examples/**/*.ts", "examples/**/*.tsx", "packages/**/*.ts"]
+        "jsx": "preserve",
+        "paths": {
+            "@fourze/core": ["./packages/core/src/index.ts"],
+            "@fourze/router": ["./packages/router/src/index.ts"],
+            "@fourze/vite": ["./packages/vite/src/index.ts"]
+        }
+    },
+    "include": ["examples/**/*.ts", "examples/**/*.tsx", "packages/**/*.ts"]
 }

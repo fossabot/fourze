@@ -1,23 +1,23 @@
 {
-  "name": "@fourze/router",
-  "version": "0.0.7",
-  "description": "",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist/"
-  ],
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "rollup -c"
-  },
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "@fourze/core": "workspace:*"
-  },
-  "devDependencies": {
-    "rollup": "^2.70.1"
-  }
+    "name": "@fourze/router",
+    "version": "0.0.7",
+    "description": "",
+    "main": "dist/index.js",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/"
+    ],
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "rollup -c"
+    },
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@fourze/core": "workspace:*"
+    },
+    "devDependencies": {
+        "rollup": "^2.70.1"
+    }
 }

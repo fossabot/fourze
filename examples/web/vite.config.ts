@@ -1,18 +1,18 @@
-import { defineConfig } from "vite";
-import VitePluginFourze from "@fourze/vite";
-import VitePluginJsx from "@vitejs/plugin-vue-jsx";
-import path from "path";
+import { defineConfig } from "vite"
+import fourze from "@fourze/vite"
+import react from "@vitejs/plugin-react"
+import path from "path"
 
 export default defineConfig({
-  plugins: [
-    VitePluginJsx(),
-    VitePluginFourze({
-      dir: path.resolve(__dirname, "mock"),
-      base: "/api",
-      filePattern: [".ts$", ".js$"],
-      mock: true,
-      hmr: true,
-      logLevel: "info",
-    }),
-  ],
-});
+    plugins: [
+        react(),
+        fourze({
+            dir: path.resolve(__dirname, "mock"),
+            base: "/api",
+            filePattern: [".ts$", ".js$"],
+            mock: false,
+            hmr: true,
+            logLevel: "info"
+        })
+    ]
+})

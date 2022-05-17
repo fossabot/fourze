@@ -1,28 +1,27 @@
-import { createApp, renderList, ref, defineComponent } from "vue";
-import axios from "axios";
-import mockjs from "mockjs";
+import React, { useState } from "react"
+import { createRoot } from "react-dom/client"
+import axios from "axios"
 
-console.log(mockjs);
-
-const app = createApp(
-  defineComponent(() => {
-    const list = ref<any[]>();
+const App = () => {
+    const [list, setList] = useState([])
 
     function search() {
-      axios("/api/search", { params: { a: 1 } })
-        .then((r) => r.data)
-        .then((r) => (list.value = r));
+        axios(`/api/search/${Math.floor(Math.random() * 9)}`)
+            .then(r => r.data)
+            .then(r => setList(r))
     }
 
-    return () => (
-      <div>
-        <button onClick={search}>Click Me!</button>
-        {renderList(list.value, (item) => (
-          <div>{item}</div>
-        ))}
-      </div>
-    );
-  })
-);
+    return (
+        <div>
+            <img style={{ width: "120px", height: "120px" }} src="/api/img/a.jpg" />
+            <button onClick={search}>Click Me!</button>
+            {list.map(item => (
+                <div key={item}>{item}</div>
+            ))}
+        </div>
+    )
+}
 
-app.mount("#app");
+const container = document.getElementById("app")
+const root = createRoot(container!)
+root.render(<App />)

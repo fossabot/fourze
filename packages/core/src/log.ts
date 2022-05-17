@@ -1,15 +1,15 @@
 export const logger = {
-  level: "info",
-  info(...args: any[]) {
-    if (this.level === "info") {
-      console.info("[fourze]", ...args);
+    level: "info",
+    info(...args: any[]) {
+        if (this.level === "info") {
+            console.info(`[fourze][${new Date().toDateString()}]`, ...args)
+        }
+    },
+    error(...args: any[]) {
+        if (this.level === "error") {
+            console.error("[fourze]", `[${new Date().toDateString()}]`, ...args)
+        }
     }
-  },
-  error(...args: any[]) {
-    if (this.level === "error") {
-      console.error("[fourze]", ...args);
-    }
-  },
-};
+}
 
-export default logger;
+export default logger
