@@ -3,12 +3,12 @@ import { createRoot } from "react-dom/client"
 import axios from "axios"
 
 const App = () => {
-    const [list, setList] = useState([])
+    const [list, setList] = useState<any[]>([])
 
     function search() {
         axios(`/api/search/${Math.floor(Math.random() * 9)}`)
             .then(r => r.data)
-            .then(r => setList(r))
+            .then(r => setList(Array.isArray(r) ? r : Object.entries(r)))
     }
 
     return (

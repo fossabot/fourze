@@ -1,26 +1,26 @@
-import { defineRoute, render } from "@fourze/core"
+import { defineRoutes, render } from "@fourze/core"
 import fs from "fs"
 import path from "path"
 
 const keymap = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-export default defineRoute(fourze => {
+export default defineRoutes(fourze => {
     fourze("/Search/:name", (req, res) => {
-        const num = Number(req.params["numsdjkajsda{jsksjda}s"] ?? 0)
+        const num = Number(req.params.name ?? 0)
         console.log(req.params)
-        const rs = []
+        const rs: Record<string, Date> = {}
         for (let i = 0; i < num; i++) {
             const len = 10
             let str = ""
             for (let j = 0; j < len; j++) {
                 str += keymap[randomInt(0, keymap.length - 1)]
             }
-            rs.push(str)
+            rs[str] = new Date()
         }
         return rs
     })
 
-    fourze("/search/a.jpg", async (req, res) => {
+    fourze("/img/a.jpg", async (req, res) => {
         const f = await fs.promises.readFile(path.resolve(__dirname, "./test.jpg"))
         res.image(f)
     })
@@ -31,6 +31,8 @@ export default defineRoute(fourze => {
         const f = await fs.promises.readFile(path.resolve(__dirname, "./index.ts"))
         res.binary(f)
     })
+
+    console.log(fourze.routes)
 })
 
 function randomInt(min: number, max: number) {

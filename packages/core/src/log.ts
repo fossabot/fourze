@@ -1,13 +1,15 @@
+import dayjs from "dayjs"
+
 export const logger = {
     level: "info",
     info(...args: any[]) {
         if (this.level === "info") {
-            console.info(`[fourze][${new Date().toDateString()}]`, ...args)
+            console.info(`[Fourze ${dayjs().format("YYYY-MM-DD HH:mm:ss")}]`, ...args)
         }
     },
     error(...args: any[]) {
         if (this.level === "error") {
-            console.error("[fourze]", `[${new Date().toDateString()}]`, ...args)
+            console.error(`[Fourze ${dayjs().format("YYYY-MM-DD HH:mm:ss")}]`, ...args)
         }
     }
 }

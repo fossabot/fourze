@@ -1,5 +1,5 @@
 import type { FSWatcher } from "chokidar"
-import { FourzeRoute, logger } from "@fourze/core"
+import { FourzeRoute, logger, normalizeUrl } from "@fourze/core"
 import chokidar from "chokidar"
 import fs from "fs"
 import path from "path"
@@ -93,6 +93,7 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
 
     const remove = async (moduleName: string) => {
         delete require.cache[moduleName]
+
         for (const [i, modName] of moduleNames.entries()) {
             if (modName === moduleName) {
                 moduleNames.splice(i, 1)
@@ -150,11 +151,10 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
                     return mod?.exports.default as FourzeRoute | FourzeRoute[]
                 })
                 .flat()
-                .filter(e => !!e)
                 .map(e => {
                     return {
                         ...e,
-                        path: `${base}/${e.path}`.replaceAll(/\/+/g, "/")
+                        path: normalizeUrl(`${base}/${e.path}`)
                     }
                 })
                 .sort((a, b) => {

@@ -1,6 +1,7 @@
 import type { ServerResponse } from "http"
 import qs from "query-string"
 import logger from "./log"
+import { normalizeUrl } from "./util"
 
 export interface FouzeServerContext {
     request: FourzeRequest
@@ -19,7 +20,7 @@ export interface FourzeRequest {
      *  {...query, ...params, ...body}
      */
     data: Record<string, any>
-    headers: Record<string, string | string[]>
+    headers: Record<string, string | string[] | undefined>
 }
 
 export interface FourzeResponse extends ServerResponse {
@@ -30,10 +31,16 @@ export interface FourzeResponse extends ServerResponse {
     redirect(url: string): void
 }
 
-export interface FourzeRoute {
+export const FourzeRouteSymbol = Symbol("FourzeRoute")
+
+export interface FourzeBaseRoute {
     path: string
     method?: string
     handle: FourzeHandle
+}
+
+export interface FourzeRoute extends FourzeBaseRoute {
+    [FourzeRouteSymbol]: true
 }
 
 export interface FourzeMiddlewareOptions {
@@ -51,7 +58,8 @@ export type Fourze = {
     readonly routes: FourzeRoute[]
 }
 
-export type FourzeSetup = (fourze: Fourze) => void | FourzeRoute[]
+export type FourzeSetup = (fourze: Fourze) => void | FourzeBaseRoute[]
+
 export const FOURZE_NOT_MATCH = Symbol("FOURZE_NOT_MATCH")
 
 export const FOURZE_METHODS: RequestMethod[] = ["get", "post", "delete", "put", "patch", "options", "head", "trace", "connect"]
@@ -72,98 +80,111 @@ export interface FourzeOptions {
 
 export type FourzeRenderTemplate = (content: any) => any
 
-export function render(dir: string, tempFn?: FourzeRenderTemplate): FourzeHandle {
-    const fs = require("fs")
+/**
+ * @type import("fs")
+ * @param dir
+ * @param tempFn
+ * @param extensions
+ * @returns
+ */
+export function render(dir: string, tempFn?: FourzeRenderTemplate, extensions = ["html", "htm"]): FourzeHandle {
+    const fs = require("fs") as typeof import("fs")
     const template = tempFn ?? (content => content)
     return async (request, response) => {
-        let p = dir.concat("/", request.relativePath).replaceAll("\\", "/").replaceAll("//", "/")
-        console.info(p)
-        if (fs.existsSync(p)) {
-            let stat = fs.lstatSync(p)
-            if (stat.isDirectory() || p.endsWith("/")) {
-                p = p.concat("/index.html")
-            }
-            if (fs.existsSync(p)) {
-                let content = fs.readFileSync(p, "utf-8")
-                content = template(content)
-                response.end(content)
-                return
-            }
+        let p: string = dir.concat("/", request.relativePath)
+        const maybes = [p].concat(extensions.map(ext => normalizeUrl(`${p}/index.${ext}`)))
+
+        while (!fs.existsSync(p) && maybes.length) {
+            p = maybes.shift()!
+        }
+
+        if (p) {
+            let content = fs.readFileSync(p, "utf-8")
+            content = template(content)
+            response.end(content)
+            return
         }
         response.statusCode = 404
         response.end("404")
     }
 }
 
-export function defineRoute(options: FourzeSetup | FourzeOptions) {
-    const isFn = typeof options === "function"
-    const base = isFn ? "" : options.base ?? ""
-    const setup = isFn ? options : options.setup
+export function isRoute(route: any): route is FourzeRoute {
+    console.log(route, route[FourzeRouteSymbol], FourzeRouteSymbol)
+    return !!route && !!route[FourzeRouteSymbol]
+}
 
-    let routes: FourzeRoute[] = []
+export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
+    return {
+        ...route,
+        [FourzeRouteSymbol]: true
+    }
+}
 
-    let extra: FourzeRoute[] | void
+export function defineRoutes(options: FourzeSetup | FourzeOptions | FourzeBaseRoute[]) {
+    const isOption = typeof options !== "function" && !Array.isArray(options)
+    const base = isOption ? options.base ?? "" : ""
+    const setup = isOption ? options.setup : options
 
-    if (typeof setup === "function") {
-        const fourze = (url: string, param1: string | FourzeHandle, param2?: FourzeHandle) => {
-            let method: string | undefined = undefined
-            let handle: FourzeHandle
+    const routes: FourzeBaseRoute[] = []
 
-            if (typeof param1 === "string") {
-                method = param1 as RequestMethod
-                handle = param2 as FourzeHandle
-            } else {
-                handle = param1 as FourzeHandle
-            }
+    const fourze = ((url: string, param1: string | FourzeHandle, param2?: FourzeHandle) => {
+        let method: string | undefined = undefined
+        let handle: FourzeHandle
 
-            routes.push({
-                path: url,
-                method,
-                handle
-            })
-            return fourze
+        if (typeof param1 === "string") {
+            method = param1 as RequestMethod
+            handle = param2 as FourzeHandle
+        } else {
+            handle = param1 as FourzeHandle
         }
 
-        Object.assign(
-            fourze,
-            Object.fromEntries(
-                FOURZE_METHODS.map(method => [
-                    method,
-                    (path: string, handle: FourzeHandle) => {
-                        return fourze(path, method, handle)
-                    }
-                ])
-            )
-        )
-
-        Object.defineProperty(fourze, "routes", {
-            get() {
-                return routes
-            }
+        routes.push({
+            path: url,
+            method,
+            handle
         })
+        return fourze
+    }) as Fourze
 
-        extra = setup(fourze as Fourze)
-    } else {
-        extra = setup as FourzeRoute[]
-    }
+    Object.assign(
+        fourze,
+        Object.fromEntries(
+            FOURZE_METHODS.map(method => [
+                method,
+                (path: string, handle: FourzeHandle) => {
+                    return fourze(path, method, handle)
+                }
+            ])
+        )
+    )
+
+    Object.defineProperty(fourze, "routes", {
+        get() {
+            return routes.map(e => {
+                let path = e.path
+
+                if (e.path.startsWith("@")) {
+                    path = e.path.slice(1)
+                } else {
+                    path = base.concat("/").concat(e.path)
+                }
+                path = normalizeUrl(path)
+                return defineRoute({
+                    ...e,
+                    path
+                })
+            })
+        }
+    })
+
+    const extra = typeof setup === "function" ? setup(fourze) : setup
 
     if (Array.isArray(extra)) {
         routes.push(...extra)
     }
 
-    routes.forEach(e => {
-        let path = e.path
-
-        if (e.path.startsWith("@")) {
-            path = e.path.slice(1)
-        } else {
-            path = base.concat("/").concat(e.path)
-        }
-        path = path.replace(/\/+/g, "/")
-        e.path = path
-    })
-
-    return routes
+    return fourze.routes
 }
 
 export function transformRoute(route: FourzeRoute) {
@@ -172,8 +193,6 @@ export function transformRoute(route: FourzeRoute) {
     const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
 
     const regex = new RegExp(`^${path.toLowerCase().replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"))
-
-    logger.info(regex)
 
     const pathParams = path.match(PARAM_KEY_REGEX) || []
     return {

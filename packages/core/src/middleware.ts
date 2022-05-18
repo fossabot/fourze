@@ -1,5 +1,5 @@
 import { OutgoingMessage, IncomingMessage } from "http"
-import { FourzeMiddlewareOptions as FourzeMiddlewareOptions, FourzeRequest, FourzeResponse, FouzeServerContext, FOURZE_NOT_MATCH, transformRoute } from "./shared"
+import { FourzeMiddlewareOptions, FourzeRequest, FourzeResponse, FouzeServerContext, FOURZE_NOT_MATCH, transformRoute } from "./shared"
 
 import logger from "./log"
 
@@ -47,9 +47,12 @@ function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promis
         })
         req.on("end", () => {
             const request = {
-                url: req.url,
+                url: req.url!,
                 method: req.method,
                 body: body ? JSON.parse(body) : {},
+                query: {},
+                params: {},
+                data: {},
                 headers: req.headers
             } as FourzeRequest
             resolve({ request, response: createResponse(res) })
@@ -61,7 +64,9 @@ function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promis
 }
 
 export function createMiddleware(options: FourzeMiddlewareOptions) {
-    return async function (req: IncomingMessage, res: OutgoingMessage, next: () => void) {
+    logger.info("create middleware")
+
+    return async function (req: IncomingMessage, res: OutgoingMessage, next?: () => void) {
         const { request, response } = await createServerContext(req, res)
         const routes = options.routes ?? []
 
@@ -70,24 +75,25 @@ export function createMiddleware(options: FourzeMiddlewareOptions) {
         for (let dispatch of dispatchers) {
             let result = dispatch(request, response)
 
-            if (result != FOURZE_NOT_MATCH) {
-                logger.info("request match", request.method, request.url)
-
-                result = result ?? ""
-                const resolve = (body: any) => {
-                    if (!response.writableEnded) {
-                        response.json(body)
-                    }
-                }
-                if (result instanceof Promise) {
-                    result.then(resolve)
-                } else {
-                    resolve(result)
-                }
-                return
+            if (result == FOURZE_NOT_MATCH) {
+                continue
             }
+            logger.info("request match", request.method, request.url)
+
+            result = result ?? ""
+            const resolve = (body: any) => {
+                if (!response.writableEnded) {
+                    response.json(body)
+                }
+            }
+            if (result instanceof Promise) {
+                result.then(resolve)
+            } else {
+                resolve(result)
+            }
+            return
         }
 
-        next()
+        next?.()
     }
 }
