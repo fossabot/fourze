@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { createRoot } from "react-dom/client"
 import axios from "axios"
+import "@fourze/mock"
 
 const App = () => {
     const [list, setList] = useState<any[]>([])

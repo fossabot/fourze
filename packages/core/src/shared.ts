@@ -29,13 +29,14 @@ export interface FourzeResponse extends ServerResponse {
     text(data: string): void
     binary(data: any): void
     redirect(url: string): void
+    localData: any
 }
 
 export const FourzeRouteSymbol = Symbol("FourzeRoute")
 
 export interface FourzeBaseRoute {
     path: string
-    method?: string
+    method?: RequestMethod
     handle: FourzeHandle
 }
 
@@ -52,8 +53,10 @@ export type FourzeHandle = (request: FourzeRequest, response: FourzeResponse) =>
 export type Fourze = {
     [K in RequestMethod]: (path: string, handle: FourzeHandle) => Fourze
 } & {
-    (path: string, method: RequestMethod, handle: FourzeHandle): Fourze
+    (path: string, method: RequestMethod | undefined, handle: FourzeHandle): Fourze
     (path: string, handle: FourzeHandle): Fourze
+    request(path: string, handle: FourzeHandle): Fourze
+    request(path: string, method: RequestMethod | undefined, handle: FourzeHandle): Fourze
 
     readonly routes: FourzeRoute[]
 }
@@ -67,7 +70,7 @@ export const FOURZE_METHODS: RequestMethod[] = ["get", "post", "delete", "put", 
 export type RequestMethod = "get" | "post" | "delete" | "put" | "patch" | "head" | "options" | "trace" | "connect"
 
 function parseQuery(url: string) {
-    return qs.parse(url.slice(url.indexOf("?") + 1), {
+    return qs.parseUrl(url, {
         parseNumbers: true,
         parseBooleans: true
     })
@@ -110,7 +113,6 @@ export function render(dir: string, tempFn?: FourzeRenderTemplate, extensions = 
 }
 
 export function isRoute(route: any): route is FourzeRoute {
-    console.log(route, route[FourzeRouteSymbol], FourzeRouteSymbol)
     return !!route && !!route[FourzeRouteSymbol]
 }
 
@@ -121,15 +123,9 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
     }
 }
 
-export function defineRoutes(options: FourzeSetup | FourzeOptions | FourzeBaseRoute[]) {
-    const isOption = typeof options !== "function" && !Array.isArray(options)
-    const base = isOption ? options.base ?? "" : ""
-    const setup = isOption ? options.setup : options
-
-    const routes: FourzeBaseRoute[] = []
-
-    const fourze = ((url: string, param1: string | FourzeHandle, param2?: FourzeHandle) => {
-        let method: string | undefined = undefined
+export function createFourze(base: string = "", routes: FourzeBaseRoute[] = []) {
+    const fourze = ((path: string, param1: string | FourzeHandle, param2?: FourzeHandle) => {
+        let method: RequestMethod | undefined = undefined
         let handle: FourzeHandle
 
         if (typeof param1 === "string") {
@@ -140,7 +136,7 @@ export function defineRoutes(options: FourzeSetup | FourzeOptions | FourzeBaseRo
         }
 
         routes.push({
-            path: url,
+            path,
             method,
             handle
         })
@@ -159,9 +155,18 @@ export function defineRoutes(options: FourzeSetup | FourzeOptions | FourzeBaseRo
         )
     )
 
+    Object.defineProperty(fourze, "request", {
+        get() {
+            return fourze
+        }
+    })
+
     Object.defineProperty(fourze, "routes", {
         get() {
             return routes.map(e => {
+                if (isRoute(e)) {
+                    return e
+                }
                 let path = e.path
 
                 if (e.path.startsWith("@")) {
@@ -178,10 +183,20 @@ export function defineRoutes(options: FourzeSetup | FourzeOptions | FourzeBaseRo
         }
     })
 
+    return fourze
+}
+
+export function defineRoutes(options: FourzeSetup | FourzeOptions | FourzeBaseRoute[]) {
+    const isOption = typeof options !== "function" && !Array.isArray(options)
+    const base = isOption ? options.base ?? "" : ""
+    const setup = isOption ? options.setup : options
+
+    const fourze = createFourze(base)
+
     const extra = typeof setup === "function" ? setup(fourze) : setup
 
     if (Array.isArray(extra)) {
-        routes.push(...extra)
+        extra.forEach(e => fourze(e.path, e.method, e.handle))
     }
 
     return fourze.routes
@@ -228,7 +243,7 @@ export function transformRoute(route: FourzeRoute) {
                         ...request.params
                     }
 
-                    return handle(request, response)
+                    return handle(request, response) ?? response.localData
                 }
             }
             return FOURZE_NOT_MATCH

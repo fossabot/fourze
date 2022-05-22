@@ -1,5 +1,5 @@
 import type { FSWatcher } from "chokidar"
-import { FourzeRoute, logger, normalizeUrl } from "@fourze/core"
+import { FourzeRoute, isRoute, logger, normalizeUrl } from "@fourze/core"
 import chokidar from "chokidar"
 import fs from "fs"
 import path from "path"
@@ -70,9 +70,11 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
 
     const loadTsModule = async (moduleName: string) => {
         const modName = moduleName.replace(".ts", TEMPORARY_FILE_SUFFIX)
-        const { build } = require("esbuild")
+        const { build } = require("esbuild") as typeof import("esbuild")
+
         await build({
             entryPoints: [moduleName],
+            external: ["@fourze/core"],
             outfile: modName,
             write: true,
             platform: "node",
@@ -151,6 +153,7 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
                     return mod?.exports.default as FourzeRoute | FourzeRoute[]
                 })
                 .flat()
+                .filter(isRoute)
                 .map(e => {
                     return {
                         ...e,

@@ -10,7 +10,7 @@ export default defineConfig({
             dir: path.resolve(__dirname, "mock"),
             base: "/api",
             filePattern: [".ts$", ".js$"],
-            mock: false,
+            mock: true,
             hmr: true,
             logLevel: "info"
         })

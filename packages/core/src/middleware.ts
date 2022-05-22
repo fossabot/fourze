@@ -1,5 +1,5 @@
 import { OutgoingMessage, IncomingMessage } from "http"
-import { FourzeMiddlewareOptions, FourzeRequest, FourzeResponse, FouzeServerContext, FOURZE_NOT_MATCH, transformRoute } from "./shared"
+import { FourzeMiddlewareOptions, isRoute, FourzeRequest, FourzeResponse, FouzeServerContext, FOURZE_NOT_MATCH, transformRoute } from "./shared"
 
 import logger from "./log"
 
@@ -11,21 +11,25 @@ export function createResponse(res: OutgoingMessage) {
     const response = res as FourzeResponse
 
     response.json = function (data: any) {
+        this.localData = data
         this.setHeader("Content-Type", "application/json")
         this.end(JSON.stringify(data))
     }
 
     response.binary = function (data: any) {
+        this.localData = data
         this.setHeader("Content-Type", "application/octet-stream")
         this.end(data)
     }
 
     response.image = function (data: any) {
+        this.localData = data
         this.setHeader("Content-Type", "image/jpeg")
         this.end(data)
     }
 
     response.text = function (data: string) {
+        this.localData = data
         this.setHeader("Content-Type", "text/plain")
         this.end(data)
     }
@@ -70,7 +74,7 @@ export function createMiddleware(options: FourzeMiddlewareOptions) {
         const { request, response } = await createServerContext(req, res)
         const routes = options.routes ?? []
 
-        let dispatchers = Array.from(routes.map(e => transformRoute(e).match))
+        let dispatchers = Array.from(routes.filter(isRoute).map(e => transformRoute(e).match))
 
         for (let dispatch of dispatchers) {
             let result = dispatch(request, response)
