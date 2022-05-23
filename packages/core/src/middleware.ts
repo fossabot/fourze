@@ -1,5 +1,5 @@
 import { OutgoingMessage, IncomingMessage } from "http"
-import { FourzeMiddlewareOptions, isRoute, FourzeRequest, FourzeResponse, FouzeServerContext, FOURZE_NOT_MATCH, transformRoute } from "./shared"
+import { FourzeMiddlewareOptions, isRoute, FourzeRequest, FourzeResponse, FouzeServerContext, transformRoute } from "./shared"
 
 import logger from "./log"
 
@@ -75,28 +75,32 @@ export function createMiddleware(options: FourzeMiddlewareOptions = { routes: []
     return async function (req: IncomingMessage, res: OutgoingMessage, next?: () => void) {
         const { request, response } = await createServerContext(req, res)
 
-        for (let dispatch of dispatchers) {
-            let result = dispatch(request, response)
+        let index = 0
 
-            if (result == FOURZE_NOT_MATCH) {
-                continue
-            }
-            logger.info("request match", request.method, request.url)
+        function nextDispatch() {
+            const dispatch = dispatchers[index++]
+            if (!!dispatch) {
+                const result = dispatch(request, response, nextDispatch) ?? response.localData
+                if (result) {
+                    logger.info("request match", request.method, request.url)
 
-            result = result ?? ""
-            const resolve = (body: any) => {
-                if (!response.writableEnded) {
-                    response.json(body)
+                    const resolve = (body: any) => {
+                        if (!response.writableEnded) {
+                            response.json(body)
+                        }
+                    }
+                    if (result instanceof Promise) {
+                        result.then(resolve)
+                    } else {
+                        resolve(result)
+                    }
+                    return
                 }
-            }
-            if (result instanceof Promise) {
-                result.then(resolve)
             } else {
-                resolve(result)
+                next?.()
             }
-            return
         }
 
-        next?.()
+        nextDispatch()
     }
 }

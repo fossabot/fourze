@@ -49,7 +49,7 @@ export interface FourzeMiddlewareOptions {
     routes: FourzeRoute[]
 }
 
-export type FourzeHandle = (request: FourzeRequest, response: FourzeResponse) => any | Promise<any>
+export type FourzeHandle = (request: FourzeRequest, response: FourzeResponse, next?: () => void) => any | Promise<any>
 
 export type Fourze = {
     [K in RequestMethod]: (path: string, handle: FourzeHandle) => Fourze
@@ -63,8 +63,6 @@ export type Fourze = {
 }
 
 export type FourzeSetup = (fourze: Fourze) => void | FourzeBaseRoute[]
-
-export const FOURZE_NOT_MATCH = Symbol("FOURZE_NOT_MATCH")
 
 export const FOURZE_METHODS: RequestMethod[] = ["get", "post", "delete", "put", "patch", "options", "head", "trace", "connect"]
 
@@ -100,7 +98,7 @@ export function createRenderer(dir: string, template?: FourzeRenderTemplate, ext
     const fs = require("fs") as typeof import("fs")
     const path = require("path") as typeof import("path")
 
-    const renderer = async (request: FourzeRequest, response: FourzeResponse) => {
+    const renderer = async (request: FourzeRequest, response: FourzeResponse, next?: () => void) => {
         let p: string = path.join(dir, "/", request.relativePath)
         const maybes = [p].concat(extensions.map(ext => normalizeUrl(`${p}/index.${ext}`)))
 
@@ -117,8 +115,8 @@ export function createRenderer(dir: string, template?: FourzeRenderTemplate, ext
             response.end(content)
             return
         }
-        response.statusCode = 404
-        response.end("404")
+
+        next?.()
     }
 
     renderer.template = template
@@ -226,7 +224,7 @@ export function transformRoute(route: FourzeRoute) {
     return {
         regex,
         method,
-        match(request: FourzeRequest, response: FourzeResponse) {
+        match(request: FourzeRequest, response: FourzeResponse, next?: () => void) {
             if (!method || request.method?.toLowerCase() === method.toLowerCase()) {
                 let { url } = request
 
@@ -257,7 +255,7 @@ export function transformRoute(route: FourzeRoute) {
                     return handle(request, response) ?? response.localData
                 }
             }
-            return FOURZE_NOT_MATCH
+            return next?.()
         }
     }
 }
