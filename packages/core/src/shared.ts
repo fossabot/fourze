@@ -108,9 +108,8 @@ export function createRenderer(dir: string, template?: FourzeRenderTemplate, ext
             p = maybes.shift()!
         } while (!!p && !fs.existsSync(p))
 
-        p = normalizeUrl(p)
-
         if (p) {
+            p = normalizeUrl(p)
             let content = await fs.promises.readFile(p)
             logger.info("render file", p)
             content = template ? template(content) : content
