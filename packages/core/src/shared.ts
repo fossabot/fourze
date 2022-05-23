@@ -43,6 +43,8 @@ export interface FourzeBaseRoute {
 
 export interface FourzeRoute extends FourzeBaseRoute {
     [FourzeRouteSymbol]: true
+    pathRegex: RegExp
+    pathParams: RegExpMatchArray
 }
 
 export interface FourzeMiddlewareOptions {
@@ -130,14 +132,59 @@ export function isRoute(route: any): route is FourzeRoute {
 }
 
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
+    const method = route.method
+
     const base = !route.path.startsWith("//") && route.base ? route.base : ""
 
-    const path = normalizeUrl(base.concat("/").concat(route.path))
+    const path = normalizeUrl(base.concat("/").concat(route.path)).toLowerCase()
+
+    const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
+
+    const pathRegex = new RegExp(`^${path.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"))
+
+    const pathParams = path.match(PARAM_KEY_REGEX) || []
+
+    const handle = function (this: FourzeRoute, request: FourzeRequest, response: FourzeResponse, next?: () => void) {
+        if (!method || request.method?.toLowerCase() === method.toLowerCase()) {
+            let { url } = request
+
+            const matches = url.match(pathRegex)
+
+            if (matches) {
+                const params: Record<string, any> = {}
+                for (let i = 0; i < pathParams.length; i++) {
+                    const key = pathParams[i].replace(/^[\:\{]/g, "").replace(/\}$/g, "")
+                    const value = matches[i + 1]
+                    params[key] = value
+                }
+                request.route = this
+                request.query = parseQuery(url)
+
+                if (matches.length > pathParams.length) {
+                    request.relativePath = matches[matches.length - 2]
+                } else {
+                    request.relativePath = url
+                }
+                request.params = params
+                request.data = {
+                    ...request.body,
+                    ...request.query,
+                    ...request.params
+                }
+
+                return route.handle(request, response) ?? response.localData
+            }
+        }
+        next?.()
+    }
 
     return {
-        ...route,
+        method,
+        handle,
         path,
         base,
+        pathRegex,
+        pathParams,
         [FourzeRouteSymbol]: true
     }
 }
@@ -213,49 +260,4 @@ export function defineRoutes(options: FourzeSetup | FourzeOptions | FourzeBaseRo
     return fourze.routes
 }
 
-export function transformRoute(route: FourzeRoute) {
-    let { handle, method, path = "" } = route
-
-    const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
-
-    const regex = new RegExp(`^${path.toLowerCase().replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"))
-
-    const pathParams = path.match(PARAM_KEY_REGEX) || []
-    return {
-        regex,
-        method,
-        match(request: FourzeRequest, response: FourzeResponse, next?: () => void) {
-            if (!method || request.method?.toLowerCase() === method.toLowerCase()) {
-                let { url } = request
-
-                const matches = url.match(regex)
-
-                if (matches) {
-                    const params: Record<string, any> = {}
-                    for (let i = 0; i < pathParams.length; i++) {
-                        const key = pathParams[i].replace(/^[\:\{]/g, "").replace(/\}$/g, "")
-                        const value = matches[i + 1]
-                        params[key] = value
-                    }
-                    request.route = route
-                    request.query = parseQuery(url)
-
-                    if (matches.length > pathParams.length) {
-                        request.relativePath = matches[matches.length - 2]
-                    } else {
-                        request.relativePath = url
-                    }
-                    request.params = params
-                    request.data = {
-                        ...request.body,
-                        ...request.query,
-                        ...request.params
-                    }
-
-                    return handle(request, response) ?? response.localData
-                }
-            }
-            return next?.()
-        }
-    }
-}
+export function matchRoute(request: FourzeRequest, response: FourzeResponse, next?: () => void) {}

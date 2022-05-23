@@ -6,7 +6,6 @@ const TEMPORARY_FILE_SUFFIX = ".tmp.js"
 export function transformCode(router: FourzeRouter) {
     let code = ""
     code += `
-  import { transformRoute } from "@fourze/core";
   import { mock, setup } from "mockjs"`
 
     const names: string[] = []
@@ -23,11 +22,11 @@ export function transformCode(router: FourzeRouter) {
     code += `
   const routes = [${names.join(",")}].flat()
   for (let route of routes) {
-      const { regex, method = "get", match } = transformRoute(route)
-      mock(regex, method, request => {
+      const { pathRegex, method = "get", handle } = route
+      mock(pathRegex, method, request => {
           const { url, body, headers} = request
           const data = JSON.parse(body)
-          return match({ url, data, method, headers})
+          return handle({ url, data, method, headers})
         })
     }
     setup({

@@ -1,5 +1,5 @@
 import { OutgoingMessage, IncomingMessage } from "http"
-import { FourzeMiddlewareOptions, isRoute, FourzeRequest, FourzeResponse, FouzeServerContext, transformRoute } from "./shared"
+import { FourzeMiddlewareOptions, isRoute, FourzeRequest, FourzeResponse, FouzeServerContext } from "./shared"
 
 import logger from "./log"
 
@@ -70,25 +70,26 @@ function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promis
 export function createMiddleware(options: FourzeMiddlewareOptions = { routes: [] }) {
     logger.info("create middleware")
 
-    const dispatchers = Array.from(options.routes.filter(isRoute).map(e => transformRoute(e).match))
+    const dispatchers = Array.from(options.routes.filter(isRoute)).map(e => e.handle)
 
     return async function (req: IncomingMessage, res: OutgoingMessage, next?: () => void) {
         const { request, response } = await createServerContext(req, res)
 
         let index = 0
 
-        function nextDispatch() {
+        const resolve = (body: any) => {
+            if (!response.writableEnded) {
+                response.json(body)
+            }
+        }
+
+        const fn = () => {
             const dispatch = dispatchers[index++]
             if (!!dispatch) {
-                const result = dispatch(request, response, nextDispatch) ?? response.localData
+                const result = dispatch(request, response, fn) ?? response.localData
                 if (result) {
                     logger.info("request match", request.method, request.url)
 
-                    const resolve = (body: any) => {
-                        if (!response.writableEnded) {
-                            response.json(body)
-                        }
-                    }
                     if (result instanceof Promise) {
                         result.then(resolve)
                     } else {
@@ -101,6 +102,6 @@ export function createMiddleware(options: FourzeMiddlewareOptions = { routes: []
             }
         }
 
-        nextDispatch()
+        fn()
     }
 }
