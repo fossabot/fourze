@@ -32,7 +32,7 @@ export interface FourzeResponse extends ServerResponse {
     localData: any
 }
 
-export const FourzeRouteSymbol = Symbol("FourzeRoute")
+const FourzeRouteSymbol = Symbol("FourzeRoute")
 
 export interface FourzeBaseRoute {
     path: string
@@ -45,6 +45,7 @@ export interface FourzeRoute extends FourzeBaseRoute {
     [FourzeRouteSymbol]: true
     pathRegex: RegExp
     pathParams: RegExpMatchArray
+    dispatch: FourzeHandle
 }
 
 export interface FourzeMiddlewareOptions {
@@ -132,11 +133,11 @@ export function isRoute(route: any): route is FourzeRoute {
 }
 
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
-    const method = route.method
+    const { handle, method } = route
 
-    const base = !route.path.startsWith("//") && route.base ? route.base : ""
+    const base = !route.path.startsWith("//") ? route.base : undefined
 
-    const path = normalizeUrl(base.concat("/").concat(route.path)).toLowerCase()
+    const path = normalizeUrl((base ?? "").concat("/").concat(route.path)).toLowerCase()
 
     const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
 
@@ -144,9 +145,9 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
 
     const pathParams = path.match(PARAM_KEY_REGEX) || []
 
-    const handle = function (this: FourzeRoute, request: FourzeRequest, response: FourzeResponse, next?: () => void) {
+    const dispatch = function (this: FourzeRoute, request: FourzeRequest, response: FourzeResponse, next?: () => void) {
         if (!method || request.method?.toLowerCase() === method.toLowerCase()) {
-            let { url } = request
+            const { url } = request
 
             const matches = url.match(pathRegex)
 
@@ -181,6 +182,7 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
     return {
         method,
         handle,
+        dispatch,
         path,
         base,
         pathRegex,
@@ -189,7 +191,7 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
     }
 }
 
-export function createFourze(base: string = "", routes: FourzeBaseRoute[] = []) {
+export function createFourze(base?: string, routes: FourzeBaseRoute[] = []) {
     const fourze = ((path: string, param1: string | FourzeHandle, param2?: FourzeHandle) => {
         let method: RequestMethod | undefined = undefined
         let handle: FourzeHandle
@@ -246,7 +248,7 @@ export function createFourze(base: string = "", routes: FourzeBaseRoute[] = []) 
 
 export function defineRoutes(options: FourzeSetup | FourzeOptions | FourzeBaseRoute[]) {
     const isOption = typeof options !== "function" && !Array.isArray(options)
-    const base = isOption ? options.base ?? "" : ""
+    const base = isOption ? options.base : undefined
     const setup = isOption ? options.setup : options
 
     const fourze = createFourze(base)

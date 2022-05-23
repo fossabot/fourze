@@ -20,8 +20,9 @@ export interface FourzeRouter {
     watch(watcher?: FSWatcher): this
     watch(dir?: string, watcher?: FSWatcher): this
     proxy(p: string | FourzeProxyOption): this
-    routes: FourzeRoute[]
-    moduleNames: string[]
+    readonly base: string
+    readonly routes: FourzeRoute[]
+    readonly moduleNames: string[]
 }
 
 const TEMPORARY_FILE_SUFFIX = ".tmp.js"
@@ -159,12 +160,13 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
             let renderBase = base
             if (typeof p == "string") {
                 path = p
-                dir = join(rootDir, "/", p)
+                dir = join(rootDir, "/", path)
             } else {
                 path = p.path
                 dir = p.target ?? join(rootDir, "/", path)
                 renderBase = p.base ?? base
             }
+
             routes.push({
                 path,
                 base: renderBase,
@@ -172,7 +174,12 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
             })
             return this
         },
-        moduleNames,
+        get base() {
+            return base
+        },
+        get moduleNames() {
+            return moduleNames
+        },
         get routes() {
             return routes
                 .concat(
@@ -183,6 +190,12 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
                         })
                         .flat()
                         .filter(isRoute)
+                        .map(e => {
+                            return {
+                                ...e,
+                                base
+                            }
+                        })
                 )
                 .map(defineRoute)
                 .sort((a, b) => {

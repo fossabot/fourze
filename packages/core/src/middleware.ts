@@ -61,6 +61,7 @@ function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promis
             } as FourzeRequest
             resolve({ request, response: createResponse(res) })
         })
+
         req.on("error", () => {
             reject(new Error("request error"))
         })
@@ -70,7 +71,7 @@ function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promis
 export function createMiddleware(options: FourzeMiddlewareOptions = { routes: [] }) {
     logger.info("create middleware")
 
-    const dispatchers = Array.from(options.routes.filter(isRoute)).map(e => e.handle)
+    const dispatchers = Array.from(options.routes.filter(isRoute)).map(e => e.dispatch)
 
     return async function (req: IncomingMessage, res: OutgoingMessage, next?: () => void) {
         const { request, response } = await createServerContext(req, res)

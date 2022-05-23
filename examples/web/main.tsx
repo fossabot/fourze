@@ -7,8 +7,12 @@ const App = () => {
     const [list, setList] = useState<any[]>([])
 
     function search() {
-        axios(`/api/search/${Math.floor(Math.random() * 9)}`)
-            .then(r => r.data)
+        axios
+            .post(`/api/search/${Math.floor(Math.random() * 9)}`, { phone: 1 })
+            .then(r => {
+                console.log(r)
+                return r.data
+            })
             .then(r => setList(Array.isArray(r) ? r : Object.entries(r)))
     }
 

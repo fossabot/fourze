@@ -1,5 +1,5 @@
 import { defineConfig } from "vite"
-import fourze from "@fourze/vite"
+import fourze, { mockJs } from "@fourze/vite"
 import react from "@vitejs/plugin-react"
 import path from "path"
 
@@ -13,6 +13,7 @@ export default defineConfig({
             proxy: {
                 "//stat": path.resolve(__dirname, "static")
             },
+            transformCode: mockJs,
             mock: true,
             hmr: true,
             logLevel: "info"

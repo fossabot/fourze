@@ -1,10 +1,8 @@
-import { Plugin, normalizePath } from "vite"
+import { Plugin } from "vite"
 
-import { createMiddleware, createRenderer, FourzeBaseRoute, logger } from "@fourze/core"
+import { createMiddleware, FourzeBaseRoute, logger } from "@fourze/core"
 
-import { createRouter, FourzeProxyOption } from "@fourze/router"
-import { transformCode } from "./mock"
-import { resolve } from "path"
+import { createRouter, FourzeProxyOption, FourzeRouter } from "@fourze/router"
 
 const PLUGIN_NAME = "vite-plugin-fourze"
 
@@ -44,6 +42,8 @@ export interface VitePluginFourzeOptions {
     routes?: FourzeBaseRoute[]
 
     proxy?: (FourzeProxyOption | string)[] | Record<string, string>
+
+    transformCode?: (router: FourzeRouter) => string
 }
 
 export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {}): Plugin {
@@ -118,7 +118,7 @@ export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {})
         },
         load(id) {
             if (id === CLIENT_ID || id === `/${CLIENT_ID}`) {
-                return transformCode(router)
+                return options.transformCode?.(router) ?? ""
             }
         },
 
@@ -132,5 +132,7 @@ export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {})
         }
     }
 }
+
+export * from "./mockjs"
 
 export default VitePluginFourze

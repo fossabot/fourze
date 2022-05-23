@@ -3,10 +3,10 @@ import { normalizePath } from "vite"
 
 const TEMPORARY_FILE_SUFFIX = ".tmp.js"
 
-export function transformCode(router: FourzeRouter) {
-    let code = ""
+export function mockJs(router: FourzeRouter) {
+    let code = `import {defineRoute,isRoute} from "@fourze/core"`
     code += `
-  import { mock, setup } from "mockjs"`
+    import MockJs from "mockjs"`
 
     const names: string[] = []
     console.log(router.moduleNames)
@@ -17,21 +17,20 @@ export function transformCode(router: FourzeRouter) {
         modName = normalizePath(modName)
 
         code += `
-    import ${names[i]} from "${modName}"`
+        import ${names[i]} from "${modName}"`
     }
     code += `
-  const routes = [${names.join(",")}].flat()
+    const routes = [${names.join(",")}].flat().filter(isRoute)
+  console.log(routes)
   for (let route of routes) {
-      const { pathRegex, method = "get", handle } = route
-      mock(pathRegex, method, request => {
+      const { pathRegex, method = "", dispatch } = defineRoute({ ...route ,base: route.base ?? "${router.base}"})
+      MockJs.mock(pathRegex, method, request => {
           const { url, body, headers} = request
-          const data = JSON.parse(body)
-          return handle({ url, data, method, headers})
+          const rrr = dispatch({ url, body:JSON.parse(body), method, headers},{})
+          console.log(rrr)
+          return rrr
         })
     }
-    setup({
-        timeout: "30-500"
-    })
   `
     return code
 }
