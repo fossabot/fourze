@@ -1,6 +1,5 @@
 import { createFourze, defineRoutes, createRender } from "@fourze/core"
 import fs from "fs"
-import { request } from "http"
 import path from "path"
 
 const keymap = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

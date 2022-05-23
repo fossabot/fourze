@@ -36,6 +36,7 @@ export const FourzeRouteSymbol = Symbol("FourzeRoute")
 
 export interface FourzeBaseRoute {
     path: string
+    base?: string
     method?: RequestMethod
     handle: FourzeHandle
 }
@@ -90,20 +91,25 @@ export type FourzeRenderTemplate = (content: any) => any
  * @param extensions
  * @returns
  */
-export function render(dir: string, tempFn?: FourzeRenderTemplate, extensions = ["html", "htm"]): FourzeHandle {
+export function createRender(dir: string, tempFn?: FourzeRenderTemplate, extensions = ["html", "htm"]): FourzeHandle {
     const fs = require("fs") as typeof import("fs")
+    const path = require("path") as typeof import("path")
     const template = tempFn ?? (content => content)
     return async (request, response) => {
-        let p: string = dir.concat("/", request.relativePath)
+        let p: string = path.join(dir, "/", request.relativePath)
         const maybes = [p].concat(extensions.map(ext => normalizeUrl(`${p}/index.${ext}`)))
 
-        while (!fs.existsSync(p) && maybes.length) {
+        do {
             p = maybes.shift()!
-        }
+        } while (p && !fs.existsSync(p))
+
+        console.log(p, maybes)
 
         if (p) {
-            let content = fs.readFileSync(p, "utf-8")
+            let content = await fs.promises.readFile(p)
+            logger.info("render file", p, content)
             content = template(content)
+
             response.end(content)
             return
         }
@@ -117,8 +123,17 @@ export function isRoute(route: any): route is FourzeRoute {
 }
 
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
+    let path = route.path
+    let base = route.base
+    if (path.startsWith("//")) {
+        path = path.slice(1)
+    } else if (base) {
+        path = base.concat("/").concat(path)
+    }
+    path = normalizeUrl(path)
     return {
         ...route,
+        path,
         [FourzeRouteSymbol]: true
     }
 }
@@ -167,17 +182,9 @@ export function createFourze(base: string = "", routes: FourzeBaseRoute[] = []) 
                 if (isRoute(e)) {
                     return e
                 }
-                let path = e.path
-
-                if (e.path.startsWith("@")) {
-                    path = e.path.slice(1)
-                } else {
-                    path = base.concat("/").concat(e.path)
-                }
-                path = normalizeUrl(path)
                 return defineRoute({
-                    ...e,
-                    path
+                    base,
+                    ...e
                 })
             })
         }

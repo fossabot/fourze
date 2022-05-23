@@ -1,9 +1,10 @@
 import { Plugin, normalizePath } from "vite"
 
-import { createMiddleware, logger } from "@fourze/core"
+import { createMiddleware, createRender, FourzeBaseRoute, logger } from "@fourze/core"
 
-import { createRouter } from "@fourze/router"
+import { createRouter, FourzeRenderOption } from "@fourze/router"
 import { transformCode } from "./mock"
+import { resolve } from "path"
 
 const PLUGIN_NAME = "vite-plugin-fourze"
 
@@ -39,23 +40,34 @@ export interface VitePluginFourzeOptions {
      * @default "off"
      */
     logLevel: "off" | "info" | "warn" | "error"
+
+    routes?: FourzeBaseRoute[]
+
+    renders?: (FourzeRenderOption | string)[]
 }
 
 export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {}): Plugin {
-    const dir = (options.dir = options.dir ?? "./src/mock")
+    const dir = options.dir ?? "./src/mock"
 
-    const base = (options.base = options.base ?? "/api")
+    const base = options.base ?? "/api"
 
-    const pattern = (options.filePattern = options.filePattern ?? [".ts$", ".js$"])
-    const hmr = (options.hmr = options.hmr ?? true)
+    const pattern = Array.from(options.filePattern ?? [".ts$", ".js$"])
+    const hmr = options.hmr ?? true
 
     logger.level = options.logLevel ?? "off"
+
+    const renders = Array.from((options.renders = options.renders ?? []))
+
+    const routes = Array.from((options.routes = options.routes ?? []))
 
     const router = createRouter({
         base,
         dir,
-        pattern
+        pattern,
+        routes
     })
+
+    renders.forEach(router.render)
 
     return {
         name: PLUGIN_NAME,
@@ -108,6 +120,7 @@ export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {})
                 router.watch(watcher)
             }
             const middleware = createMiddleware(router)
+
             middlewares.use(middleware)
         }
     }
