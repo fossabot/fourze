@@ -1,8 +1,8 @@
 import { Plugin, normalizePath } from "vite"
 
-import { createMiddleware, createRender, FourzeBaseRoute, logger } from "@fourze/core"
+import { createMiddleware, createRenderer, FourzeBaseRoute, logger } from "@fourze/core"
 
-import { createRouter, FourzeRenderOption } from "@fourze/router"
+import { createRouter, FourzeProxyOption } from "@fourze/router"
 import { transformCode } from "./mock"
 import { resolve } from "path"
 
@@ -43,7 +43,7 @@ export interface VitePluginFourzeOptions {
 
     routes?: FourzeBaseRoute[]
 
-    renders?: (FourzeRenderOption | string)[]
+    proxy?: (FourzeProxyOption | string)[] | Record<string, string>
 }
 
 export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {}): Plugin {
@@ -56,9 +56,16 @@ export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {})
 
     logger.level = options.logLevel ?? "off"
 
-    const renders = Array.from((options.renders = options.renders ?? []))
+    const proxy = Array.isArray(options.proxy)
+        ? options.proxy
+        : Object.entries(options.proxy ?? {}).map<FourzeProxyOption>(([path, target]) => {
+              return {
+                  path,
+                  target
+              }
+          })
 
-    const routes = Array.from((options.routes = options.routes ?? []))
+    const routes = Array.from(options.routes ?? [])
 
     const router = createRouter({
         base,
@@ -67,7 +74,7 @@ export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {})
         routes
     })
 
-    renders.forEach(router.render)
+    proxy.forEach(router.proxy)
 
     return {
         name: PLUGIN_NAME,

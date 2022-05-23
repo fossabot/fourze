@@ -10,12 +10,9 @@ export default defineConfig({
             dir: path.resolve(__dirname, "mock"),
             base: "/api",
             filePattern: [".ts$", ".js$"],
-            renders: [
-                {
-                    path: "//stat",
-                    dir: path.resolve(__dirname, "static")
-                }
-            ],
+            proxy: {
+                "//stat": path.resolve(__dirname, "static")
+            },
             mock: true,
             hmr: true,
             logLevel: "info"

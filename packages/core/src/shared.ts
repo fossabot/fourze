@@ -82,6 +82,11 @@ export interface FourzeOptions {
     setup: FourzeSetup
 }
 
+export type FourzeRenderer = FourzeHandle & {
+    template?: (content: string) => string
+    dir: string
+}
+
 export type FourzeRenderTemplate = (content: any) => any
 
 /**
@@ -91,24 +96,24 @@ export type FourzeRenderTemplate = (content: any) => any
  * @param extensions
  * @returns
  */
-export function createRender(dir: string, tempFn?: FourzeRenderTemplate, extensions = ["html", "htm"]): FourzeHandle {
+export function createRenderer(dir: string, template?: FourzeRenderTemplate, extensions = ["html", "htm"]): FourzeRenderer {
     const fs = require("fs") as typeof import("fs")
     const path = require("path") as typeof import("path")
-    const template = tempFn ?? (content => content)
-    return async (request, response) => {
+
+    const renderer = async (request: FourzeRequest, response: FourzeResponse) => {
         let p: string = path.join(dir, "/", request.relativePath)
         const maybes = [p].concat(extensions.map(ext => normalizeUrl(`${p}/index.${ext}`)))
 
         do {
             p = maybes.shift()!
-        } while (p && !fs.existsSync(p))
+        } while (!!p && !fs.existsSync(p))
 
-        console.log(p, maybes)
+        p = normalizeUrl(p)
 
         if (p) {
             let content = await fs.promises.readFile(p)
-            logger.info("render file", p, content)
-            content = template(content)
+            logger.info("render file", p)
+            content = template ? template(content) : content
 
             response.end(content)
             return
@@ -116,6 +121,11 @@ export function createRender(dir: string, tempFn?: FourzeRenderTemplate, extensi
         response.statusCode = 404
         response.end("404")
     }
+
+    renderer.template = template
+    renderer.dir = dir
+
+    return renderer
 }
 
 export function isRoute(route: any): route is FourzeRoute {
@@ -123,17 +133,14 @@ export function isRoute(route: any): route is FourzeRoute {
 }
 
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
-    let path = route.path
-    let base = route.base
-    if (path.startsWith("//")) {
-        path = path.slice(1)
-    } else if (base) {
-        path = base.concat("/").concat(path)
-    }
-    path = normalizeUrl(path)
+    const base = !route.path.startsWith("//") && route.base ? route.base : ""
+
+    const path = normalizeUrl(base.concat("/").concat(route.path))
+
     return {
         ...route,
         path,
+        base,
         [FourzeRouteSymbol]: true
     }
 }
@@ -225,8 +232,6 @@ export function transformRoute(route: FourzeRoute) {
                 let { url } = request
 
                 const matches = url.match(regex)
-
-                logger.info(url)
 
                 if (matches) {
                     const params: Record<string, any> = {}

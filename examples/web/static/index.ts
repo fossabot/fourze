@@ -1,4 +1,4 @@
-import { createFourze, defineRoutes, createRender } from "@fourze/core"
+import { createFourze, defineRoutes, createRenderer } from "@fourze/core"
 import fs from "fs"
 import path from "path"
 

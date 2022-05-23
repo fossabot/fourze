@@ -1,5 +1,5 @@
 import type { FSWatcher } from "chokidar"
-import { FourzeBaseRoute, FourzeRoute, isRoute, logger, normalizeUrl, createRender, defineRoute } from "@fourze/core"
+import { FourzeBaseRoute, FourzeRoute, isRoute, logger, normalizeUrl, createRenderer, defineRoute } from "@fourze/core"
 import chokidar from "chokidar"
 import fs from "fs"
 import { resolve, join } from "path"
@@ -19,7 +19,7 @@ export interface FourzeRouter {
     remove(moduleName: string): this
     watch(watcher?: FSWatcher): this
     watch(dir?: string, watcher?: FSWatcher): this
-    render(p: string | FourzeRenderOption): this
+    proxy(p: string | FourzeProxyOption): this
     routes: FourzeRoute[]
     moduleNames: string[]
 }
@@ -35,8 +35,8 @@ function transformPattern(pattern: (string | RegExp)[]) {
     })
 }
 
-export interface FourzeRenderOption extends Omit<FourzeBaseRoute, "handle"> {
-    dir?: string
+export interface FourzeProxyOption extends Omit<FourzeBaseRoute, "handle"> {
+    target?: string
 }
 
 export function createRouter(options: FourzeRouterOptions): FourzeRouter {
@@ -153,7 +153,7 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
             }
             return this
         },
-        render(p: string | FourzeRenderOption) {
+        proxy(p: string | FourzeProxyOption) {
             let path: string
             let dir: string
             let renderBase = base
@@ -162,13 +162,13 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
                 dir = join(rootDir, "/", p)
             } else {
                 path = p.path
-                dir = p.dir ?? join(rootDir, "/", path)
+                dir = p.target ?? join(rootDir, "/", path)
                 renderBase = p.base ?? base
             }
             routes.push({
                 path,
                 base: renderBase,
-                handle: createRender(dir)
+                handle: createRenderer(dir)
             })
             return this
         },
