@@ -49,6 +49,10 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
 
     const router = {
         async load(moduleName: string = rootDir) {
+            if (!fs.existsSync(moduleName)) {
+                return
+            }
+
             const loadModule = async (moduleName: string) => {
                 logger.info("loadMockModule", moduleName)
                 if (moduleName.endsWith(".ts")) {
