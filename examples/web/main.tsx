@@ -14,7 +14,7 @@ const App = () => {
 
     return (
         <div>
-            <img style={{ width: "120px", height: "120px" }} src="/api/img/a.jpg" />
+            <img style={{ width: "120px", height: "120px" }} src="/stat/test.jpg" />
             <button onClick={search}>Click Me!</button>
             {list.map(item => (
                 <div key={item}>{item}</div>

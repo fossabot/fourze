@@ -67,14 +67,13 @@ function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promis
     })
 }
 
-export function createMiddleware(options: FourzeMiddlewareOptions) {
+export function createMiddleware(options: FourzeMiddlewareOptions = { routes: [] }) {
     logger.info("create middleware")
+
+    const dispatchers = Array.from(options.routes.filter(isRoute).map(e => transformRoute(e).match))
 
     return async function (req: IncomingMessage, res: OutgoingMessage, next?: () => void) {
         const { request, response } = await createServerContext(req, res)
-        const routes = options.routes ?? []
-
-        let dispatchers = Array.from(routes.filter(isRoute).map(e => transformRoute(e).match))
 
         for (let dispatch of dispatchers) {
             let result = dispatch(request, response)
