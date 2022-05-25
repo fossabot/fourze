@@ -1,17 +1,14 @@
 import React, { useState } from "react"
 import { createRoot } from "react-dom/client"
 import axios from "axios"
-import "@fourze/mock"
 
 const App = () => {
     const [list, setList] = useState<any[]>([])
 
     function search() {
-        axios
-            .post(`/api/search/${Math.floor(Math.random() * 9)}`, { phone: 1 })
+        fetch(`/api/search/${Math.floor(Math.random() * 9)}`, { method: "post", body: JSON.stringify({ phone: 2 }) })
             .then(r => {
-                console.log(r)
-                return r.data
+                return r.json()
             })
             .then(r => setList(Array.isArray(r) ? r : Object.entries(r)))
     }

@@ -7,13 +7,35 @@ export type RequestPath = `${"get" | "post" | "delete"}:${string}` | string
 
 export type DispatchFunction = (request: FourzeRequest) => any
 
-export function createResponse(res: OutgoingMessage) {
-    const response = res as FourzeResponse
+export function createResponse(res?: OutgoingMessage) {
+    const response = (res as FourzeResponse) ?? {
+        headers: {},
+        setHeader(name: string, value: string) {
+            if (this.hasHeader(name)) {
+                this.headers[name] += `,${value}`
+            } else {
+                this.headers[name] = value
+            }
+        },
+        getHeader(name: string) {
+            return this.headers[name]
+        },
+        getHeaderNames() {
+            return Object.keys(this.headers)
+        },
+        hasHeader(name) {
+            return !!this.headers[name]
+        },
+        end(data: any) {
+            this.localData = data
+        }
+    }
 
     response.json = function (data: any) {
+        data = typeof data == "string" ? data : JSON.stringify(data)
         this.localData = data
         this.setHeader("Content-Type", "application/json")
-        this.end(JSON.stringify(data))
+        this.end(data)
     }
 
     response.binary = function (data: any) {
@@ -43,6 +65,22 @@ export function createResponse(res: OutgoingMessage) {
     return response
 }
 
+export function createRequest(options: Partial<FourzeRequest>) {
+    if (typeof options.body === "string") {
+        options.body = JSON.parse(options.body)
+    }
+
+    return {
+        relativePath: options.url,
+        query: {},
+        body: {},
+        params: {},
+        data: {},
+        headers: {},
+        ...options
+    } as FourzeRequest
+}
+
 function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promise<FouzeServerContext> {
     return new Promise((resolve, reject) => {
         let body = ""
@@ -50,7 +88,7 @@ function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promis
             body += chunk
         })
         req.on("end", () => {
-            const request = {
+            const request = createRequest({
                 url: req.url!,
                 method: req.method,
                 body: body ? JSON.parse(body) : {},
@@ -58,8 +96,11 @@ function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promis
                 params: {},
                 data: {},
                 headers: req.headers
-            } as FourzeRequest
-            resolve({ request, response: createResponse(res) })
+            })
+
+            const response = createResponse(res)
+
+            resolve({ request, response })
         })
 
         req.on("error", () => {
@@ -71,38 +112,27 @@ function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promis
 export function createMiddleware(options: FourzeMiddlewareOptions = { routes: [] }) {
     logger.info("create middleware")
 
-    const dispatchers = Array.from(options.routes.filter(isRoute)).map(e => e.dispatch)
-
     return async function (req: IncomingMessage, res: OutgoingMessage, next?: () => void) {
         const { request, response } = await createServerContext(req, res)
+        const dispatchers = options.routes.filter(isRoute).map(e => e.dispatch)
 
         let index = 0
 
-        const resolve = (body: any) => {
-            if (!response.writableEnded) {
-                response.json(body)
-            }
-        }
-
-        const fn = () => {
+        const fn = async () => {
             const dispatch = dispatchers[index++]
             if (!!dispatch) {
-                const result = dispatch(request, response, fn) ?? response.localData
+                const result = await dispatch(request, response, fn)
                 if (result) {
                     logger.info("request match", request.method, request.url)
-
-                    if (result instanceof Promise) {
-                        result.then(resolve)
-                    } else {
-                        resolve(result)
+                    if (!response.writableEnded) {
+                        response.json(result)
                     }
-                    return
                 }
             } else {
                 next?.()
             }
         }
 
-        fn()
+        await fn()
     }
 }

@@ -55,7 +55,7 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
             }
 
             const loadModule = async (moduleName: string) => {
-                logger.info("loadMockModule", moduleName)
+                logger.info("load module", moduleName)
                 if (moduleName.endsWith(".ts")) {
                     await loadTsModule(moduleName)
                 } else {
@@ -65,8 +65,12 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
 
             const loadJsModule = async (moduleName: string) => {
                 this.remove(moduleName)
-                require(moduleName)
-                moduleNames.push(moduleName)
+                const mod = require(moduleName)
+                const route = mod?.exports?.default ?? mod?.default
+                console.log(route, mod)
+                if (isRoute(route) || (Array.isArray(route) && route.some(isRoute))) {
+                    moduleNames.push(moduleName)
+                }
             }
 
             const loadTsModule = async (moduleName: string) => {

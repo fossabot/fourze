@@ -5,7 +5,7 @@ import path from "path"
 const keymap = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 export default defineRoutes(fourze => {
-    fourze.request("/search/:name", (req, res) => {
+    fourze.request("/search/:name", async (req, res) => {
         const num = Number(req.params.name ?? 0)
         const phone: number = req.body.phone ?? 1
         const rs: Record<string, string> = {}

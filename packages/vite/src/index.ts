@@ -6,7 +6,7 @@ import { createRouter, FourzeProxyOption, FourzeRouter } from "@fourze/router"
 
 const PLUGIN_NAME = "vite-plugin-fourze"
 
-const CLIENT_ID = "@fourze/mock"
+const CLIENT_ID = "@fourze/client"
 
 export interface VitePluginFourzeOptions {
     /**
@@ -42,6 +42,8 @@ export interface VitePluginFourzeOptions {
     routes?: FourzeBaseRoute[]
 
     proxy?: (FourzeProxyOption | string)[] | Record<string, string>
+
+    timeout?: number | string | [number, number]
 
     transformCode?: (router: FourzeRouter) => string
 }
@@ -133,6 +135,6 @@ export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {})
     }
 }
 
-export * from "./mockjs"
+export * from "./mock"
 
 export default VitePluginFourze

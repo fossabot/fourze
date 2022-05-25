@@ -30,9 +30,10 @@ export interface FourzeResponse extends ServerResponse {
     binary(data: any): void
     redirect(url: string): void
     localData: any
+    headers: Record<string, string | string[] | undefined>
 }
 
-const FourzeRouteSymbol = Symbol("FourzeRoute")
+const FOURZE_ROUTE_SYMBOL = Symbol("FourzeRoute")
 
 export interface FourzeBaseRoute {
     path: string
@@ -42,7 +43,7 @@ export interface FourzeBaseRoute {
 }
 
 export interface FourzeRoute extends FourzeBaseRoute {
-    [FourzeRouteSymbol]: true
+    [FOURZE_ROUTE_SYMBOL]: true
     pathRegex: RegExp
     pathParams: RegExpMatchArray
     dispatch: FourzeHandle
@@ -61,7 +62,6 @@ export type Fourze = {
     (path: string, handle: FourzeHandle): Fourze
     request(path: string, handle: FourzeHandle): Fourze
     request(path: string, method: RequestMethod | undefined, handle: FourzeHandle): Fourze
-
     readonly routes: FourzeRoute[]
 }
 
@@ -93,7 +93,7 @@ export type FourzeRenderTemplate = (content: any) => any
 /**
  * @type import("fs")
  * @param dir
- * @param tempFn
+ * @param template
  * @param extensions
  * @returns
  */
@@ -129,8 +129,10 @@ export function createRenderer(dir: string, template?: FourzeRenderTemplate, ext
 }
 
 export function isRoute(route: any): route is FourzeRoute {
-    return !!route && !!route[FourzeRouteSymbol]
+    return !!route && !!route[FOURZE_ROUTE_SYMBOL]
 }
+
+const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
 
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
     const { handle, method } = route
@@ -138,8 +140,6 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
     const base = !route.path.startsWith("//") ? route.base : undefined
 
     const path = normalizeUrl((base ?? "").concat("/").concat(route.path)).toLowerCase()
-
-    const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
 
     const pathRegex = new RegExp(`^${path.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"))
 
@@ -181,13 +181,13 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
 
     return {
         method,
-        handle,
-        dispatch,
         path,
         base,
         pathRegex,
         pathParams,
-        [FourzeRouteSymbol]: true
+        handle,
+        dispatch,
+        [FOURZE_ROUTE_SYMBOL]: true
     }
 }
 
@@ -211,35 +211,36 @@ export function createFourze(base?: string, routes: FourzeBaseRoute[] = []) {
         return fourze
     }) as Fourze
 
-    Object.assign(
-        fourze,
-        Object.fromEntries(
+    Object.defineProperties(fourze, {
+        ...Object.fromEntries(
             FOURZE_METHODS.map(method => [
                 method,
-                (path: string, handle: FourzeHandle) => {
-                    return fourze(path, method, handle)
+                {
+                    get() {
+                        return (path: string, handle: FourzeHandle) => {
+                            return fourze(path, method, handle)
+                        }
+                    }
                 }
             ])
-        )
-    )
-
-    Object.defineProperty(fourze, "request", {
-        get() {
-            return fourze
-        }
-    })
-
-    Object.defineProperty(fourze, "routes", {
-        get() {
-            return routes.map(e => {
-                if (isRoute(e)) {
-                    return e
-                }
-                return defineRoute({
-                    base,
-                    ...e
+        ),
+        request: {
+            get() {
+                return fourze
+            }
+        },
+        routes: {
+            get() {
+                return routes.map(e => {
+                    if (isRoute(e)) {
+                        return e
+                    }
+                    return defineRoute({
+                        base,
+                        ...e
+                    })
                 })
-            })
+            }
         }
     })
 
@@ -261,5 +262,3 @@ export function defineRoutes(options: FourzeSetup | FourzeOptions | FourzeBaseRo
 
     return fourze.routes
 }
-
-export function matchRoute(request: FourzeRequest, response: FourzeResponse, next?: () => void) {}

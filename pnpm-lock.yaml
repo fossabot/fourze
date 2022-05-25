@@ -45,7 +45,6 @@ importers:
       axios: ^0.26.1
       compression: ^1.7.4
       esbuild: ^0.14.31
-      mockjs: ^1.1.0
       query-string: ^7.1.1
       react: ^18.1.0
       react-dom: ^18.1.0
@@ -53,7 +52,6 @@ importers:
       vite: ^2.9.1
     dependencies:
       axios: 0.26.1
-      mockjs: 1.1.0
       query-string: 7.1.1
       react: 18.1.0
       react-dom: 18.1.0_react@18.1.0
@@ -893,11 +891,6 @@ packages:
     engines: {node: '>= 12'}
     dev: true
 
-  /commander/9.2.0:
-    resolution: {integrity: sha512-e2i4wANQiSXgnrBlIatyHtP1odfUp0BbV5Y5nEGbxtIrStkEOAAzCUirvLBNXHLr7kwLvJl6V+4V3XV9x7Wd9w==}
-    engines: {node: ^12.20.0 || >=14}
-    dev: false
-
   /commondir/1.0.1:
     resolution: {integrity: sha1-3dgA2gxmEnOTzKWVDqloo6rxJTs=}
     dev: true
@@ -920,8 +913,6 @@ packages:
       on-headers: 1.0.2
       safe-buffer: 5.1.2
       vary: 1.1.2
-    transitivePeerDependencies:
-      - supports-color
     dev: true
 
   /concat-map/0.0.1:
@@ -953,11 +944,6 @@ packages:
 
   /debug/2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
-    peerDependencies:
-      supports-color: '*'
-    peerDependenciesMeta:
-      supports-color:
-        optional: true
     dependencies:
       ms: 2.0.0
     dev: true
@@ -1636,13 +1622,6 @@ packages:
     dependencies:
       brace-expansion: 1.1.11
     dev: true
-
-  /mockjs/1.1.0:
-    resolution: {integrity: sha512-eQsKcWzIaZzEZ07NuEyO4Nw65g0hdWAyurVol1IPl1gahRwY+svqzfgfey8U8dahLwG44d6/RwEzuK52rSa/JQ==}
-    hasBin: true
-    dependencies:
-      commander: 9.2.0
-    dev: false
 
   /ms/2.0.0:
     resolution: {integrity: sha1-VgiurfwAvmwpAd9fmGF4jeDVl8g=}
