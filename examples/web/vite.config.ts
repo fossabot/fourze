@@ -8,13 +8,13 @@ export default defineConfig({
         react(),
         fourze({
             dir: path.resolve(__dirname, "mock"),
-            base: "/api",
+            base: "http://test.com",
             filePattern: [".ts$", ".js$"],
             proxy: {
                 "//stat": path.resolve(__dirname, "static")
             },
             transformCode: mockJs,
-            mock: true,
+            mock: false,
             hmr: true,
             logLevel: "info"
         })

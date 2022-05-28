@@ -14,9 +14,9 @@
     ],
     "scripts": {
         "build": "rimraf packages/*/dist && pnpm -r --filter !examples run build",
-        "dev:web": "pnpm build && vite ./examples/web",
-        "dev:web-mock": "vite ./examples/web --mode mock",
-        "build:web-mock": "vite build ./examples/web --mode mock",
+        "play": "pnpm build && vite ./examples/web",
+        "play:mock": "vite ./examples/web --mode mock",
+        "play:build": "vite build ./examples/web --mode mock",
         "test": "echo \"Error: no test specified\" && exit 1",
         "release": "bumpp package.json packages/*/package.json --commit --push --tag",
         "pub": "pnpm build && pnpm -r publish --access public",

@@ -1,5 +1,5 @@
-import { defineRoutes } from "@fourze/core"
-export default defineRoutes([
+import { defineFourze } from "@fourze/core"
+export default defineFourze([
     {
         path: "/test",
         method: "get",

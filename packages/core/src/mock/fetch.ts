@@ -1,10 +1,61 @@
-import { createRequest } from "../middleware"
-import { FourzeResponse, FourzeRoute } from "../shared"
+import { createRequest, createResponse } from "../middleware"
+import type { FourzeRoute } from "../shared"
 
 const originalFetch = globalThis.fetch
 
+class ProxyFetchResponse implements Response {
+    url: string = ""
+
+    body: ReadableStream<Uint8Array> | null = null
+
+    bodyUsed: boolean = false
+
+    statusText: string = "OK"
+
+    status: number = 200
+
+    ok: boolean = true
+
+    redirected: boolean = false
+
+    type: ResponseType = "basic"
+
+    headers: Headers = new Headers()
+
+    data: any
+
+    constructor(url: string, data: any) {
+        this.url = url
+        this.data = data
+    }
+
+    arrayBuffer(): Promise<ArrayBuffer> {
+        return Promise.resolve(new ArrayBuffer(0))
+    }
+
+    blob(): Promise<Blob> {
+        return Promise.resolve(new Blob())
+    }
+
+    formData(): Promise<FormData> {
+        return Promise.resolve(new FormData())
+    }
+
+    json(): Promise<any> {
+        return Promise.resolve(typeof this.data == "string" ? JSON.parse(this.data) : this.data)
+    }
+
+    clone(): Response {
+        return new ProxyFetchResponse(this.url, this.data)
+    }
+
+    text(): Promise<string> {
+        return Promise.resolve(this.data)
+    }
+}
+
 export function createProxyFetch(routes: FourzeRoute[] = []) {
-    const proxyFetch = (input: RequestInfo, init?: RequestInit) => {
+    return async (input: RequestInfo, init?: RequestInit) => {
         let url: string
         let method: string = "GET"
         let body: any
@@ -18,47 +69,16 @@ export function createProxyFetch(routes: FourzeRoute[] = []) {
             body = input.body ?? init?.body ?? {}
         }
 
-        const route = routes.find(e => (!e.method || e.method == method) && e.pathRegex.test(url))
+        const route = routes.find(e => e.match(url, method))
         if (route) {
-            const result = route.dispatch(createRequest({ url, method, body }), {} as FourzeResponse)
+            const request = createRequest({ url, method, body })
 
-            function createFetchResponse(): Response {
-                return {
-                    ok: true,
-                    status: 200,
-                    statusText: "OK",
-                    type: "default",
-                    body: result,
-                    bodyUsed: false,
-                    arrayBuffer() {
-                        return Promise.resolve(new ArrayBuffer(JSON.parse(result)))
-                    },
-                    blob() {
-                        return Promise.resolve(new Blob([JSON.parse(result)], { type: "application/json" }))
-                    },
-                    formData() {
-                        return Promise.resolve(new FormData())
-                    },
+            const response = createResponse()
 
-                    url,
-                    redirected: false,
-                    headers: new Headers(),
-                    clone() {
-                        return createFetchResponse()
-                    },
-                    json() {
-                        return Promise.resolve(result)
-                    },
-                    text() {
-                        return Promise.resolve(JSON.stringify(result))
-                    }
-                }
-            }
+            await route.dispatch(request, response)
 
-            return Promise.resolve(createFetchResponse())
+            return Promise.resolve(new ProxyFetchResponse(url, response.result))
         }
         return originalFetch(input, init)
     }
-
-    return proxyFetch
 }

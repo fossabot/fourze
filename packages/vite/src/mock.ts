@@ -4,10 +4,9 @@ import { normalizePath } from "vite"
 const TEMPORARY_FILE_SUFFIX = ".tmp.js"
 
 export function mockJs(router: FourzeRouter) {
-    let code = `import {defineRoute,isRoute,setupMock} from "@fourze/core"`
+    let code = `import {isRoute,setupMock} from "@fourze/core"`
 
     const names: string[] = []
-    console.log(router.moduleNames)
     for (let i = 0; i < router.moduleNames.length; i++) {
         let modName = router.moduleNames[i]
         names[i] = `fourze_route_${i}`

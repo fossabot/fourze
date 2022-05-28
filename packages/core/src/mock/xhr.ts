@@ -1,11 +1,12 @@
-import { createRequest } from "../middleware"
-import { FourzeRequest, FourzeResponse, FourzeRoute } from "../shared"
+import { createRequest, createResponse } from "../middleware"
+import type { FourzeRequest, FourzeRoute } from "../shared"
 import { HTTP_STATUS_CODES } from "./code"
 
 type XHR_RESPONSE_PROPERTY = "readyState" | "responseURL" | "status" | "statusText" | "responseType" | "response" | "responseText" | "responseXML"
+type XHR_REQUEST_PROPERTY = "timeout" | "withCredentitals"
 
 const XHR_EVENTS = "readystatechange loadstart progress abort error load timeout loadend".split(" ")
-const XHR_REQUEST_PROPERTIES = "timeout withCredentials".split(" ")
+const XHR_REQUEST_PROPERTIES: XHR_REQUEST_PROPERTY[] = ["timeout", "withCredentitals"]
 const XHR_RESPONSE_PROPERTIES: XHR_RESPONSE_PROPERTY[] = ["readyState", "response", "responseText", "responseType", "responseURL", "responseXML", "status", "statusText"]
 
 const OriginalXmlHttpRequest = globalThis.XMLHttpRequest
@@ -30,8 +31,6 @@ interface MockXmlHttpRequest extends XMLHttpRequestEventTarget {
     responseHeaders: Record<string, string>
 
     events: Record<string, EventListener[]>
-
-    find(url: URL | string, method: string): FourzeRoute | undefined
 
     onreadystatechange: ((ev: Event) => any) | null
     /** Returns client's state. */
@@ -159,11 +158,6 @@ export function createProxyXHR(routes: FourzeRoute[]) {
         }
     })
 
-    MockXHR.prototype.find = function (this: MockXmlHttpRequest, url: string | URL, method: string) {
-        console.log("send request", url.toString(), method, this.$routes)
-        return this.$routes.find(e => (!e.method || e.method == method) && e.pathRegex.test(url.toString()))
-    }
-
     MockXHR.prototype.setRequestHeader = function (this: MockXmlHttpRequest, name: string, value: string) {
         if (!!this.$base) {
             this.$base.setRequestHeader(name, value)
@@ -199,8 +193,6 @@ export function createProxyXHR(routes: FourzeRoute[]) {
     }
 
     MockXHR.prototype.open = function (this: MockXmlHttpRequest, method: string, url: URL | string, async: boolean = true, username?: string, password?: string) {
-        this.readyState = this.OPENED
-
         const handle = (event: Event) => {
             if (this.$base) {
                 for (let resp of XHR_RESPONSE_PROPERTIES) {
@@ -214,7 +206,7 @@ export function createProxyXHR(routes: FourzeRoute[]) {
             this.dispatchEvent(new Event(event.type))
         }
 
-        this.$route = this.find(url, method)
+        this.$route = this.$routes.find(e => e.match(url.toString(), method))
         console.log("find mock route", this.$route)
         this.$base = null
         this.request = createRequest({
@@ -229,14 +221,16 @@ export function createProxyXHR(routes: FourzeRoute[]) {
                 this.$base.addEventListener(event, handle)
             }
             this.$base.open(method, url, async, username, password)
-        } else {
         }
 
+        this.readyState = this.OPENED
         this.dispatchEvent(new Event("readystatechange"))
     }
 
-    MockXHR.prototype.send = function (this: MockXmlHttpRequest, data: any) {
-        this.request.body = data
+    MockXHR.prototype.send = function (this: MockXmlHttpRequest, data?: any) {
+        console.log("send request", this.request.url, this.request.method, data)
+        this.request.body = (typeof data === "string" ? JSON.parse(data) : data) ?? this.request.body ?? {}
+
         if (!!this.$base) {
             this.$base.send(data)
             return
@@ -254,13 +248,15 @@ export function createProxyXHR(routes: FourzeRoute[]) {
 
             const route = this.$route!
 
-            const result = await route.dispatch(this.request, {} as FourzeResponse)
+            const response = createResponse()
 
-            this.response = this.responseText = JSON.stringify(result)
+            await route.dispatch(this.request, response)
+
+            this.response = response.result
+
+            this.responseText = response.result
 
             this.readyState = MockXHR.DONE
-
-            console.log("response", result)
 
             console.log(this.events)
 

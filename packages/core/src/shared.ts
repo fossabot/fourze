@@ -1,13 +1,9 @@
 import type { ServerResponse } from "http"
-import qs from "query-string"
+import { parseUrl } from "query-string"
 import logger from "./log"
-import { normalizeUrl } from "./util"
+import normalizePath from "normalize-path"
 
-export interface FouzeServerContext {
-    request: FourzeRequest
-    response: FourzeResponse
-}
-
+const FOURZE_ROUTE_SYMBOL = Symbol("FourzeRoute")
 export interface FourzeRequest {
     url: string
     method?: string
@@ -24,16 +20,15 @@ export interface FourzeRequest {
 }
 
 export interface FourzeResponse extends ServerResponse {
-    json(data: any): void
-    image(data: any): void
-    text(data: string): void
-    binary(data: any): void
+    json(data?: any): void
+    image(data?: any): void
+    text(data?: string): void
+    binary(data?: any): void
     redirect(url: string): void
-    localData: any
+    result: any
     headers: Record<string, string | string[] | undefined>
+    matched?: boolean
 }
-
-const FOURZE_ROUTE_SYMBOL = Symbol("FourzeRoute")
 
 export interface FourzeBaseRoute {
     path: string
@@ -46,45 +41,24 @@ export interface FourzeRoute extends FourzeBaseRoute {
     [FOURZE_ROUTE_SYMBOL]: true
     pathRegex: RegExp
     pathParams: RegExpMatchArray
-    dispatch: FourzeHandle
+    dispatch: FourzeDispatch
+    match: (url: string, method?: string) => boolean
 }
 
 export interface FourzeMiddlewareOptions {
     routes: FourzeRoute[]
 }
 
-export type FourzeHandle = (request: FourzeRequest, response: FourzeResponse, next?: () => void) => any | Promise<any>
+export type FourzeHandle = (request: FourzeRequest, response: FourzeResponse) => any | Promise<any>
 
-export type Fourze = {
-    [K in RequestMethod]: (path: string, handle: FourzeHandle) => Fourze
-} & {
-    (path: string, method: RequestMethod | undefined, handle: FourzeHandle): Fourze
-    (path: string, handle: FourzeHandle): Fourze
-    request(path: string, handle: FourzeHandle): Fourze
-    request(path: string, method: RequestMethod | undefined, handle: FourzeHandle): Fourze
-    readonly routes: FourzeRoute[]
-}
-
-export type FourzeSetup = (fourze: Fourze) => void | FourzeBaseRoute[]
+export type FourzeDispatch = (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) => Promise<any>
 
 export const FOURZE_METHODS: RequestMethod[] = ["get", "post", "delete", "put", "patch", "options", "head", "trace", "connect"]
 
 export type RequestMethod = "get" | "post" | "delete" | "put" | "patch" | "head" | "options" | "trace" | "connect"
 
-function parseQuery(url: string) {
-    return qs.parseUrl(url, {
-        parseNumbers: true,
-        parseBooleans: true
-    })
-}
-
-export interface FourzeOptions {
-    base?: string
-    setup: FourzeSetup
-}
-
-export type FourzeRenderer = FourzeHandle & {
-    template?: (content: string) => string
+export type FourzeRenderer = FourzeDispatch & {
+    template?: (content: any) => any
     dir: string
 }
 
@@ -101,25 +75,25 @@ export function createRenderer(dir: string, template?: FourzeRenderTemplate, ext
     const fs = require("fs") as typeof import("fs")
     const path = require("path") as typeof import("path")
 
-    const renderer = async (request: FourzeRequest, response: FourzeResponse, next?: () => void) => {
-        let p: string = path.join(dir, "/", request.relativePath)
-        const maybes = [p].concat(extensions.map(ext => normalizeUrl(`${p}/index.${ext}`)))
+    const renderer = async function (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) {
+        let p: string | undefined = path.join(dir, "/", request.relativePath)
+        const maybes = [p].concat(extensions.map(ext => normalizePath(`${p}/index.${ext}`)))
 
         do {
-            p = maybes.shift()!
+            p = maybes.shift()
         } while (!!p && !fs.existsSync(p))
 
         if (p) {
-            p = normalizeUrl(p)
+            p = normalizePath(p)
             let content = await fs.promises.readFile(p)
             logger.info("render file", p)
-            content = template ? template(content) : content
+            content = template?.(content) ?? content
 
             response.end(content)
             return
         }
 
-        next?.()
+        await next?.()
     }
 
     renderer.template = template
@@ -132,21 +106,35 @@ export function isRoute(route: any): route is FourzeRoute {
     return !!route && !!route[FOURZE_ROUTE_SYMBOL]
 }
 
+const REQUEST_PATH_REGEX = new RegExp(`^(${FOURZE_METHODS.join("|")}):.*`, "i")
+
 const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
 
+const NOT_NEED_BASE = /^((https?|file):)?\/\//gi
+
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
-    const { handle, method } = route
+    let { handle, method, path, base } = route
 
-    const base = !route.path.startsWith("//") ? route.base : undefined
+    if (!method && REQUEST_PATH_REGEX.test(route.path)) {
+        const index = route.path.indexOf(":")
+        method = route.path.slice(0, index) as RequestMethod
+        path = path.slice(index + 1).trim()
+    }
 
-    const path = normalizeUrl((base ?? "").concat("/").concat(route.path)).toLowerCase()
+    if (!NOT_NEED_BASE.test(path)) {
+        path = (base ?? "/").concat(path)
+    } else {
+        base = path.match(NOT_NEED_BASE)?.[0] ?? "//"
+    }
 
-    const pathRegex = new RegExp(`^${path.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"))
+    path = path.replace(/^\/+/, "/")
+
+    const pathRegex = new RegExp(`^${path.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"), "i")
 
     const pathParams = path.match(PARAM_KEY_REGEX) || []
 
-    const dispatch = function (this: FourzeRoute, request: FourzeRequest, response: FourzeResponse, next?: () => void) {
-        if (!method || request.method?.toLowerCase() === method.toLowerCase()) {
+    async function dispatch(this: FourzeRoute, request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) {
+        if (!method || !request.method || request.method.toLowerCase() === method.toLowerCase()) {
             const { url } = request
 
             const matches = url.match(pathRegex)
@@ -159,7 +147,10 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
                     params[key] = value
                 }
                 request.route = this
-                request.query = parseQuery(url)
+                request.query = parseUrl(url, {
+                    parseNumbers: true,
+                    parseBooleans: true
+                }).query
 
                 if (matches.length > pathParams.length) {
                     request.relativePath = matches[matches.length - 2]
@@ -173,10 +164,19 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
                     ...request.params
                 }
 
-                return route.handle(request, response) ?? response.localData
+                const result = await handle(request, response)
+                response.matched = true
+                if (!response.writableEnded && !response.hasHeader("Content-Type")) {
+                    response.json(result)
+                }
+                return
             }
         }
-        next?.()
+        await next?.()
+    }
+
+    function match(this: FourzeRoute, url: string, method?: string) {
+        return (!route.method || !method || route.method.toLowerCase() === method.toLowerCase()) && this.pathRegex.test(url)
     }
 
     return {
@@ -187,78 +187,9 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         pathParams,
         handle,
         dispatch,
-        [FOURZE_ROUTE_SYMBOL]: true
-    }
-}
-
-export function createFourze(base?: string, routes: FourzeBaseRoute[] = []) {
-    const fourze = ((path: string, param1: string | FourzeHandle, param2?: FourzeHandle) => {
-        let method: RequestMethod | undefined = undefined
-        let handle: FourzeHandle
-
-        if (typeof param1 === "string") {
-            method = param1 as RequestMethod
-            handle = param2 as FourzeHandle
-        } else {
-            handle = param1 as FourzeHandle
+        match,
+        get [FOURZE_ROUTE_SYMBOL](): true {
+            return true
         }
-
-        routes.push({
-            path,
-            method,
-            handle
-        })
-        return fourze
-    }) as Fourze
-
-    Object.defineProperties(fourze, {
-        ...Object.fromEntries(
-            FOURZE_METHODS.map(method => [
-                method,
-                {
-                    get() {
-                        return (path: string, handle: FourzeHandle) => {
-                            return fourze(path, method, handle)
-                        }
-                    }
-                }
-            ])
-        ),
-        request: {
-            get() {
-                return fourze
-            }
-        },
-        routes: {
-            get() {
-                return routes.map(e => {
-                    if (isRoute(e)) {
-                        return e
-                    }
-                    return defineRoute({
-                        base,
-                        ...e
-                    })
-                })
-            }
-        }
-    })
-
-    return fourze
-}
-
-export function defineRoutes(options: FourzeSetup | FourzeOptions | FourzeBaseRoute[]) {
-    const isOption = typeof options !== "function" && !Array.isArray(options)
-    const base = isOption ? options.base : undefined
-    const setup = isOption ? options.setup : options
-
-    const fourze = createFourze(base)
-
-    const extra = typeof setup === "function" ? setup(fourze) : setup
-
-    if (Array.isArray(extra)) {
-        extra.forEach(e => fourze(e.path, e.method, e.handle))
     }
-
-    return fourze.routes
 }

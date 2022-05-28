@@ -1,13 +1,41 @@
-import { OutgoingMessage, IncomingMessage } from "http"
-import { FourzeMiddlewareOptions, isRoute, FourzeRequest, FourzeResponse, FouzeServerContext } from "./shared"
-
+import type { IncomingMessage, OutgoingMessage } from "http"
 import logger from "./log"
+import { FourzeMiddlewareOptions, FourzeRequest, FourzeResponse, isRoute } from "./shared"
 
-export type RequestPath = `${"get" | "post" | "delete"}:${string}` | string
+export interface FouzeServerContext {
+    request: FourzeRequest
+    response: FourzeResponse
+}
 
-export type DispatchFunction = (request: FourzeRequest) => any
+function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promise<FouzeServerContext> {
+    return new Promise((resolve, reject) => {
+        let body = ""
+        req.on("data", chunk => {
+            body += chunk
+        })
+        req.on("end", () => {
+            const request = createRequest({
+                url: req.url!,
+                method: req.method,
+                body: body ? JSON.parse(body) : {},
+                query: {},
+                params: {},
+                data: {},
+                headers: req.headers
+            })
 
-export function createResponse(res?: OutgoingMessage) {
+            const response = createResponse(res as FourzeResponse)
+
+            resolve({ request, response })
+        })
+
+        req.on("error", () => {
+            reject(new Error("request error"))
+        })
+    })
+}
+
+export function createResponse(res?: FourzeResponse) {
     const response = (res as FourzeResponse) ?? {
         headers: {},
         setHeader(name: string, value: string) {
@@ -27,31 +55,28 @@ export function createResponse(res?: OutgoingMessage) {
             return !!this.headers[name]
         },
         end(data: any) {
-            this.localData = data
+            this.result = data
         }
     }
 
     response.json = function (data: any) {
         data = typeof data == "string" ? data : JSON.stringify(data)
-        this.localData = data
+        this.result = data
         this.setHeader("Content-Type", "application/json")
-        this.end(data)
     }
 
     response.binary = function (data: any) {
-        this.localData = data
+        this.result = data
         this.setHeader("Content-Type", "application/octet-stream")
-        this.end(data)
     }
 
     response.image = function (data: any) {
-        this.localData = data
+        this.result = data
         this.setHeader("Content-Type", "image/jpeg")
-        this.end(data)
     }
 
     response.text = function (data: string) {
-        this.localData = data
+        this.result = data
         this.setHeader("Content-Type", "text/plain")
         this.end(data)
     }
@@ -59,7 +84,6 @@ export function createResponse(res?: OutgoingMessage) {
     response.redirect = function (url: string) {
         this.statusCode = 302
         this.setHeader("Location", url)
-        this.end()
     }
 
     return response
@@ -81,58 +105,29 @@ export function createRequest(options: Partial<FourzeRequest>) {
     } as FourzeRequest
 }
 
-function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promise<FouzeServerContext> {
-    return new Promise((resolve, reject) => {
-        let body = ""
-        req.on("data", chunk => {
-            body += chunk
-        })
-        req.on("end", () => {
-            const request = createRequest({
-                url: req.url!,
-                method: req.method,
-                body: body ? JSON.parse(body) : {},
-                query: {},
-                params: {},
-                data: {},
-                headers: req.headers
-            })
-
-            const response = createResponse(res)
-
-            resolve({ request, response })
-        })
-
-        req.on("error", () => {
-            reject(new Error("request error"))
-        })
-    })
-}
-
 export function createMiddleware(options: FourzeMiddlewareOptions = { routes: [] }) {
     logger.info("create middleware")
 
-    return async function (req: IncomingMessage, res: OutgoingMessage, next?: () => void) {
+    return async function (req: IncomingMessage, res: OutgoingMessage, next?: () => void | Promise<void>) {
         const { request, response } = await createServerContext(req, res)
         const dispatchers = options.routes.filter(isRoute).map(e => e.dispatch)
 
-        let index = 0
-
         const fn = async () => {
-            const dispatch = dispatchers[index++]
+            const dispatch = dispatchers.shift()
             if (!!dispatch) {
-                const result = await dispatch(request, response, fn)
-                if (result) {
-                    logger.info("request match", request.method, request.url)
-                    if (!response.writableEnded) {
-                        response.json(result)
-                    }
-                }
-            } else {
-                next?.()
+                await dispatch(request, response, fn)
             }
         }
 
         await fn()
+
+        if (response.matched) {
+            logger.info("request match", request.method, request.url)
+            if (!response.writableEnded) {
+                response.end(response.result)
+            }
+        } else {
+            await next?.()
+        }
     }
 }

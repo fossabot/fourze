@@ -1,5 +1,5 @@
 import type { FSWatcher } from "chokidar"
-import { FourzeBaseRoute, FourzeRoute, isRoute, logger, normalizeUrl, createRenderer, defineRoute } from "@fourze/core"
+import { FourzeBaseRoute, FourzeRoute, isRoute, logger, createRenderer, defineRoute, isFourze } from "@fourze/core"
 import chokidar from "chokidar"
 import fs from "fs"
 import { resolve, join } from "path"
@@ -67,8 +67,7 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
                 this.remove(moduleName)
                 const mod = require(moduleName)
                 const route = mod?.exports?.default ?? mod?.default
-                console.log(route, mod)
-                if (isRoute(route) || (Array.isArray(route) && route.some(isRoute))) {
+                if (isFourze(route) || isRoute(route) || (Array.isArray(route) && route.some(isRoute))) {
                     moduleNames.push(moduleName)
                 }
             }
@@ -186,22 +185,27 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter {
         },
         get routes() {
             return routes
+                .map(defineRoute)
                 .concat(
                     moduleNames
                         .map(modName => {
                             const mod = require.cache[modName]
-                            return mod?.exports.default as FourzeRoute | FourzeRoute[]
+                            const instance = mod?.exports?.default
+                            if (isFourze(instance)) {
+                                return instance.routes
+                            }
+                            if (Array.isArray(instance) && instance.some(isRoute)) {
+                                return instance
+                            }
+                            if (isRoute(instance)) {
+                                return instance
+                            }
+                            return []
                         })
                         .flat()
                         .filter(isRoute)
-                        .map(e => {
-                            return {
-                                ...e,
-                                base
-                            }
-                        })
+                        .map(e => (e.base ? e : defineRoute({ ...e, base })))
                 )
-                .map(defineRoute)
                 .sort((a, b) => {
                     if (b.path.startsWith(a.path)) {
                         return 1
