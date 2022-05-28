@@ -16,7 +16,6 @@
         "paths": {
             "@fourze/core": ["./packages/core/src/index.ts"],
             "@fourze/router": ["./packages/router/src/index.ts"],
-            "@fourze/mock": ["./packages/mock/src/index.ts"],
             "@fourze/vite": ["./packages/vite/src/index.ts"]
         }
     },
