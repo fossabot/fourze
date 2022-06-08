@@ -1,8 +1,8 @@
-import { Plugin } from "vite"
+import type { Plugin } from "vite"
 
-import { createMiddleware, FourzeBaseRoute, logger } from "@fourze/core"
+import { FourzeBaseRoute, logger } from "@fourze/core"
 
-import { createRouter, FourzeProxyOption, FourzeRouter } from "@fourze/router"
+import { createRouter, FourzeProxyOption, FourzeRouter, createApp } from "@fourze/server"
 
 const PLUGIN_NAME = "vite-plugin-fourze"
 
@@ -76,6 +76,10 @@ export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {})
         routes
     })
 
+    const app = createApp()
+
+    app.use(router)
+
     proxy.forEach(router.proxy)
 
     return {
@@ -128,9 +132,8 @@ export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {})
             if (hmr) {
                 router.watch(watcher)
             }
-            const middleware = createMiddleware(router)
 
-            middlewares.use(middleware)
+            middlewares.use(app)
         }
     }
 }

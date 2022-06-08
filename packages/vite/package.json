@@ -1,6 +1,6 @@
 {
     "name": "@fourze/vite",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "",
     "main": "dist/index.js",
     "module": "dist/index.mjs",
@@ -20,7 +20,7 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@fourze/router": "workspace:*",
+        "@fourze/server": "workspace:*",
         "@fourze/core": "workspace:*"
     },
     "devDependencies": {

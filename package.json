@@ -1,7 +1,7 @@
 {
     "name": "@fourze/monorepo",
     "private": true,
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "a mock framework",
     "files": [
         "dist/*"
@@ -14,9 +14,10 @@
     ],
     "scripts": {
         "build": "rimraf packages/*/dist && pnpm -r --filter !examples run build",
-        "play": "pnpm build && vite ./examples/web",
+        "play:web": "pnpm build && vite ./examples/web",
         "play:mock": "vite ./examples/web --mode mock",
         "play:build": "vite build ./examples/web --mode mock",
+        "play:server": "pnpm build && pnpm -r --filter examples-server dev",
         "test": "echo \"Error: no test specified\" && exit 1",
         "release": "bumpp package.json packages/*/package.json --commit --push --tag",
         "pub": "pnpm build && pnpm -r publish --access public",

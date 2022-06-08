@@ -1,4 +1,4 @@
-import { createRequest, createResponse } from "../middleware"
+import { createRequest, createResponse } from "../shared"
 import type { FourzeRoute } from "../shared"
 
 const originalFetch = globalThis.fetch

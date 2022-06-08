@@ -11,11 +11,10 @@
         "skipDefaultLibCheck": true,
         "outDir": "./dist",
         "declaration": true,
-
         "jsx": "preserve",
         "paths": {
             "@fourze/core": ["./packages/core/src/index.ts"],
-            "@fourze/router": ["./packages/router/src/index.ts"],
+            "@fourze/server": ["./packages/server/src/index.ts"],
             "@fourze/vite": ["./packages/vite/src/index.ts"]
         }
     },

@@ -1,7 +1,5 @@
 import type { ServerResponse } from "http"
 import { parseUrl } from "query-string"
-import logger from "./log"
-import normalizePath from "normalize-path"
 
 const FOURZE_ROUTE_SYMBOL = Symbol("FourzeRoute")
 export interface FourzeRequest {
@@ -57,51 +55,6 @@ export const FOURZE_METHODS: RequestMethod[] = ["get", "post", "delete", "put", 
 
 export type RequestMethod = "get" | "post" | "delete" | "put" | "patch" | "head" | "options" | "trace" | "connect"
 
-export type FourzeRenderer = FourzeDispatch & {
-    template?: (content: any) => any
-    dir: string
-}
-
-export type FourzeRenderTemplate = (content: any) => any
-
-/**
- * @type import("fs")
- * @param dir
- * @param template
- * @param extensions
- * @returns
- */
-export function createRenderer(dir: string, template?: FourzeRenderTemplate, extensions = ["html", "htm"]): FourzeRenderer {
-    const fs = require("fs") as typeof import("fs")
-    const path = require("path") as typeof import("path")
-
-    const renderer = async function (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) {
-        let p: string | undefined = path.join(dir, "/", request.relativePath)
-        const maybes = [p].concat(extensions.map(ext => normalizePath(`${p}/index.${ext}`)))
-
-        do {
-            p = maybes.shift()
-        } while (!!p && !fs.existsSync(p))
-
-        if (p) {
-            p = normalizePath(p)
-            let content = await fs.promises.readFile(p)
-            logger.info("render file", p)
-            content = template?.(content) ?? content
-
-            response.end(content)
-            return
-        }
-
-        await next?.()
-    }
-
-    renderer.template = template
-    renderer.dir = dir
-
-    return renderer
-}
-
 export function isRoute(route: any): route is FourzeRoute {
     return !!route && !!route[FOURZE_ROUTE_SYMBOL]
 }
@@ -154,8 +107,6 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
 
                 if (matches.length > pathParams.length) {
                     request.relativePath = matches[matches.length - 2]
-                } else {
-                    request.relativePath = url
                 }
                 request.params = params
                 request.data = {
@@ -192,4 +143,76 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
             return true
         }
     }
+}
+
+export function createResponse(res?: FourzeResponse) {
+    const response = (res as FourzeResponse) ?? {
+        headers: {},
+        setHeader(name: string, value: string) {
+            if (this.hasHeader(name)) {
+                this.headers[name] += `,${value}`
+            } else {
+                this.headers[name] = value
+            }
+        },
+        getHeader(name: string) {
+            return this.headers[name]
+        },
+        getHeaderNames() {
+            return Object.keys(this.headers)
+        },
+        hasHeader(name) {
+            return !!this.headers[name]
+        },
+        end(data: any) {
+            this.result = data
+        }
+    }
+
+    response.json = function (data: any) {
+        data = typeof data == "string" ? data : JSON.stringify(data)
+        this.result = data
+        this.setHeader("Content-Type", "application/json")
+    }
+
+    response.binary = function (data: any) {
+        this.result = data
+        this.setHeader("Content-Type", "application/octet-stream")
+    }
+
+    response.image = function (data: any) {
+        this.result = data
+        this.setHeader("Content-Type", "image/jpeg")
+    }
+
+    response.text = function (data: string) {
+        this.result = data
+        this.setHeader("Content-Type", "text/plain")
+        this.end(data)
+    }
+
+    response.redirect = function (url: string) {
+        this.statusCode = 302
+        this.setHeader("Location", url)
+    }
+
+    response.setHeader("X-Powered-By", "fourze")
+
+    return response
+}
+
+export function createRequest(options: Partial<FourzeRequest>) {
+    if (typeof options.body === "string") {
+        options.body = JSON.parse(options.body)
+    }
+
+    return {
+        relativePath: options.url,
+        query: {},
+        body: {},
+        params: {},
+        data: {},
+        headers: {},
+        ...options
+    } as FourzeRequest
 }

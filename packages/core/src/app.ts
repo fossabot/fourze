@@ -1,5 +1,4 @@
 import { defineRoute, FourzeBaseRoute, FourzeHandle, FourzeRoute, FOURZE_METHODS, isRoute, RequestMethod } from "./shared"
-
 export interface FourzeOptions {
     base?: string
     setup?: FourzeSetup
@@ -18,11 +17,10 @@ export interface Fourze extends FourzeRequestFunctions {
     (route: FourzeBaseRoute): Fourze
     (routes: FourzeBaseRoute[]): Fourze
     (fourze: Fourze): Fourze
-
     readonly routes: FourzeRoute[]
 }
 
-const FOURZE_SYMBOL = Symbol("FourzeApp")
+const FOURZE_SYMBOL = Symbol("FourzeInstance")
 
 export function defineFourze(routes: FourzeBaseRoute[]): Fourze
 

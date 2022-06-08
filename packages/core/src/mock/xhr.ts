@@ -1,4 +1,4 @@
-import { createRequest, createResponse } from "../middleware"
+import { createRequest, createResponse } from "../shared"
 import type { FourzeRequest, FourzeRoute } from "../shared"
 import { HTTP_STATUS_CODES } from "./code"
 
