@@ -1,15 +1,16 @@
+<script lang="tsx">
 import axios from "axios"
-import React, { useState } from "react"
-import { createRoot } from "react-dom/client"
+import { defineComponent, ref } from "vue"
 import $ from "jquery"
 
-const App = () => {
-    const [list, setList] = useState<any[]>([])
-
+export default defineComponent(() => {
+    const list = ref<any[]>([])
     function fetchClick() {
         fetch(`/search/${Math.floor(Math.random() * 9)}`, { method: "post", body: JSON.stringify({ phone: 2 }) })
             .then(r => r.json())
-            .then(r => setList(Array.isArray(r) ? r : Object.entries(r)))
+            .then(r => {
+                list.value = Array.isArray(r) ? r : Object.entries(r)
+            })
     }
 
     function xhrClick() {
@@ -18,7 +19,7 @@ const App = () => {
             .then(r => {
                 return r.data
             })
-            .then(r => setList(Array.isArray(r) ? r : Object.entries(r)))
+            .then(r => (list.value = Array.isArray(r) ? r : Object.entries(r)))
     }
 
     function jqueryClick() {
@@ -29,14 +30,14 @@ const App = () => {
             dataType: "json",
             contentType: "application/json",
             success(r) {
-                setList(Array.isArray(r) ? r : Object.entries(r))
+                list.value = Array.isArray(r) ? r : Object.entries(r)
             },
             error(r) {
                 console.error(r)
             }
         })
     }
-    return (
+    return () => (
         <div>
             <img style={{ width: "120px", height: "120px" }} src="/stat/test.jpg" />
             <div>
@@ -45,13 +46,10 @@ const App = () => {
                 <button onClick={jqueryClick}>JQuery!</button>
             </div>
 
-            {list.map(item => (
+            {list.value.map(item => (
                 <div key={item}>{item}</div>
             ))}
         </div>
     )
-}
-
-const container = document.getElementById("app")
-const root = createRoot(container!)
-root.render(<App />)
+})
+</script>

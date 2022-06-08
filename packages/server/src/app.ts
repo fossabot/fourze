@@ -4,7 +4,7 @@ import type { IncomingMessage, OutgoingMessage, Server } from "http"
 import http from "http"
 import https from "https"
 
-export type FourzeMiddleware = (req: FourzeRequest, res: FourzeResponse, next?: () => void | Promise<void>) => Promise<void>
+export type FourzeMiddleware = (req: FourzeRequest, res: FourzeResponse, next?: () => void | Promise<void>) => void | Promise<void>
 
 export interface FourzeAppOptions {
     port?: number
@@ -75,7 +75,8 @@ export function createApp(options: FourzeAppOptions = {}) {
             } else if (next && typeof next === "function") {
                 await next()
             } else if (!response.writableEnded) {
-                res.end()
+                response.statusCode = 404
+                response.end(`Cannot ${req.method ?? "GET"} ${req.url ?? "/"}`)
             }
         }
 
