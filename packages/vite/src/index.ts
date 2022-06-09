@@ -3,6 +3,7 @@ import type { Plugin } from "vite"
 import { FourzeBaseRoute, logger } from "@fourze/core"
 
 import { createRouter, FourzeProxyOption, FourzeRouter, createApp } from "@fourze/server"
+import { mockJs } from "./mock"
 
 const PLUGIN_NAME = "vite-plugin-fourze"
 
@@ -82,6 +83,8 @@ export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {})
 
     proxy.forEach(router.proxy)
 
+    const transformCode = options.transformCode ?? mockJs
+
     return {
         name: PLUGIN_NAME,
 
@@ -124,7 +127,7 @@ export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {})
         },
         load(id) {
             if (id === CLIENT_ID || id === `/${CLIENT_ID}`) {
-                return options.transformCode?.(router) ?? ""
+                return transformCode(router)
             }
         },
 

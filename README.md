@@ -23,9 +23,9 @@ export default defineConfig({
 src/mock/example.ts
 
 ```
-    import {defineRoute} from "@fourze/core"
-    export default defineRoute(mock=>{
-        mock("/api/user/:id",(req,res)=>{
+    import {defineFourze} from "@fourze/core"
+    export default defineFourze(route=>{
+        route("/api/user/:id",(req,res)=>{
             return {
                 id:req.params.id
                 name:"test"

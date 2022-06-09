@@ -19,16 +19,19 @@ export interface FourzeAppOptions {
 
 export interface FourzeApp {
     (req: IncomingMessage, res: OutgoingMessage, next?: () => void | Promise<void>): Promise<void>
+
     readonly port: number
     readonly server?: Server
     readonly serverMode: "http" | "https"
-    createServer(): Server
+
     use(middleware: CommonMiddleware): this
     use(middleware: FourzeMiddleware): this
     use(path: string, ...middlewares: CommonMiddleware[]): this
     use(...middlewares: CommonMiddleware[]): this
     use(path: string, ...middlewares: FourzeMiddleware[]): this
     use(...middlewares: FourzeMiddleware[]): this
+
+    createServer(): Server
     listen(port?: number): Promise<Server>
 }
 
@@ -40,9 +43,11 @@ export interface FouzeServerContext {
 export function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promise<FouzeServerContext> {
     return new Promise((resolve, reject) => {
         let body = ""
+
         req.on("data", chunk => {
             body += chunk
         })
+
         req.on("end", () => {
             const request = createRequest({
                 ...(req as FourzeRequest),
@@ -57,9 +62,7 @@ export function createServerContext(req: IncomingMessage, res: OutgoingMessage):
             resolve({ request, response })
         })
 
-        req.on("error", () => {
-            reject(new Error("request error"))
-        })
+        req.on("error", reject)
     })
 }
 
