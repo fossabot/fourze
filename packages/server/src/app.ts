@@ -4,13 +4,17 @@ import type { IncomingMessage, OutgoingMessage, Server } from "http"
 import http from "http"
 import https from "https"
 
-export type FourzeMiddleware = (req: FourzeRequest, res: FourzeResponse, next?: () => void | Promise<void>) => void | Promise<void>
+export interface CommonMiddleware {
+    (req: IncomingMessage, res: OutgoingMessage, next?: () => void | Promise<void>): void | Promise<void>
+}
 
+export interface FourzeMiddleware {
+    (req: FourzeRequest, res: FourzeResponse, next?: () => void | Promise<void>): void | Promise<void>
+}
 export interface FourzeAppOptions {
     port?: number
     server?: Server
     serverMode?: "http" | "https"
-    middlewares?: FourzeMiddleware[]
 }
 
 export interface FourzeApp {
@@ -19,7 +23,12 @@ export interface FourzeApp {
     readonly server?: Server
     readonly serverMode: "http" | "https"
     createServer(): Server
-    use(middleware: FourzeMiddleware | FourzeMiddleware[]): this
+    use(middleware: CommonMiddleware): this
+    use(middleware: FourzeMiddleware): this
+    use(path: string, ...middlewares: CommonMiddleware[]): this
+    use(...middlewares: CommonMiddleware[]): this
+    use(path: string, ...middlewares: FourzeMiddleware[]): this
+    use(...middlewares: FourzeMiddleware[]): this
     listen(port?: number): Promise<Server>
 }
 
@@ -36,13 +45,11 @@ export function createServerContext(req: IncomingMessage, res: OutgoingMessage):
         })
         req.on("end", () => {
             const request = createRequest({
-                url: req.url!,
-                method: req.method,
+                ...(req as FourzeRequest),
                 body: body ? JSON.parse(body) : {},
                 query: {},
                 params: {},
-                data: {},
-                headers: req.headers
+                data: {}
             })
 
             const response = createResponse(res as FourzeResponse)
@@ -62,10 +69,13 @@ export function createApp(options: FourzeAppOptions = {}) {
 
     let _serverMode = options.serverMode ?? "http"
 
-    const middlewares = options.middlewares ?? []
+    const middlewareMap = new Map<string, FourzeMiddleware[]>()
 
     const app = async function (req: IncomingMessage, res: OutgoingMessage, next?: () => void | Promise<void>) {
         const { request, response } = await createServerContext(req, res)
+        const middlewares = Array.from(middlewareMap.entries())
+            .map(([key, value]) => (request.url.startsWith(key) ? value : []))
+            .reduce((a, b) => a.concat(b), [])
 
         let i = 0
         const fn = async () => {
@@ -83,12 +93,11 @@ export function createApp(options: FourzeAppOptions = {}) {
         await fn()
     } as FourzeApp
 
-    app.use = function (middleware: FourzeMiddleware | FourzeMiddleware[]) {
-        if (Array.isArray(middleware)) {
-            middlewares.push(...middleware)
-        } else {
-            middlewares.push(middleware)
-        }
+    app.use = function (param0: FourzeMiddleware | string, ...params: FourzeMiddleware[]) {
+        const base = typeof param0 === "string" ? param0 : "/"
+        const arr = typeof param0 === "string" ? params : [param0, ...params.filter(e => typeof e == "function")]
+        const middlewares = middlewareMap.get(base) ?? []
+        middlewareMap.set(base, middlewares.concat(arr))
         return this
     }
 

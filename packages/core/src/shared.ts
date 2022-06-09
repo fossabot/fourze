@@ -1,8 +1,8 @@
-import type { ServerResponse } from "http"
+import type { IncomingMessage, ServerResponse } from "http"
 import { parseUrl } from "query-string"
 
 const FOURZE_ROUTE_SYMBOL = Symbol("FourzeRoute")
-export interface FourzeRequest {
+export interface FourzeRequest extends IncomingMessage {
     url: string
     method?: string
     route: FourzeRoute
@@ -43,13 +43,9 @@ export interface FourzeRoute extends FourzeBaseRoute {
     match: (url: string, method?: string) => boolean
 }
 
-export interface FourzeMiddlewareOptions {
-    routes: FourzeRoute[]
-}
-
 export type FourzeHandle = (request: FourzeRequest, response: FourzeResponse) => any | Promise<any>
 
-export type FourzeDispatch = (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) => Promise<any>
+export type FourzeDispatch = (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) => void | Promise<void>
 
 export const FOURZE_METHODS: RequestMethod[] = ["get", "post", "delete", "put", "patch", "options", "head", "trace", "connect"]
 
@@ -116,9 +112,10 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
                 }
 
                 const result = await handle(request, response)
+                response.result = result ?? response.result
                 response.matched = true
                 if (!response.writableEnded && !response.hasHeader("Content-Type")) {
-                    response.json(result)
+                    response.json(response.result)
                 }
                 return
             }
@@ -144,6 +141,8 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         }
     }
 }
+
+const FOURZE_RESPONSE_SYMBOL = Symbol("FourzeResponse")
 
 export function createResponse(res?: FourzeResponse) {
     const response = (res as FourzeResponse) ?? {
@@ -196,10 +195,18 @@ export function createResponse(res?: FourzeResponse) {
         this.setHeader("Location", url)
     }
 
-    response.setHeader("X-Powered-By", "fourze")
+    response.setHeader("X-Powered-By", "Fourze")
+
+    Object.defineProperty(response, FOURZE_RESPONSE_SYMBOL, {
+        get() {
+            return true
+        }
+    })
 
     return response
 }
+
+const FOURZE_REQUEST_SYMBOL = Symbol("FourzeRequest")
 
 export function createRequest(options: Partial<FourzeRequest>) {
     if (typeof options.body === "string") {
@@ -213,6 +220,17 @@ export function createRequest(options: Partial<FourzeRequest>) {
         params: {},
         data: {},
         headers: {},
-        ...options
+        ...options,
+        get [FOURZE_REQUEST_SYMBOL]() {
+            return true
+        }
     } as FourzeRequest
+}
+
+export function isFourzeResponse(obj: any): obj is FourzeResponse {
+    return !!obj && !!obj[FOURZE_RESPONSE_SYMBOL]
+}
+
+export function isFourzeRequest(obj: any): obj is FourzeRequest {
+    return !!obj && !!obj[FOURZE_REQUEST_SYMBOL]
 }

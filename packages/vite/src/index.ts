@@ -78,7 +78,7 @@ export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {})
 
     const app = createApp()
 
-    app.use(router)
+    app.use(base, router)
 
     proxy.forEach(router.proxy)
 

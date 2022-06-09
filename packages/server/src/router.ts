@@ -53,12 +53,12 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
     const routes: FourzeBaseRoute[] = Array.from(options.routes ?? [])
 
     const router = async function (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) {
-        const dispatchers = router.routes.filter(isRoute).map(e => e.dispatch)
+        const dispatchers = router.routes.map(e => e.dispatch)
 
         const fn = async () => {
-            const dispat = dispatchers.shift()
-            if (!!dispat) {
-                await dispat(request, response, fn)
+            const dispatch = dispatchers.shift()
+            if (!!dispatch) {
+                await dispatch(request, response, fn)
             }
         }
 
@@ -79,30 +79,30 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
             return
         }
 
-        const loadModule = async (moduleName: string) => {
-            logger.info("load module", moduleName)
-            if (moduleName.endsWith(".ts")) {
-                await loadTsModule(moduleName)
+        const loadModule = async (mod: string) => {
+            logger.info("load module", mod)
+            if (mod.endsWith(".ts")) {
+                await loadTsModule(mod)
             } else {
-                await loadJsModule(moduleName)
+                await loadJsModule(mod)
             }
         }
 
-        const loadJsModule = async (moduleName: string) => {
-            this.remove(moduleName)
-            const mod = require(moduleName)
-            const route = mod?.exports?.default ?? mod?.default
+        const loadJsModule = async (mod: string) => {
+            this.remove(mod)
+            const module = require(mod)
+            const route = module?.exports?.default ?? module?.default
             if (isFourze(route) || isRoute(route) || (Array.isArray(route) && route.some(isRoute))) {
-                moduleNames.add(moduleName)
+                moduleNames.add(mod)
             }
         }
 
-        const loadTsModule = async (moduleName: string) => {
-            const modName = moduleName.replace(".ts", TEMPORARY_FILE_SUFFIX)
+        const loadTsModule = async (mod: string) => {
+            const modName = mod.replace(".ts", TEMPORARY_FILE_SUFFIX)
             const { build } = require("esbuild") as typeof import("esbuild")
 
             await build({
-                entryPoints: [moduleName],
+                entryPoints: [mod],
                 external: ["@fourze/core"],
                 outfile: modName,
                 write: true,

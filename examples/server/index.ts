@@ -1,8 +1,9 @@
 import { defineFourze } from "@fourze/core"
 import express from "express"
 import { createProxyMiddleware } from "http-proxy-middleware"
+import comporession from "compression"
 
-import { createApp, createRenderer, createRouter } from "@fourze/server"
+import { CommonMiddleware, createApp, createRenderer, createRouter, FourzeMiddleware } from "@fourze/server"
 import path from "path"
 
 const router = createRouter(route => {
@@ -24,6 +25,7 @@ const router2 = createRouter(route => {
 const renderer = createRenderer({ dir: path.resolve(process.cwd(), "../web/dist"), fallbacks: { "/home": "/" } })
 
 const app = createApp()
-app.use([router, router2])
+app.use("/test", comporession({ threshold: 0 }) as CommonMiddleware)
+app.use(router, router2)
 app.use(renderer)
 app.listen(3000)
