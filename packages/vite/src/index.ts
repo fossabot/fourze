@@ -127,6 +127,7 @@ export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {})
         },
         load(id) {
             if (id === CLIENT_ID || id === `/${CLIENT_ID}`) {
+                console.log(router.routes)
                 return transformCode(router)
             }
         },

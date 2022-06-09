@@ -19,9 +19,6 @@ export function mockJs(router: FourzeRouter) {
     code += `
   const routes = [${names.join(",")}].flat().filter(isRoute)
 
-  setupMock({
-    base:"${router.base}",
-    routes
-  })`
+  setupMock({routes})`
     return code
 }

@@ -13,7 +13,6 @@ export default defineConfig({
             dir: path.resolve(__dirname, "mock"),
             filePattern: [".ts$", ".js$"],
             transformCode: mockJs,
-            mock: false,
             hmr: true,
             logLevel: "info"
         })

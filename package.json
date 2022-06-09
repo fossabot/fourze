@@ -14,7 +14,7 @@
     ],
     "scripts": {
         "build": "rimraf packages/*/dist && pnpm -r --filter !examples run build",
-        "play:web": "pnpm build && vite ./examples/web",
+        "play:web": "pnpm build && vite ./examples/web --mode mock",
         "play:mock": "vite ./examples/web --mode mock",
         "play:build": "vite build ./examples/web --mode mock",
         "play:server": "pnpm build && pnpm -r --filter examples-server dev",

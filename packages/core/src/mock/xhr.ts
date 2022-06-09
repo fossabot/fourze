@@ -206,6 +206,8 @@ export function createProxyXHR(routes: FourzeRoute[]) {
             this.dispatchEvent(new Event(event.type))
         }
 
+        console.log("mock url ->", url, routes)
+
         this.$route = this.$routes.find(e => e.match(url.toString(), method))
         console.log("find mock route", this.$route)
         this.$base = null

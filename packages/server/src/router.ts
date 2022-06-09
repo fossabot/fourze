@@ -209,7 +209,7 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
         },
         moduleNames: {
             get() {
-                return moduleNames
+                return Array.from(moduleNames)
             }
         },
         routes: {
@@ -233,7 +233,6 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
                                 return []
                             })
                             .flat()
-                            .filter(isRoute)
                             .map(e => (e.base ? e : defineRoute({ ...e, base })))
                     )
                     .sort((a, b) => {
