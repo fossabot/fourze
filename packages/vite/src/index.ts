@@ -38,7 +38,7 @@ export interface VitePluginFourzeOptions {
     /**
      * @default "off"
      */
-    logLevel: "off" | "info" | "warn" | "error"
+    logLevel?: "off" | "info" | "warn" | "error"
 
     routes?: FourzeBaseRoute[]
 
@@ -49,7 +49,7 @@ export interface VitePluginFourzeOptions {
     transformCode?: (router: FourzeRouter) => string
 }
 
-export function VitePluginFourze(options: Partial<VitePluginFourzeOptions> = {}): Plugin {
+export function VitePluginFourze(options: VitePluginFourzeOptions = {}): Plugin {
     const dir = options.dir ?? "./src/mock"
 
     const base = options.base ?? "/api"

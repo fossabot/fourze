@@ -9,7 +9,7 @@ export default defineConfig({
         vue(),
         jsx(),
         fourze({
-            base: "/",
+            base: "/api",
             dir: path.resolve(__dirname, "mock"),
             filePattern: [".ts$", ".js$"],
             transformCode: mockJs,

@@ -31,7 +31,7 @@ export default defineFourze(fourze => {
 
     fourze("POST:http://test.com/Search/:name", handleSearch)
 
-    fourze("POST://search/:name", handleSearch)
+    fourze("POST:/search/:name", handleSearch)
 
     fourze("/img/a.jpg", async (req, res) => {
         const f = await fs.promises.readFile(path.resolve(__dirname, "./test.jpg"))

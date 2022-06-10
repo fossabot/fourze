@@ -215,7 +215,6 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
         routes: {
             get() {
                 return routes
-                    .map(defineRoute)
                     .concat(
                         Array.from(moduleNames)
                             .map(modName => {
@@ -233,8 +232,8 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
                                 return []
                             })
                             .flat()
-                            .map(e => (e.base ? e : defineRoute({ ...e, base })))
                     )
+                    .map(e => (e.base ? e : defineRoute({ ...e, base })))
                     .sort((a, b) => {
                         if (b.path.startsWith(a.path)) {
                             return 1

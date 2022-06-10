@@ -17,8 +17,9 @@ export function mockJs(router: FourzeRouter) {
         import ${names[i]} from "${modName}"`
     }
     code += `
+  const base = "${router.base}"
   const routes = [${names.join(",")}].flat()
 
-  setupMock({routes})`
+  setupMock({base,routes})`
     return code
 }

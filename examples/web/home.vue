@@ -6,7 +6,7 @@ import $ from "jquery"
 export default defineComponent(() => {
     const list = ref<any[]>([])
     function fetchClick() {
-        fetch(`/search/${Math.floor(Math.random() * 9)}`, { method: "post", body: JSON.stringify({ phone: 2 }) })
+        fetch(`/api/search/${Math.floor(Math.random() * 9)}`, { method: "post", body: JSON.stringify({ phone: 2 }) })
             .then(r => r.json())
             .then(r => {
                 list.value = Array.isArray(r) ? r : Object.entries(r)
@@ -15,7 +15,7 @@ export default defineComponent(() => {
 
     function xhrClick() {
         axios
-            .post(`/search/${Math.floor(Math.random() * 9)}`, { phone: 2 })
+            .post(`/api/search/${Math.floor(Math.random() * 9)}`, { phone: 2 })
             .then(r => {
                 return r.data
             })
@@ -24,7 +24,7 @@ export default defineComponent(() => {
 
     function jqueryClick() {
         $.ajax({
-            url: `/search/${Math.floor(Math.random() * 9)}`,
+            url: `/api/search/${Math.floor(Math.random() * 9)}`,
             method: "POST",
             data: JSON.stringify({ phone: 2 }),
             dataType: "json",
