@@ -13,7 +13,7 @@
         "hmr"
     ],
     "scripts": {
-        "build": "rimraf packages/*/dist && pnpm -r --filter !playgrounds run build",
+        "build": "rimraf packages/*/dist && pnpm -r --filter !./playgrounds/ run build",
         "play:web": "pnpm build && vite ./playgrounds/web --mode mock",
         "play:mock": "vite ./playgrounds/web --mode mock",
         "play:build": "vite build ./playgrounds/web --mode mock",
@@ -23,7 +23,7 @@
         "pub": "pnpm build && pnpm -r publish --access public",
         "postinstall": "husky install"
     },
-    "author": "apateat",
+    "author": "chizuki",
     "license": "MIT",
     "lint-staged": {
         "*.{js,jsx,ts,tsx}": [
@@ -33,7 +33,7 @@
     "devDependencies": {
         "@rollup/plugin-commonjs": "^21.0.3",
         "@rollup/plugin-json": "^4.1.0",
-        "@types/node": "^17.0.23",
+        "@types/node": "^18.0.6",
         "bumpp": "^7.1.1",
         "chokidar": "^3.5.3",
         "esbuild": "^0.14.49",

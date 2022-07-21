@@ -1,5 +1,5 @@
-import { createRequest, createResponse } from "../shared"
 import type { FourzeRoute } from "../shared"
+import { createRequest, createResponse } from "../shared"
 
 const originalFetch = globalThis.fetch
 
@@ -55,12 +55,16 @@ class ProxyFetchResponse implements Response {
 }
 
 export function createProxyFetch(routes: FourzeRoute[] = []) {
-    return async (input: RequestInfo, init?: RequestInit) => {
+    return async (input: RequestInfo | URL, init?: RequestInit) => {
         let url: string
         let method: string = "GET"
         let body: any
         if (typeof input === "string") {
             url = input
+            method = init?.method ?? method
+            body = init?.body ?? {}
+        } else if (input instanceof URL) {
+            url = input.href
             method = init?.method ?? method
             body = init?.body ?? {}
         } else {
