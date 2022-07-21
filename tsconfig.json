@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "target": "es2017",
+        "target": "esnext",
         "module": "esnext",
         "lib": ["esnext", "DOM"],
         "moduleResolution": "node",
@@ -18,5 +18,5 @@
             "@fourze/vite": ["./packages/vite/src/index.ts"]
         }
     },
-    "include": ["examples/**/*.ts", "examples/**/*.tsx", "packages/**/*.ts"]
+    "include": ["playgrounds/**/*.ts", "playgrounds/**/*.tsx", "packages/**/*.ts"]
 }

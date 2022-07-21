@@ -13,11 +13,11 @@
         "hmr"
     ],
     "scripts": {
-        "build": "rimraf packages/*/dist && pnpm -r --filter !examples run build",
-        "play:web": "pnpm build && vite ./examples/web --mode mock",
-        "play:mock": "vite ./examples/web --mode mock",
-        "play:build": "vite build ./examples/web --mode mock",
-        "play:server": "pnpm build && pnpm -r --filter examples-server dev",
+        "build": "rimraf packages/*/dist && pnpm -r --filter !playgrounds run build",
+        "play:web": "pnpm build && vite ./playgrounds/web --mode mock",
+        "play:mock": "vite ./playgrounds/web --mode mock",
+        "play:build": "vite build ./playgrounds/web --mode mock",
+        "play:server": "pnpm build && pnpm -r --filter playgrounds-server dev",
         "test": "echo \"Error: no test specified\" && exit 1",
         "release": "bumpp package.json packages/*/package.json --commit --push --tag",
         "pub": "pnpm build && pnpm -r publish --access public",
@@ -36,14 +36,14 @@
         "@types/node": "^17.0.23",
         "bumpp": "^7.1.1",
         "chokidar": "^3.5.3",
-        "esbuild": "^0.14.31",
+        "esbuild": "^0.14.49",
         "husky": "^7.0.4",
         "lint-staged": "^12.3.7",
         "prettier": "^2.6.2",
         "rimraf": "^3.0.2",
-        "rollup": "^2.70.1",
-        "rollup-plugin-dts": "^4.2.0",
-        "rollup-plugin-esbuild": "^4.8.2",
-        "typescript": "^4.6.3"
+        "rollup": "^2.77.0",
+        "rollup-plugin-dts": "^4.2.2",
+        "rollup-plugin-esbuild": "^4.9.1",
+        "typescript": "^4.7.4"
     }
 }

@@ -19,6 +19,6 @@
         "query-string": "^7.1.1"
     },
     "devDependencies": {
-        "rollup": "^2.70.1"
+        "rollup": "^2.77.0"
     }
 }

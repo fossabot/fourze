@@ -1,10 +1,10 @@
-import { isRoute, logger, defineRoute, isFourze, defineFourze } from "@fourze/core"
-import fs from "fs"
-import { resolve, join } from "path"
-import { createRenderer } from "./renderer"
-import type { FourzeMiddleware } from "./app"
+import type { FourzeBaseRoute, FourzeRequest, FourzeResponse, FourzeRoute, FourzeSetup } from "@fourze/core"
+import { defineFourze, defineRoute, isFourze, isRoute, logger } from "@fourze/core"
 import type { FSWatcher } from "chokidar"
-import type { FourzeRequest, FourzeBaseRoute, FourzeRoute, FourzeResponse, FourzeSetup } from "@fourze/core"
+import fs from "fs"
+import { join, resolve } from "path"
+import type { FourzeMiddleware } from "./app"
+import { createRenderer } from "./renderer"
 
 export interface FourzeRouterOptions {
     base?: string
@@ -177,6 +177,7 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
 
     router.remove = function (this: FourzeRouter, moduleName: string) {
         moduleNames.delete(moduleName)
+        delete require.cache[moduleName]
         return this
     }
 

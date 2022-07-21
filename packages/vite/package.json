@@ -20,11 +20,14 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@fourze/server": "workspace:*",
-        "@fourze/core": "workspace:*"
+        "@fourze/core": "workspace:*",
+        "@fourze/server": "workspace:*"
     },
     "devDependencies": {
-        "rollup": "^2.70.1",
-        "vite": "^2.9.1"
+        "rollup": "^2.77.0",
+        "vite": "^3.0.2"
+    },
+    "peerDependencies": {
+        "vite": "^2.0.1 || ^3.0.0"
     }
 }
