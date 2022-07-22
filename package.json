@@ -19,7 +19,7 @@
         "play:build": "vite build ./playgrounds/web --mode mock",
         "play:server": "pnpm build && pnpm -r --filter playgrounds-server dev",
         "test": "echo \"Error: no test specified\" && exit 1",
-        "bump": "bumpp package.json packages/*/package.json ",
+        "bump": "bumpp package.json packages/*/package.json --commit --push --tag",
         "postinstall": "husky install"
     },
     "author": "chizuki",
