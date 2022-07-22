@@ -15,9 +15,8 @@
     "scripts": {
         "build": "rimraf packages/*/dist && pnpm -r --filter=./packages/* build",
         "stub": "pnpm -r --filter=./packages/* --parallel run stub",
-        "play:web": "pnpm build && vite ./playgrounds/web --mode mock",
+        "play:web": "pnpm stub && vite ./playgrounds/web --mode mock",
         "play:mock": "vite ./playgrounds/web --mode mock",
-        "play:build": "vite build ./playgrounds/web --mode mock",
         "play:server": "pnpm stub && pnpm -r --filter=playgrounds-server dev",
         "test": "echo \"Error: no test specified\" && exit 1",
         "bump": "bumpp package.json packages/*/package.json --commit --push --tag",
@@ -32,12 +31,12 @@
     },
     "devDependencies": {
         "@types/node": "^18.0.6",
-        "bumpp": "^7.1.1",
+        "bumpp": "^8.2.1",
         "chokidar": "^3.5.3",
         "esno": "^0.16.3",
-        "husky": "^7.0.4",
-        "lint-staged": "^12.3.7",
-        "prettier": "^2.6.2",
+        "husky": "^8.0.1",
+        "lint-staged": "^13.0.3",
+        "prettier": "^2.7.1",
         "rimraf": "^3.0.2",
         "typescript": "^4.7.4",
         "unbuild": "^0.7.6"
