@@ -1,4 +1,4 @@
-import type { FourzeRoute } from "../shared"
+import type { FourzeResponse, FourzeRoute } from "../shared"
 import { createRequest, createResponse } from "../shared"
 
 const originalFetch = globalThis.fetch
@@ -24,9 +24,18 @@ class ProxyFetchResponse implements Response {
 
     data: any
 
-    constructor(url: string, data: any) {
-        this.url = url
-        this.data = data
+    _response: FourzeResponse
+
+    constructor(response: FourzeResponse) {
+        this.url = response.req.url!
+        this.data = response.result
+        for (let [key, value] of Object.entries(response.headers)) {
+            if (Array.isArray(value)) {
+                value = value.join(",")
+            }
+            this.headers.append(key, value ?? "")
+        }
+        this._response = response
     }
 
     arrayBuffer(): Promise<ArrayBuffer> {
@@ -46,7 +55,7 @@ class ProxyFetchResponse implements Response {
     }
 
     clone(): Response {
-        return new ProxyFetchResponse(this.url, this.data)
+        return new ProxyFetchResponse(this._response)
     }
 
     text(): Promise<string> {
@@ -59,12 +68,8 @@ export function createProxyFetch(routes: FourzeRoute[] = []) {
         let url: string
         let method: string = "GET"
         let body: any
-        if (typeof input === "string") {
-            url = input
-            method = init?.method ?? method
-            body = init?.body ?? {}
-        } else if (input instanceof URL) {
-            url = input.href
+        if (typeof input === "string" || input instanceof URL) {
+            url = input.toString()
             method = init?.method ?? method
             body = init?.body ?? {}
         } else {
@@ -75,13 +80,21 @@ export function createProxyFetch(routes: FourzeRoute[] = []) {
 
         const route = routes.find(e => e.match(url, method))
         if (route) {
-            const request = createRequest({ url, method, body })
+            const headers: Record<string, string[]> = {}
+            new Headers(init?.headers ?? {}).forEach((value, key) => {
+                if (headers[key]) {
+                    headers[key].push(value)
+                } else {
+                    headers[key] = [value]
+                }
+            })
+            const request = createRequest({ url, method, body, headers })
 
             const response = createResponse()
 
             await route.dispatch(request, response)
 
-            return Promise.resolve(new ProxyFetchResponse(url, response.result))
+            return new ProxyFetchResponse(response)
         }
         return originalFetch(input, init)
     }

@@ -1,8 +1,8 @@
-import path from "path"
+import type { FourzeRequest, FourzeResponse } from "@fourze/core"
+import { logger } from "@fourze/core"
 import fs from "fs"
 import mime from "mime"
-import { logger } from "@fourze/core"
-import type { FourzeRequest, FourzeResponse } from "@fourze/core"
+import path from "path"
 import type { FourzeMiddleware } from "./app"
 
 export interface FourzeRendererOptions {
@@ -60,8 +60,6 @@ export function createRenderer(options: FourzeRendererOptions | string = {}): Fo
         if (url.startsWith(base)) {
             let p: string = path.join(dir, url)
             p = path.normalize(p)
-
-            let i = 0
 
             let content: Buffer | undefined
             for (let template of templates) {

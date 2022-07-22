@@ -1,5 +1,5 @@
-import { createRequest, createResponse } from "../shared"
 import type { FourzeRequest, FourzeRoute } from "../shared"
+import { createRequest, createResponse } from "../shared"
 import { HTTP_STATUS_CODES } from "./code"
 
 type XHR_RESPONSE_PROPERTY = "readyState" | "responseURL" | "status" | "statusText" | "responseType" | "response" | "responseText" | "responseXML"
@@ -146,17 +146,13 @@ export function createProxyXHR(routes: FourzeRoute[]) {
         return this
     }
 
+    Object.defineProperty(MockXHR.prototype, "$routes", () => routes)
+
     MockXHR.UNSENT = 0
     MockXHR.OPENED = 1
     MockXHR.HEADERS_RECEIVED = 2
     MockXHR.LOADING = 3
     MockXHR.DONE = 4
-
-    Object.defineProperty(MockXHR.prototype, "$routes", {
-        get() {
-            return routes
-        }
-    })
 
     MockXHR.prototype.setRequestHeader = function (this: MockXmlHttpRequest, name: string, value: string) {
         if (!!this.$base) {
@@ -208,7 +204,7 @@ export function createProxyXHR(routes: FourzeRoute[]) {
 
         console.log("mock url ->", url, routes)
 
-        this.$route = this.$routes.find(e => e.match(url.toString(), method))
+        this.$route = routes.find(e => e.match(url.toString(), method))
         console.log("find mock route", this.$route)
         this.$base = null
         this.request = createRequest({

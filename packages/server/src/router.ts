@@ -89,7 +89,6 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
         }
 
         const loadJsModule = async (mod: string) => {
-            this.remove(mod)
             const module = require(mod)
             const route = module?.exports?.default ?? module?.default
             if (isFourze(route) || isRoute(route) || (Array.isArray(route) && route.some(isRoute))) {
@@ -100,21 +99,23 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
         const loadTsModule = async (mod: string) => {
             const modName = mod.replace(".ts", TEMPORARY_FILE_SUFFIX)
             const { build } = require("esbuild") as typeof import("esbuild")
+            try {
+                await build({
+                    entryPoints: [mod],
+                    external: ["@fourze/core"],
+                    outfile: modName,
+                    write: true,
+                    platform: "node",
+                    bundle: true,
+                    format: "cjs",
+                    metafile: true,
+                    target: "es6"
+                })
 
-            await build({
-                entryPoints: [mod],
-                external: ["@fourze/core"],
-                outfile: modName,
-                write: true,
-                platform: "node",
-                bundle: true,
-                format: "cjs",
-                metafile: true,
-                target: "es6"
-            })
-
-            await loadJsModule(modName)
-
+                await loadJsModule(modName)
+            } catch (err) {
+                logger.error(`load file ${modName}`, err)
+            }
             try {
                 await fs.promises.unlink(modName)
             } catch (err) {
@@ -161,7 +162,10 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
 
             switch (event) {
                 case "add":
+                    await this.load(path)
+                    break
                 case "change":
+                    this.remove(path)
                     await this.load(path)
                     break
                 case "unlink":
