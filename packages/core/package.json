@@ -2,23 +2,20 @@
     "name": "@fourze/core",
     "version": "0.3.8",
     "description": "",
-    "main": "dist/index.js",
+    "main": "dist/index.cjs",
     "module": "dist/index.mjs",
     "types": "dist/index.d.ts",
     "files": [
         "dist/"
     ],
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "build": "rollup -c"
+        "build": "unbuild",
+        "stub": "unbuild --stub"
     },
-    "author": "",
+    "author": "chizuki",
     "license": "MIT",
     "dependencies": {
         "dayjs": "^1.11.2",
         "query-string": "^7.1.1"
-    },
-    "devDependencies": {
-        "rollup": "^2.77.0"
     }
 }

@@ -2,28 +2,27 @@
     "name": "@fourze/server",
     "version": "0.3.8",
     "description": "",
-    "main": "dist/index.js",
+    "main": "dist/index.cjs",
     "module": "dist/index.mjs",
     "types": "dist/index.d.ts",
     "files": [
         "dist/"
     ],
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "build": "rollup -c"
+        "build": "unbuild",
+        "stub": "unbuild --stub"
     },
-    "author": "",
+    "author": "chizuki",
     "license": "MIT",
     "dependencies": {
         "@fourze/core": "workspace:*",
-        "mime": "^3.0.0"
-    },
-    "peerDependencies": {
-        "chokidar": "^3.5.3",
+        "mime": "^3.0.0",
         "esbuild": "^0.14.49"
     },
+    "peerDependencies": {
+        "chokidar": "^3.5.3"
+    },
     "devDependencies": {
-        "rollup": "^2.77.0",
         "@types/mime": "^2.0.3"
     }
 }

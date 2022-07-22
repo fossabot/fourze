@@ -26,6 +26,6 @@
         "dev": "vite",
         "build": "vite build"
     },
-    "author": "apateat",
+    "author": "chizuki",
     "license": "MIT"
 }
