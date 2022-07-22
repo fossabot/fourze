@@ -2,7 +2,7 @@ import type { Plugin } from "vite"
 
 import { FourzeBaseRoute, logger } from "@fourze/core"
 
-import { createRouter, FourzeProxyOption, FourzeRouter, createApp } from "@fourze/server"
+import { createApp, createRouter, FourzeProxyOption, FourzeRouter } from "@fourze/server"
 import { mockJs } from "./mock"
 
 const PLUGIN_NAME = "vite-plugin-fourze"
@@ -100,7 +100,7 @@ export function VitePluginFourze(options: VitePluginFourzeOptions = {}): Plugin 
         },
 
         config(config, env) {
-            options.mock = options.mock ?? env.mode === "mock"
+            options.mock = options.mock ?? (env.command == "build" || env.mode === "mock")
             return {
                 define: {
                     VITE_PLUGIN_FOURZE_MOCK: options.mock
