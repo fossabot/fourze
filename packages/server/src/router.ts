@@ -138,13 +138,18 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
     router.watch = function watch(this: FourzeRouter, dir?: string | FSWatcher, customWatcher?: FSWatcher) {
         let watchDir: string
         let watcher: FSWatcher | undefined = undefined
-        const chokidar = require("chokidar") as typeof import("chokidar")
+
         if (typeof dir === "string") {
             watchDir = dir
-            watcher = customWatcher ?? chokidar.watch(dir)
+            watcher = customWatcher
         } else {
             watchDir = rootDir
-            watcher = dir ?? chokidar.watch(rootDir)
+            watcher = dir
+        }
+
+        if (!watcher) {
+            const chokidar = require("chokidar") as typeof import("chokidar")
+            watcher = chokidar.watch(watchDir)
         }
 
         watcher.add(watchDir)
