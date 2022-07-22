@@ -20,7 +20,7 @@ jobs:
 
             - name: Set up pnpm
               uses: pnpm/action-setup@v2.2.2
-                with:
+              with:
                   version: 7.5.2
 
             - run: npx changelogithub
