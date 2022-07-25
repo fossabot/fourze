@@ -57,7 +57,7 @@ export function VitePluginFourze(options: VitePluginFourzeOptions = {}): Plugin 
     const pattern = Array.from(options.filePattern ?? [".ts$", ".js$"])
     const hmr = options.hmr ?? true
 
-    logger.level = options.logLevel ?? "off"
+    logger.setLevel(options.logLevel ?? "off")
 
     const proxy = Array.isArray(options.proxy)
         ? options.proxy

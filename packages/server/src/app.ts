@@ -1,8 +1,9 @@
-import { createRequest, createResponse, logger } from "@fourze/core"
-import type { FourzeRequest, FourzeResponse } from "@fourze/core"
+import { createRequest, createResponse, FourzeRequest, FourzeResponse, FOURZE_VERSION, Logger, logger, setLogger } from "@fourze/core"
+import EventEmitter from "events"
 import type { IncomingMessage, OutgoingMessage, Server } from "http"
 import http from "http"
 import https from "https"
+import { AddressInfo } from "net"
 
 export interface CommonMiddleware {
     (req: IncomingMessage, res: OutgoingMessage, next?: () => void | Promise<void>): void | Promise<void>
@@ -10,14 +11,16 @@ export interface CommonMiddleware {
 
 export interface FourzeMiddleware {
     (req: FourzeRequest, res: FourzeResponse, next?: () => void | Promise<void>): void | Promise<void>
+    name?: string
 }
 export interface FourzeAppOptions {
     port?: number
     server?: Server
-    serverMode?: "http" | "https"
+    protocol?: "http" | "https"
+    logger?: Logger
 }
 
-export interface FourzeApp {
+export interface FourzeApp extends EventEmitter {
     (req: IncomingMessage, res: OutgoingMessage, next?: () => void | Promise<void>): Promise<void>
 
     readonly port: number
@@ -26,13 +29,19 @@ export interface FourzeApp {
 
     use(middleware: CommonMiddleware): this
     use(middleware: FourzeMiddleware): this
+    use(path: string, middleware: CommonMiddleware): this
+    use(path: string, middlewares: FourzeMiddleware): this
+
     use(path: string, ...middlewares: CommonMiddleware[]): this
-    use(...middlewares: CommonMiddleware[]): this
     use(path: string, ...middlewares: FourzeMiddleware[]): this
+
+    use(...middlewares: CommonMiddleware[]): this
+
     use(...middlewares: FourzeMiddleware[]): this
 
     createServer(): Server
-    listen(port?: number): Promise<Server>
+
+    listen(port?: number, host?: string): Promise<Server>
 }
 
 export interface FouzeServerContext {
@@ -66,46 +75,124 @@ export function createServerContext(req: IncomingMessage, res: OutgoingMessage):
     })
 }
 
+function injectEventEmitter(app: FourzeApp) {
+    const _emitter = new EventEmitter()
+    app.addListener = function (event: string, listener: (...args: any[]) => void) {
+        _emitter.addListener(event, listener)
+        return this
+    }
+
+    app.on = function (event: string, listener: (...args: any[]) => void) {
+        _emitter.on(event, listener)
+        return this
+    }
+
+    app.emit = function (event: string, ...args: any[]) {
+        return _emitter.emit(event, ...args)
+    }
+
+    app.once = function (event: string, listener: (...args: any[]) => void) {
+        _emitter.once(event, listener)
+        return this
+    }
+
+    app.removeListener = function (event: string, listener: (...args: any[]) => void) {
+        _emitter.removeListener(event, listener)
+        return this
+    }
+
+    app.removeAllListeners = function (event?: string) {
+        _emitter.removeAllListeners(event)
+        return this
+    }
+
+    app.listeners = function (event: string) {
+        return _emitter.listeners(event)
+    }
+
+    app.on("error", error => {
+        logger.error(error)
+    })
+}
+
+function normalizeAddress(address: AddressInfo | string | null): string {
+    if (address) {
+        if (typeof address === "string") {
+            return address
+        }
+        return `${address.address}:${address.port}`
+    }
+    return "unknown"
+}
+
+function injectSeverEvents(app: FourzeApp, server: Server) {}
+
 export function createApp(options: FourzeAppOptions = {}) {
-    let _port = options.port ?? 3456
+    let _port = options.port
     let _server = options.server
 
-    let _serverMode = options.serverMode ?? "http"
+    let _protocol = options.protocol ?? "http"
+
+    if (options.logger) {
+        setLogger(options.logger)
+    }
 
     const middlewareMap = new Map<string, FourzeMiddleware[]>()
 
     const app = async function (req: IncomingMessage, res: OutgoingMessage, next?: () => void | Promise<void>) {
-        const { request, response } = await createServerContext(req, res)
-        const middlewares = Array.from(middlewareMap.entries())
-            .map(([key, value]) => (request.url.startsWith(key) ? value : []))
-            .reduce((a, b) => a.concat(b), [])
+        const context = await createServerContext(req, res)
+        const { request, response } = context
+        try {
+            const middlewares = Array.from(middlewareMap.entries())
+                .map(([key, value]) => (request.url.startsWith(key) ? value : []))
+                .reduce((a, b) => a.concat(b), [])
 
-        let i = 0
-        const fn = async () => {
-            const middleware = middlewares[i++]
-            if (middleware) {
-                await middleware(request, response, fn)
-            } else if (next && typeof next === "function") {
-                await next()
-            } else if (!response.writableEnded) {
-                response.statusCode = 404
-                response.end(`Cannot ${req.method ?? "GET"} ${req.url ?? "/"}`)
+            let i = 0
+            const fn = async () => {
+                const middleware = middlewares[i++]
+                if (middleware) {
+                    await middleware(request, response, fn)
+                } else if (next && typeof next === "function") {
+                    await next()
+                } else if (!response.writableEnded) {
+                    response.statusCode = 404
+                    response.end(`Cannot ${req.method ?? "GET"} ${req.url ?? "/"}`)
+                }
+            }
+            app.emit("request", context)
+            await fn()
+        } catch (error) {
+            app.emit("error", error, context)
+            if (!response.writableEnded) {
+                response.statusCode = 500
+                response.end(`Internal Server Error`)
             }
         }
-
-        await fn()
     } as FourzeApp
+
+    injectEventEmitter(app)
 
     app.use = function (param0: FourzeMiddleware | string, ...params: FourzeMiddleware[]) {
         const base = typeof param0 === "string" ? param0 : "/"
-        const arr = typeof param0 === "string" ? params : [param0, ...params.filter(e => typeof e == "function")]
+        const arr = (typeof param0 === "string" ? params : [param0, ...params]).filter(e => typeof e == "function")
         const middlewares = middlewareMap.get(base) ?? []
         middlewareMap.set(base, middlewares.concat(arr))
+
+        for (const middleware of arr) {
+            if (!middleware.name) {
+                Object.defineProperty(middleware, "name", {
+                    value: `anonymous@${Math.random().toString(36).slice(2, 8)}`
+                })
+            }
+            app.emit(`use:${middleware.name}`, middleware)
+            logger.info("Middleware", `[${middleware.name}]`, `was registered on '${base}'.`)
+        }
+
         return this
     }
 
     app.createServer = function () {
-        switch (_serverMode) {
+        switch (_protocol) {
             case "https":
                 _server = https.createServer(app)
                 break
@@ -117,23 +204,26 @@ export function createApp(options: FourzeAppOptions = {}) {
         return _server
     }
 
-    app.listen = function (port?: number) {
-        _port = port ?? _port
+    app.listen = function (port: number = 7609, hostname: string = "localhost") {
+        _port = port ?? _port ?? 7609
         _server = _server ?? this.createServer()
 
+        injectSeverEvents(app, _server)
+
         return new Promise((resolve, reject) => {
+            logger.info(`Start server process [${process.pid}]`)
             const server = this.server
             if (server) {
                 if (!server.listening) {
-                    server.listen(_port, () => {
-                        let address = server.address()
-                        address = typeof address == "string" ? address : `${address?.address}:${address?.port}` ?? `http://localhost:${_port}`
-                        logger.info(`server listening on ${address}`)
-                        logger.info("application started.")
+                    server.listen(_port, hostname, () => {
+                        let address = normalizeAddress(server.address())
+                        logger.info(`Server listening on ${_protocol}://${address}`)
+                        logger.info(`Application ready for Fourze Server v${FOURZE_VERSION}`)
                         resolve(server)
+                        app.emit("ready")
                     })
                 } else {
-                    reject(new Error("Server is already listening"))
+                    reject(new Error(`Server is already listening on ${_protocol}://${normalizeAddress(server.address())}`))
                 }
             } else {
                 reject(new Error("Server is not defined"))
@@ -154,10 +244,15 @@ export function createApp(options: FourzeAppOptions = {}) {
         },
         serverMode: {
             get() {
-                return _serverMode
+                return _protocol
             }
         }
     })
 
+    process.on("SIGINT", () => {
+        logger.info(`Server process [${process.pid}] is shutting down...`)
+        _server?.close()
+        process.exit(0)
+    })
     return app
 }

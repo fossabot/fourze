@@ -32,6 +32,7 @@ export type FourzeRenderer = FourzeMiddleware
 export type FourzeRenderTemplate = (url: string) => any
 
 export function renderFile(p: string) {
+    p = path.normalize(p)
     const extensions = ["html", "htm"]
     const maybes = [p].concat(extensions.map(ext => path.normalize(`${p}/index.${ext}`)))
     do {
@@ -55,23 +56,35 @@ export function createRenderer(options: FourzeRendererOptions | string = {}): Fo
         templates.push(renderFile)
     }
 
-    return async function (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) {
+    async function render(p: string) {
+        let content: Buffer | undefined
+        for (let template of templates) {
+            content = await template(p)
+            if (!!content) {
+                break
+            }
+        }
+        return content
+    }
+
+    const renderer = async function (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) {
         const url = request.relativePath
         if (url.startsWith(base)) {
             let p: string = path.join(dir, url)
-            p = path.normalize(p)
 
-            let content: Buffer | undefined
-            for (let template of templates) {
-                if ((content = template(p))) {
-                    break
-                }
-            }
+            let content = await render(p)
 
             if (!content) {
                 for (let [fr, to] of fallbasks) {
+                    to = path.join(dir, to)
                     if (url.startsWith(fr)) {
-                        if ((content = renderFile(path.join(dir, to)))) {
+                        content = await render(to)
+
+                        if (!content) {
+                            content = renderFile(to)
+                        }
+
+                        if (!!content) {
                             logger.info("fallback", url, " => ", to)
                             break
                         }
@@ -91,4 +104,12 @@ export function createRenderer(options: FourzeRendererOptions | string = {}): Fo
 
         await next?.()
     }
+
+    Object.defineProperty(renderer, "name", {
+        get() {
+            return "FourzeRenderer"
+        }
+    })
+
+    return renderer
 }

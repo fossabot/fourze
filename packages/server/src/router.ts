@@ -16,6 +16,7 @@ export interface FourzeRouterOptions {
 }
 
 export interface FourzeRouter extends FourzeMiddleware {
+    name: string
     load(): void | Promise<void>
     load(moduleName: string): void | Promise<void>
     remove(moduleName: string): this
@@ -212,6 +213,11 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
     }
 
     Object.defineProperties(router, {
+        name: {
+            get() {
+                return "FourzeRouter"
+            }
+        },
         base: {
             get() {
                 return base

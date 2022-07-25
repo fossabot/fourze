@@ -1,6 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "http"
 import { parseUrl } from "query-string"
 
+import { version as FOURZE_VERSION } from "../package.json"
+
+export { FOURZE_VERSION }
+
 const FOURZE_ROUTE_SYMBOL = Symbol("FourzeRoute")
 export interface FourzeRequest extends IncomingMessage {
     url: string
@@ -195,7 +199,7 @@ export function createResponse(res?: FourzeResponse) {
         this.setHeader("Location", url)
     }
 
-    response.setHeader("X-Powered-By", "Fourze")
+    response.setHeader("X-Powered-By", `Fourze Server/v${FOURZE_VERSION}`)
 
     Object.defineProperty(response, FOURZE_RESPONSE_SYMBOL, {
         get() {
