@@ -29,10 +29,16 @@ export interface FourzeRendererOptions {
 
 export type FourzeRenderer = FourzeMiddleware
 
-export type FourzeRenderTemplate = (url: string) => any
+export type FourzeRenderTemplate = (context: FourzeRendererContext) => any
 
-export function renderFile(p: string) {
-    p = path.normalize(p)
+export interface FourzeRendererContext {
+    path: string
+    request: FourzeRequest
+    response: FourzeResponse
+}
+
+export function renderFile(context: FourzeRendererContext) {
+    let p = context.path
     const extensions = ["html", "htm"]
     const maybes = [p].concat(extensions.map(ext => path.normalize(`${p}/index.${ext}`)))
     do {
@@ -51,15 +57,15 @@ export function createRenderer(options: FourzeRendererOptions | string = {}): Fo
     const templates = (options && typeof options == "object" ? options.templates : []) ?? []
     const base = typeof options == "string" ? "/" : options.base ?? "/"
     const _fallbacks = (options && typeof options == "object" ? options.fallbacks : []) ?? []
-    const fallbasks = Array.isArray(_fallbacks) ? _fallbacks.map(f => [f, f]) : Object.entries(_fallbacks)
+    const fallbacks = Array.isArray(_fallbacks) ? _fallbacks.map(f => [f, f]) : Object.entries(_fallbacks)
     if (!templates.includes(renderFile)) {
         templates.push(renderFile)
     }
 
-    async function render(p: string) {
+    async function render(context: FourzeRendererContext) {
         let content: Buffer | undefined
         for (let template of templates) {
-            content = await template(p)
+            content = await template(context)
             if (!!content) {
                 break
             }
@@ -70,18 +76,19 @@ export function createRenderer(options: FourzeRendererOptions | string = {}): Fo
     const renderer = async function (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) {
         const url = request.relativePath
         if (url.startsWith(base)) {
-            let p: string = path.join(dir, url)
+            const context = { path: path.join(dir, url), request, response }
 
-            let content = await render(p)
+            let content = await render(context)
 
             if (!content) {
-                for (let [fr, to] of fallbasks) {
-                    to = path.join(dir, to)
+                for (let [fr, to] of fallbacks) {
                     if (url.startsWith(fr)) {
-                        content = await render(to)
+                        to = path.normalize(path.join(dir, to))
+                        context.path = to
+                        content = await render(context)
 
                         if (!content) {
-                            content = renderFile(to)
+                            content = renderFile(context)
                         }
 
                         if (!!content) {

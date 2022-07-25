@@ -2,7 +2,7 @@ import comporession from "compression"
 import ejs from "ejs"
 import { transform } from "esbuild"
 
-import { CommonMiddleware, createApp, createRenderer, createRouter } from "@fourze/server"
+import { CommonMiddleware, createApp, createRenderer, createRouter, FourzeRendererContext } from "@fourze/server"
 import fs from "fs"
 import path from "path"
 
@@ -22,68 +22,55 @@ const router2 = createRouter(route => {
     })
 })
 
-export async function renderEjs(p: string) {
-    const file = path.resolve(process.cwd(), path.normalize(p))
+export async function renderEjs(context: FourzeRendererContext) {
+    const file = path.normalize(context.path)
     if (fs.existsSync(file) && fs.statSync(file).isFile()) {
         return ejs.renderFile(file, {})
     }
 }
 
-export function createFourzeElement(tag: string, props: any = {}, ...children: string[]) {
-    if (!props || typeof props != "object" || Array.isArray(props)) {
-        props = {}
-    }
+export async function rendertsx(context: FourzeRendererContext) {
+    const file = path.normalize(context.path)
 
-    if (props.class && Array.isArray(props.class)) {
-        props.class = props.class.join(" ")
-    }
+    const maybes = [file].concat(["index.tsx", "index.jsx"].map(ext => path.normalize(`${file}/${ext}`)))
 
-    function renderChildren(children: string[]): string {
-        if (Array.isArray(children)) {
-            return children.map(c => (Array.isArray(c) ? renderChildren(c) : c)).join("")
-        }
-        return children
-    }
+    for (let maybe of maybes) {
+        if (fs.existsSync(maybe) && fs.statSync(maybe).isFile()) {
+            const raw = fs.readFileSync(maybe).toString()
+            const { code } = await transform(raw, {
+                target: "esnext",
+                format: "esm",
+                loader: "tsx",
+                banner: "import {createElement} from '@fourze/core'",
 
-    return (
-        "<" +
-        tag +
-        " " +
-        Object.entries(props)
-            .map(([k, v]) => `${k}="${v}"`)
-            .join(" ") +
-        ">" +
-        renderChildren(children) +
-        "</" +
-        tag +
-        ">"
-    )
-}
-
-export async function rendertsx(p: string) {
-    const file = path.resolve(process.cwd(), path.normalize(p))
-    if (fs.existsSync(file) && fs.statSync(file).isFile()) {
-        const raw = fs.readFileSync(file).toString()
-        const { code } = await transform(raw, {
-            target: "esnext",
-            format: "cjs",
-            loader: "tsx",
-            tsconfigRaw: {
-                compilerOptions: {
-                    jsxFactory: "createFourzeElement",
-                    jsxFragmentFactory: "Fragment"
+                tsconfigRaw: {
+                    compilerOptions: {
+                        jsxFactory: "createElement",
+                        jsxFragmentFactory: "Fragment"
+                    }
                 }
-            }
-        })
+            })
 
-        const { default: mod } = await eval(code)
-        const { render } = mod
-        if (render && typeof render === "function") {
-            let content = await render()
-            if (typeof content == "function") {
-                content = content()
+            const tmp = path.normalize(maybe.replace(".tsx", ".tmp.js"))
+
+            delete require.cache[tmp]
+
+            fs.writeFileSync(tmp, code)
+
+            const { default: mod } = await require(tmp)
+
+            const { render } = mod
+            fs.rmSync(tmp)
+
+            if (render && typeof render === "function") {
+                let content = await render()
+                if (typeof content == "function") {
+                    content = content()
+                }
+                context.response.setHeader("Content-Type", "text/html; charset=utf-8")
+
+                return content
             }
-            return content
         }
     }
 }
@@ -91,7 +78,7 @@ export async function rendertsx(p: string) {
 const renderer = createRenderer({ dir: path.resolve(process.cwd(), "../web/dist"), fallbacks: { "/home": "/" } })
 
 const ejsRenderer = createRenderer({ templates: [renderEjs], fallbacks: { "/ejs": "/ejs/index.ejs" } })
-const tsxRenderer = createRenderer({ templates: [rendertsx], fallbacks: { "/tsx": "/tsx/index.tsx" } })
+const tsxRenderer = createRenderer({ templates: [rendertsx] })
 
 const app = createApp({})
 

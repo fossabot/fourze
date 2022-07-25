@@ -12,6 +12,7 @@ export const LOGGER_LEVELS = {
 }
 
 export interface Logger {
+    setLevel(level: number | string): void
     // info
     info(...args: any[]): void
     // debug
@@ -27,7 +28,6 @@ export interface Logger {
 }
 
 export interface FourzeLogger extends Logger {
-    setLevel(level: number): void
     level: number
 }
 
