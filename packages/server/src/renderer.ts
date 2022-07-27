@@ -1,6 +1,6 @@
-import type { FourzeComponent, FourzeRequest, FourzeResponse } from "@fourze/core"
-import { Logger } from "@fourze/core"
-import { transform } from "esbuild"
+import { defineFourzeComponent, FourzeComponent, FourzeRequest, FourzeResponse, isFourzeComponent, Logger } from "@fourze/core"
+import { createHash } from "crypto"
+import { build } from "esbuild"
 import fs from "fs"
 import mime from "mime"
 import path from "path"
@@ -61,37 +61,30 @@ export function renderFile(request: FourzeRequest, response: FourzeResponse, con
 export async function renderTsx(request: FourzeRequest, response: FourzeResponse, context: FourzeRendererContext) {
     const file = path.normalize(context.file)
 
-    const maybes = file.endsWith(".jsx") || file.endsWith(".tsx") ? [file] : []
+    const maybes = file.match(/\.[t|j]sx$/) ? [file] : []
     maybes.push(...["index.tsx", "index.jsx"].map(ext => path.normalize(`${file}/${ext}`)))
 
     for (let maybe of maybes) {
         if (fs.existsSync(maybe) && fs.statSync(maybe).isFile()) {
-            const raw = fs.readFileSync(maybe).toString()
-            const { code } = await transform(raw, {
+            const hash = "_" + createHash("md5").update(fs.readFileSync(maybe)).digest("hex").slice(0, 8)
+            const tmp = path.normalize(`${maybe.replace(/\.[t|j]sx$/g, "")}${hash}.tmp.js`)
+
+            await build({
+                entryPoints: [maybe],
                 target: "esnext",
                 format: "esm",
-                loader: "tsx",
-                banner: "import {createElement} from '@fourze/core'",
-
-                tsconfigRaw: {
-                    compilerOptions: {
-                        jsxFactory: "createElement",
-                        jsxFragmentFactory: "Fragment"
-                    }
-                }
+                banner: { js: `import { createElement as ${hash}} from '@fourze/core'` },
+                jsxFactory: hash,
+                jsxFragment: "'fragment'",
+                outfile: tmp,
+                write: true
             })
-
-            const tmp = path.normalize(maybe.replace(".tsx", ".tmp.js"))
-
-            delete require.cache[tmp]
-
-            await fs.promises.writeFile(tmp, code)
 
             const { default: mod } = await require(tmp)
 
-            let { render, setup } = mod as FourzeComponent
-
             await fs.promises.rm(tmp)
+
+            let { render, setup } = isFourzeComponent(mod) ? mod : defineFourzeComponent(mod)
 
             if (setup) {
                 const setupReturn = await setup()
@@ -102,6 +95,7 @@ export async function renderTsx(request: FourzeRequest, response: FourzeResponse
 
             if (render && typeof render === "function") {
                 let content = await render()
+
                 response.setHeader("Content-Type", "text/html; charset=utf-8")
                 response.end(content)
             }

@@ -16,13 +16,14 @@
     "license": "MIT",
     "dependencies": {
         "@fourze/core": "workspace:*",
-        "mime": "^3.0.0",
-        "esbuild": "^0.14.49"
+        "esbuild": "^0.14.49",
+        "mime": "^3.0.0"
     },
     "peerDependencies": {
         "chokidar": "^3.5.3"
     },
     "devDependencies": {
-        "@types/mime": "^2.0.3"
+        "@types/mime": "^2.0.3",
+        "esbuild-css-modules-plugin": "^2.5.0"
     }
 }

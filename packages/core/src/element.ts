@@ -1,6 +1,19 @@
 import { MaybePromise } from "./types"
 
-export function createElement(tag: string, props: any = {}, ...children: string[]) {
+async function resolveElement(ele: any) {
+    if (ele instanceof Promise) {
+        ele = await ele
+    }
+    if (isFourzeComponent(ele)) {
+        return await ele.render?.()
+    }
+    if (typeof ele === "function") {
+        return await ele()
+    }
+    return ele
+}
+
+export async function createElement(tag: string, props: any = {}, ...children: (string | JSX.Element)[]) {
     if (!props || typeof props != "object" || Array.isArray(props)) {
         props = {}
     }
@@ -9,27 +22,28 @@ export function createElement(tag: string, props: any = {}, ...children: string[
         props.class = props.class.join(" ")
     }
 
-    function renderChildren(children: string[]): string {
+    async function renderChildren(children: (string | JSX.Element)[]): Promise<string> {
         if (Array.isArray(children)) {
-            return children.map(c => (Array.isArray(c) ? renderChildren(c) : c)).join("")
+            const tasks = children.map(async c => (Array.isArray(c) ? renderChildren(c) : resolveElement(c)))
+            const childs = await Promise.all(tasks)
+            return childs.join("")
         }
         return children
     }
 
-    return (
-        "<" +
-        tag +
-        " " +
-        Object.entries(props)
-            .map(([k, v]) => `${k}="${v}"`)
-            .join(" ") +
-        ">" +
-        renderChildren(children) +
-        "</" +
-        tag +
-        ">"
-    )
+    const content = await renderChildren(children)
+    const attrs = Object.entries(props)
+        .map(([key, value]) => ` ${key}="${value}"`)
+        .join("")
+
+    if (tag.toLowerCase() === "fragment") {
+        return content
+    }
+
+    return `<${tag}${attrs}>${content}</${tag}>`
 }
+
+export const h = createElement
 
 export const FourzeComponentSymbol = Symbol("FourzeComponent")
 
@@ -43,12 +57,12 @@ export interface FourzeComponent extends FourzeComponentOption {
     [FourzeComponentSymbol]: true
 }
 
-export function defineFourzeComponent(component: FourzeComponentOption | FourzeComponentOption["setup"]): FourzeComponent {
-    if (typeof component === "function") {
-        component = { setup: component }
+export function defineFourzeComponent(setup: FourzeComponentOption | FourzeComponentOption["setup"]): FourzeComponent {
+    if (typeof setup === "function") {
+        setup = { setup }
     }
     return {
-        ...component,
+        ...setup,
         [FourzeComponentSymbol]: true
     }
 }
