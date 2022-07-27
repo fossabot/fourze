@@ -1,5 +1,6 @@
-import type { FourzeRequest, FourzeResponse } from "@fourze/core"
-import { logger } from "@fourze/core"
+import type { FourzeComponent, FourzeRequest, FourzeResponse } from "@fourze/core"
+import { Logger } from "@fourze/core"
+import { transform } from "esbuild"
 import fs from "fs"
 import mime from "mime"
 import path from "path"
@@ -27,18 +28,26 @@ export interface FourzeRendererOptions {
     fallbacks?: string[] | Record<string, string>
 }
 
-export type FourzeRenderer = FourzeMiddleware
-
-export type FourzeRenderTemplate = (context: FourzeRendererContext) => any
-
-export interface FourzeRendererContext {
-    path: string
-    request: FourzeRequest
-    response: FourzeResponse
+export interface FourzeRenderer extends FourzeMiddleware {
+    templates: FourzeRenderTemplate[]
+    use: (...middlewares: FourzeRenderTemplate[]) => this
 }
 
-export function renderFile(context: FourzeRendererContext) {
-    let p = context.path
+export type FourzeRenderTemplate = (request: FourzeRequest, response: FourzeResponse, context: FourzeRendererContext) => any
+
+export interface FourzeRendererContext {
+    file: string
+
+    /**
+     *  @see FourzeRendererOptions["dir"]
+     */
+    dir: string
+
+    logger: Logger
+}
+
+export function renderFile(request: FourzeRequest, response: FourzeResponse, context: FourzeRendererContext) {
+    let p = context.file
     const extensions = ["html", "htm"]
     const maybes = [p].concat(extensions.map(ext => path.normalize(`${p}/index.${ext}`)))
     do {
@@ -49,46 +58,99 @@ export function renderFile(context: FourzeRendererContext) {
     } while (!!p)
 }
 
+export async function renderTsx(request: FourzeRequest, response: FourzeResponse, context: FourzeRendererContext) {
+    const file = path.normalize(context.file)
+
+    const maybes = file.endsWith(".jsx") || file.endsWith(".tsx") ? [file] : []
+    maybes.push(...["index.tsx", "index.jsx"].map(ext => path.normalize(`${file}/${ext}`)))
+
+    for (let maybe of maybes) {
+        if (fs.existsSync(maybe) && fs.statSync(maybe).isFile()) {
+            const raw = fs.readFileSync(maybe).toString()
+            const { code } = await transform(raw, {
+                target: "esnext",
+                format: "esm",
+                loader: "tsx",
+                banner: "import {createElement} from '@fourze/core'",
+
+                tsconfigRaw: {
+                    compilerOptions: {
+                        jsxFactory: "createElement",
+                        jsxFragmentFactory: "Fragment"
+                    }
+                }
+            })
+
+            const tmp = path.normalize(maybe.replace(".tsx", ".tmp.js"))
+
+            delete require.cache[tmp]
+
+            await fs.promises.writeFile(tmp, code)
+
+            const { default: mod } = await require(tmp)
+
+            let { render, setup } = mod as FourzeComponent
+
+            await fs.promises.rm(tmp)
+
+            if (setup) {
+                const setupReturn = await setup()
+                if (typeof setupReturn == "function") {
+                    render = setupReturn as FourzeComponent["render"]
+                }
+            }
+
+            if (render && typeof render === "function") {
+                let content = await render()
+                response.setHeader("Content-Type", "text/html; charset=utf-8")
+                response.end(content)
+            }
+        }
+    }
+}
+
 /**
  * @returns
  */
 export function createRenderer(options: FourzeRendererOptions | string = {}): FourzeRenderer {
     const dir = (options && typeof options === "object" ? options.dir : options) ?? process.cwd()
-    const templates = (options && typeof options == "object" ? options.templates : []) ?? []
+    const templates = (options && typeof options == "object" ? options.templates : [renderTsx]) ?? [renderTsx]
     const base = typeof options == "string" ? "/" : options.base ?? "/"
     const _fallbacks = (options && typeof options == "object" ? options.fallbacks : []) ?? []
     const fallbacks = Array.isArray(_fallbacks) ? _fallbacks.map(f => [f, f]) : Object.entries(_fallbacks)
-    if (!templates.includes(renderFile)) {
-        templates.push(renderFile)
-    }
 
-    async function render(context: FourzeRendererContext) {
-        let content: Buffer | undefined
+    const logger = new Logger("@fourze/renderer")
+
+    async function render(request: FourzeRequest, response: FourzeResponse, context: FourzeRendererContext) {
         for (let template of templates) {
-            content = await template(context)
-            if (!!content) {
-                break
+            const content = await template(request, response, context)
+            if (!!content || response.writableEnded) {
+                return content
             }
         }
-        return content
+        return renderFile(request, response, context)
     }
 
     const renderer = async function (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) {
         const url = request.relativePath
         if (url.startsWith(base)) {
-            const context = { path: path.join(dir, url), request, response }
+            const context = { file: path.join(dir, url), logger, dir }
 
-            let content = await render(context)
+            let content = await render(request, response, context)
+
+            if (response.writableEnded) {
+                return
+            }
 
             if (!content) {
                 for (let [fr, to] of fallbacks) {
                     if (url.startsWith(fr)) {
                         to = path.normalize(path.join(dir, to))
-                        context.path = to
-                        content = await render(context)
+                        context.file = to
+                        content = await render(request, response, context)
 
-                        if (!content) {
-                            content = renderFile(context)
+                        if (response.writableEnded) {
+                            return
                         }
 
                         if (!!content) {
@@ -99,7 +161,7 @@ export function createRenderer(options: FourzeRendererOptions | string = {}): Fo
                 }
             }
 
-            if (content) {
+            if (content && !response.writableEnded) {
                 logger.info("render page", url)
                 if (!response.hasHeader("Content-Type")) {
                     response.setHeader("Content-Type", mime.getType(url) ?? "text/html")
@@ -118,5 +180,16 @@ export function createRenderer(options: FourzeRendererOptions | string = {}): Fo
         }
     })
 
-    return renderer
+    Object.defineProperty(renderer, "templates", {
+        get() {
+            return templates
+        }
+    })
+
+    renderer.use = function (this: FourzeRenderer, ...arr: FourzeRenderTemplate[]) {
+        templates.push(...arr)
+        return this
+    }
+
+    return renderer as FourzeRenderer
 }

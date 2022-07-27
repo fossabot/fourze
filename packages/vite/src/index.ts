@@ -1,6 +1,6 @@
 import type { Plugin } from "vite"
 
-import { FourzeBaseRoute, logger } from "@fourze/core"
+import { FourzeBaseRoute, Logger } from "@fourze/core"
 
 import { createApp, createRouter, FourzeProxyOption, FourzeRouter } from "@fourze/server"
 import { mockJs } from "./mock"
@@ -56,6 +56,8 @@ export function VitePluginFourze(options: VitePluginFourzeOptions = {}): Plugin 
 
     const pattern = Array.from(options.filePattern ?? [".ts$", ".js$"])
     const hmr = options.hmr ?? true
+
+    const logger = new Logger("@fourze/vite")
 
     logger.setLevel(options.logLevel ?? "off")
 

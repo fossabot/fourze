@@ -1,4 +1,4 @@
-import { createRequest, createResponse, FourzeRequest, FourzeResponse, FOURZE_VERSION, Logger, logger, setLogger } from "@fourze/core"
+import { createRequest, createResponse, FourzeRequest, FourzeResponse, FOURZE_VERSION, Logger } from "@fourze/core"
 import EventEmitter from "events"
 import type { IncomingMessage, OutgoingMessage, Server } from "http"
 import http from "http"
@@ -109,10 +109,6 @@ function injectEventEmitter(app: FourzeApp) {
     app.listeners = function (event: string) {
         return _emitter.listeners(event)
     }
-
-    app.on("error", error => {
-        logger.error(error)
-    })
 }
 
 function normalizeAddress(address: AddressInfo | string | null): string {
@@ -133,9 +129,7 @@ export function createApp(options: FourzeAppOptions = {}) {
 
     let _protocol = options.protocol ?? "http"
 
-    if (options.logger) {
-        setLogger(options.logger)
-    }
+    const logger = options.logger ?? new Logger("@fourze/server")
 
     const middlewareMap = new Map<string, FourzeMiddleware[]>()
 
@@ -171,6 +165,10 @@ export function createApp(options: FourzeAppOptions = {}) {
     } as FourzeApp
 
     injectEventEmitter(app)
+
+    app.on("error", error => {
+        logger.error(error)
+    })
 
     app.use = function (param0: FourzeMiddleware | string, ...params: FourzeMiddleware[]) {
         const base = typeof param0 === "string" ? param0 : "/"

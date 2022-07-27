@@ -1,0 +1,3 @@
+# Fourze Server
+
+**Only Node**

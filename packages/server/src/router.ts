@@ -1,5 +1,5 @@
 import type { FourzeBaseRoute, FourzeRequest, FourzeResponse, FourzeRoute, FourzeSetup } from "@fourze/core"
-import { defineFourze, defineRoute, isFourze, isRoute, logger } from "@fourze/core"
+import { defineFourze, defineRoute, isFourze, isRoute, Logger } from "@fourze/core"
 import type { FSWatcher } from "chokidar"
 import fs from "fs"
 import { join, resolve } from "path"
@@ -52,6 +52,7 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
     const moduleNames = new Set(Array.from(options.moduleNames ?? []))
 
     const routes: FourzeBaseRoute[] = Array.from(options.routes ?? [])
+    const logger = new Logger("@fourze/router")
 
     const router = async function (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) {
         const dispatchers = router.routes.map(e => e.dispatch)

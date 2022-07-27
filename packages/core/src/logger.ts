@@ -31,44 +31,42 @@ export interface FourzeLogger extends Logger {
     level: number
 }
 
-export let logger: Logger = {
-    level: LOGGER_LEVELS.ALL,
-    setLevel(level: number | string) {
-        this.level = typeof level === "string" ? LOGGER_LEVELS[level as keyof typeof LOGGER_LEVELS] ?? 0 : level
-    },
-    info(...args: any[]) {
-        if (this.level <= LOGGER_LEVELS.INFO) {
-            console.info(`[INFO ${dayjs().format("YYYY-MM-DD HH:mm:ss")}]`, ...args)
-        }
-    },
-    debug(...args: any[]) {
-        if (this.level <= LOGGER_LEVELS.DEBUG) {
-            console.debug(`[DEBUG ${dayjs().format("YYYY-MM-DD HH:mm:ss")}]`, ...args)
-        }
-    },
-    warn(...args: any[]) {
-        if (this.level <= LOGGER_LEVELS.WARN) {
-            console.warn(`[WARNING ${dayjs().format("YYYY-MM-DD HH:mm:ss")}]`, ...args)
-        }
-    },
-    trace(...args: any[]) {
-        if (this.level <= LOGGER_LEVELS.TRACE) {
-            console.trace(`[TRACE ${dayjs().format("YYYY-MM-DD HH:mm:ss")}]`, ...args)
-        }
-    },
+function now() {
+    return dayjs().format("YYYY-MM-DD HH:mm:ss")
+}
 
+export class Logger {
+    level: number = LOGGER_LEVELS.INFO
+
+    readonly scope: string
+
+    constructor(scope: string) {
+        this.scope = scope
+    }
+    setLevel(level: number | string) {
+        this.level = typeof level === "string" ? LOGGER_LEVELS[level as keyof typeof LOGGER_LEVELS] : level
+    }
+    info(...args: any[]) {
+        this.log(LOGGER_LEVELS.INFO, ...args)
+    }
+    debug(...args: any[]) {
+        this.log(LOGGER_LEVELS.DEBUG, ...args)
+    }
+    warn(...args: any[]) {
+        this.log(LOGGER_LEVELS.WARN, ...args)
+    }
     error(...args: any[]) {
-        if (this.level <= LOGGER_LEVELS.ERROR) {
-            console.error(`[ERROR ${dayjs().format("YYYY-MM-DD HH:mm:ss")}]`, ...args)
-        }
-    },
+        this.log(LOGGER_LEVELS.ERROR, ...args)
+    }
     fatal(...args: any[]) {
-        if (this.level <= LOGGER_LEVELS.FATAL) {
-            console.error(`[FATAL ${dayjs().format("YYYY-MM-DD HH:mm:ss")}]`, ...args)
+        this.log(LOGGER_LEVELS.FATAL, ...args)
+    }
+    trace(...args: any[]) {
+        this.log(LOGGER_LEVELS.TRACE, ...args)
+    }
+    log(level: number, ...args: any[]) {
+        if (level >= this.level) {
+            console.log(`[${now()}] [${this.scope}]`, ...args)
         }
     }
-} as FourzeLogger
-
-export function setLogger(_logger: Logger) {
-    logger = _logger
 }

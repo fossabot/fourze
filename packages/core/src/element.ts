@@ -1,3 +1,5 @@
+import { MaybePromise } from "./types"
+
 export function createElement(tag: string, props: any = {}, ...children: string[]) {
     if (!props || typeof props != "object" || Array.isArray(props)) {
         props = {}
@@ -27,4 +29,30 @@ export function createElement(tag: string, props: any = {}, ...children: string[
         tag +
         ">"
     )
+}
+
+export const FourzeComponentSymbol = Symbol("FourzeComponent")
+
+export interface FourzeComponentOption {
+    name?: string
+    setup?: () => MaybePromise<this["render"] | Record<string, any>>
+    render?: () => MaybePromise<JSX.Element>
+}
+
+export interface FourzeComponent extends FourzeComponentOption {
+    [FourzeComponentSymbol]: true
+}
+
+export function defineFourzeComponent(component: FourzeComponentOption | FourzeComponentOption["setup"]): FourzeComponent {
+    if (typeof component === "function") {
+        component = { setup: component }
+    }
+    return {
+        ...component,
+        [FourzeComponentSymbol]: true
+    }
+}
+
+export function isFourzeComponent(component: any): component is FourzeComponent {
+    return component && component[FourzeComponentSymbol]
 }

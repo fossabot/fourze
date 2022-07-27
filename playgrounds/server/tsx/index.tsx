@@ -1,16 +1,14 @@
-export default {
-    async render(context: any) {
-        const list = ["a", "b", "c"]
+import { defineFourzeComponent } from "@fourze/core"
 
-        return async () => {
-            return (
-                <div class={"w-4 ".concat("h-4").concat(" m-4")}>
-                    <div>{"Hello,World"}</div>
-                    {list.map(item => (
-                        <div>{item}</div>
-                    ))}
-                </div>
-            )
-        }
-    }
-}
+export default defineFourzeComponent(() => {
+    const list = ["a", "b", "c"]
+
+    return () => (
+        <div class={"w-4 ".concat("h-4").concat(" m-4")}>
+            <div>{"Hello,World"}</div>
+            {list.map(item => (
+                <div>{item}</div>
+            ))}
+        </div>
+    )
+})
