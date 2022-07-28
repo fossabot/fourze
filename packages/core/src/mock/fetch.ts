@@ -1,4 +1,4 @@
-import type { FourzeResponse, FourzeRoute } from "../shared"
+import type { FourzeRequest, FourzeResponse, FourzeRoute } from "../shared"
 import { createRequest, createResponse } from "../shared"
 
 const originalFetch = globalThis.fetch
@@ -25,9 +25,10 @@ class ProxyFetchResponse implements Response {
     data: any
 
     _response: FourzeResponse
+    _request: FourzeRequest
 
-    constructor(response: FourzeResponse) {
-        this.url = response.req.url!
+    constructor(request: FourzeRequest, response: FourzeResponse) {
+        this.url = request.url!
         this.data = response.result
         for (let [key, value] of Object.entries(response.headers)) {
             if (Array.isArray(value)) {
@@ -36,30 +37,39 @@ class ProxyFetchResponse implements Response {
             this.headers.append(key, value ?? "")
         }
         this._response = response
+        this._request = request
     }
 
-    arrayBuffer(): Promise<ArrayBuffer> {
-        return Promise.resolve(new ArrayBuffer(0))
+    async arrayBuffer() {
+        return new ArrayBuffer(0)
     }
 
-    blob(): Promise<Blob> {
-        return Promise.resolve(new Blob())
+    async blob(): Promise<Blob> {
+        return new Blob()
     }
 
-    formData(): Promise<FormData> {
-        return Promise.resolve(new FormData())
+    async formData() {
+        const formData = new FormData()
+        for (let [key, value] of Object.entries(this.data)) {
+            formData.append(key, value as any)
+        }
+        return formData
     }
 
-    json(): Promise<any> {
-        return Promise.resolve(typeof this.data == "string" ? JSON.parse(this.data) : this.data)
+    async json() {
+        return typeof this.data == "string" ? JSON.parse(this.data) : this.data
     }
 
     clone(): Response {
-        return new ProxyFetchResponse(this._response)
+        return new ProxyFetchResponse(this._request, this._response)
     }
 
-    text(): Promise<string> {
-        return Promise.resolve(this.data)
+    async text() {
+        return String(this.data)
+    }
+
+    async raw() {
+        return this.data
     }
 }
 
@@ -88,13 +98,14 @@ export function createProxyFetch(routes: FourzeRoute[] = []) {
                     headers[key] = [value]
                 }
             })
+
+            headers["X-Request-With"] = ["Fourze Fetch Proxy"]
+
             const request = createRequest({ url, method, body, headers })
 
             const response = createResponse()
-
             await route.dispatch(request, response)
-
-            return new ProxyFetchResponse(response)
+            return new ProxyFetchResponse(request, response)
         }
         return originalFetch(input, init)
     }

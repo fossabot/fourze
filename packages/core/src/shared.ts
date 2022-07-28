@@ -21,15 +21,17 @@ export interface FourzeRequest extends IncomingMessage {
     headers: Record<string, string | string[] | undefined>
 }
 
-export interface FourzeResponse extends ServerResponse {
+export interface FourzeBaseResponse extends ServerResponse {
+    result: any
+    headers: Record<string, string | string[] | undefined>
+    matched?: boolean
+}
+export interface FourzeResponse extends FourzeBaseResponse {
     json(data?: any): void
     image(data?: any): void
     text(data?: string): void
     binary(data?: any): void
     redirect(url: string): void
-    result: any
-    headers: Record<string, string | string[] | undefined>
-    matched?: boolean
 }
 
 export interface FourzeBaseRoute {
@@ -148,8 +150,8 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
 
 const FOURZE_RESPONSE_SYMBOL = Symbol("FourzeResponse")
 
-export function createResponse(res?: FourzeResponse) {
-    const response = (res as FourzeResponse) ?? {
+export function createResponse(res?: FourzeBaseResponse) {
+    const response = (res ?? {
         headers: {},
         setHeader(name: string, value: string) {
             if (this.hasHeader(name)) {
@@ -170,7 +172,7 @@ export function createResponse(res?: FourzeResponse) {
         end(data: any) {
             this.result = data
         }
-    }
+    }) as FourzeResponse
 
     response.json = function (data: any) {
         data = typeof data == "string" ? data : JSON.stringify(data)
