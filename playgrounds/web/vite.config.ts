@@ -1,4 +1,4 @@
-import fourze, { mockJs } from "@fourze/vite"
+import fourze, { mockJs } from "@fourze/unplugin"
 import vue from "@vitejs/plugin-vue"
 import jsx from "@vitejs/plugin-vue-jsx"
 import path from "path"
@@ -8,7 +8,7 @@ export default defineConfig({
     plugins: [
         vue(),
         jsx(),
-        fourze({
+        fourze.vite({
             base: "/api",
             dir: path.resolve(__dirname, "mock"),
             filePattern: [".ts$", ".js$"],

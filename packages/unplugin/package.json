@@ -1,0 +1,32 @@
+{
+    "name": "@fourze/unplugin",
+    "version": "0.5.1",
+    "description": "",
+    "main": "dist/index.cjs",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "keywords": [
+        "vite",
+        "mock",
+        "hmr"
+    ],
+    "files": [
+        "dist/"
+    ],
+    "scripts": {
+        "build": "unbuild",
+        "stub": "unbuild --stub"
+    },
+    "author": "chizuki",
+    "license": "MIT",
+    "dependencies": {
+        "@fourze/core": "workspace:*",
+        "@fourze/server": "workspace:*",
+        "unplugin": "^0.8.0"
+    },
+    "devDependencies": {
+        "@types/webpack": "^5.28.0",
+        "vite": "^3.0.2",
+        "webpack": "^5.74.0"
+    }
+}

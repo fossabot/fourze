@@ -13,7 +13,7 @@
     },
     "devDependencies": {
         "@fourze/core": "workspace:*",
-        "@fourze/vite": "workspace:*",
+        "@fourze/unplugin": "workspace:*",
         "@types/jquery": "^3.5.14",
         "@vitejs/plugin-vue": "^3.0.1",
         "@vitejs/plugin-vue-jsx": "^2.0.0",

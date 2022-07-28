@@ -15,7 +15,8 @@
         "paths": {
             "@fourze/core": ["./packages/core/src/index.ts"],
             "@fourze/server": ["./packages/server/src/index.ts"],
-            "@fourze/vite": ["./packages/vite/src/index.ts"]
+            "@fourze/vite": ["./packages/vite/src/index.ts"],
+            "@fourze/unplugin": ["./packages/unplugin/src/index.ts"]
         }
     },
     "include": ["playgrounds/**/*.ts", "playgrounds/**/*.tsx", "packages/**/*.ts"]
