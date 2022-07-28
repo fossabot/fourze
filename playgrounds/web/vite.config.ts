@@ -1,4 +1,4 @@
-import fourze, { mockJs } from "@fourze/unplugin"
+import fourze from "@fourze/unplugin"
 import vue from "@vitejs/plugin-vue"
 import jsx from "@vitejs/plugin-vue-jsx"
 import path from "path"
@@ -12,7 +12,6 @@ export default defineConfig({
             base: "/api",
             dir: path.resolve(__dirname, "mock"),
             filePattern: [".ts$", ".js$"],
-            transformCode: mockJs,
             hmr: true,
             logLevel: "info"
         })
