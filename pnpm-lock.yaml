@@ -154,7 +154,7 @@ importers:
     specifiers:
       '@babel/core': ^7.12.16
       '@babel/eslint-parser': ^7.12.16
-      '@fourze/core': workspace:^0.6.0
+      '@fourze/core': workspace:*
       '@fourze/unplugin': workspace:*
       '@fourze/webpack': workspace:*
       '@typescript-eslint/eslint-plugin': ^5.4.0
@@ -163,7 +163,6 @@ importers:
       '@vue/cli-plugin-eslint': ~5.0.0
       '@vue/cli-plugin-typescript': ~5.0.0
       '@vue/cli-service': ~5.0.0
-      '@vue/composition-api': ^1.7.0
       '@vue/eslint-config-typescript': ^9.1.0
       axios: ^0.27.2
       core-js: ^3.8.3
@@ -175,7 +174,6 @@ importers:
       vue: ^3.2.37
       vue-router: ^4.1.2
     dependencies:
-      '@vue/composition-api': 1.7.0_vue@3.2.37
       axios: 0.27.2
       core-js: 3.24.0
       jquery: 3.6.0
@@ -2669,14 +2667,6 @@ packages:
       - walrus
       - whiskers
     dev: true
-
-  /@vue/composition-api/1.7.0_vue@3.2.37:
-    resolution: {integrity: sha512-hxOgLYR+wjuPX9bkP2pAPlqUs98XxBoa9DSLyp1z6+YR92wC42PZcZKs4d+VRtcv4udOv041Kss+F6ap5nj8YA==}
-    peerDependencies:
-      vue: '>= 2.5 < 2.7'
-    dependencies:
-      vue: 3.2.37
-    dev: false
 
   /@vue/devtools-api/6.2.1:
     resolution: {integrity: sha512-OEgAMeQXvCoJ+1x8WyQuVZzFo0wcyCmUR3baRVLmKBo1LmYZWMlRiXlux5jd0fqVJu6PfDbOrZItVqUEzLobeQ==}

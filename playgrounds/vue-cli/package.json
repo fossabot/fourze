@@ -8,7 +8,6 @@
         "lint": "vue-cli-service lint"
     },
     "dependencies": {
-        "@vue/composition-api": "^1.7.0",
         "axios": "^0.27.2",
         "core-js": "^3.8.3",
         "jquery": "^3.6.0",
@@ -19,8 +18,7 @@
     "devDependencies": {
         "@babel/core": "^7.12.16",
         "@babel/eslint-parser": "^7.12.16",
-        "@fourze/core": "workspace:^0.6.0",
-        "@fourze/unplugin": "workspace:*",
+        "@fourze/core": "workspace:*",
         "@fourze/webpack": "workspace:*",
         "@typescript-eslint/eslint-plugin": "^5.4.0",
         "@typescript-eslint/parser": "^5.4.0",
