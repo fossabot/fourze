@@ -90,25 +90,23 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
     const transformCode = options.transformCode ?? mockJs
     return {
         name: PLUGIN_NAME,
+        async buildStart() {
+            await router.load()
+            logger.info("buildStart", router.routes)
+        },
 
+        resolveId(id) {
+            if (id === CLIENT_ID || id === `/${CLIENT_ID}`) {
+                return `/${CLIENT_ID}`
+            }
+        },
+        load(id) {
+            if (id === CLIENT_ID || id === `/${CLIENT_ID}`) {
+                console.log(router.routes)
+                return transformCode(router)
+            }
+        },
         vite: {
-            async buildStart() {
-                await router.load()
-                logger.info("buildStart", router.routes)
-            },
-
-            resolveId(id) {
-                if (id === CLIENT_ID || id === `/${CLIENT_ID}`) {
-                    return `/${CLIENT_ID}`
-                }
-            },
-            load(id) {
-                if (id === CLIENT_ID || id === `/${CLIENT_ID}`) {
-                    console.log(router.routes)
-                    return transformCode(router)
-                }
-            },
-
             transformIndexHtml: {
                 enforce: "pre",
                 transform(html) {

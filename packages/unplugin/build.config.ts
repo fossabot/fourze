@@ -1,14 +1,14 @@
 import { defineBuildConfig } from "unbuild"
+import { devDependencies as rootDevDependencies } from "../../package.json"
 import { devDependencies } from "./package.json"
 
-const externals = [...Object.keys(devDependencies ?? {}), "vite", "unplugin", "esbuild", "rollup", "unbuild"]
+const externals = [...Object.keys(devDependencies ?? {}), ...Object.keys(rootDevDependencies ?? {})]
 
 export default defineBuildConfig({
-    entries: ["src/*"],
+    entries: ["src/index"],
     outDir: "dist",
     clean: true,
     declaration: true,
-    devDependencies: Object.keys(devDependencies ?? {}),
     externals,
     rollup: {
         emitCJS: true,
