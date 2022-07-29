@@ -1,6 +1,4 @@
-import { FourzeHandle, defineFourze } from "@fourze/core"
-import fs from "fs"
-import path from "path"
+import { defineFourze, FourzeHandle, randomInt } from "@fourze/core"
 
 const keymap = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -25,7 +23,6 @@ export default defineFourze(fourze => {
             }
             rs[str] = `${new Date().toString()} ---- ${phone}`
         }
-        console.log(rs, req)
         return rs
     }
 
@@ -33,20 +30,7 @@ export default defineFourze(fourze => {
 
     fourze("POST:/search/:name", handleSearch)
 
-    fourze("/img/a.jpg", async (req, res) => {
-        const f = await fs.promises.readFile(path.resolve(__dirname, "./test.jpg"))
-        res.image(f)
-    })
-    fourze("/download/a", async (req, res) => {
-        const f = await fs.promises.readFile(path.resolve(__dirname, "./index.ts"))
-        res.binary(f)
-    })
-
     fourze("post:/upload", async (req, res) => {})
 
     return []
 })
-
-function randomInt(min: number, max: number) {
-    return Math.floor(Math.random() * (max - min + 1)) + min
-}

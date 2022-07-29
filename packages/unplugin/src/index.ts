@@ -8,6 +8,22 @@ const PLUGIN_NAME = "unplugin-fourze"
 
 const CLIENT_ID = "@fourze/client"
 
+function isClientID(id: string) {
+    return id.endsWith(CLIENT_ID)
+}
+
+export interface UnpluginFourzeServer {
+    /**
+     *
+     */
+    host?: string
+
+    /**
+     *
+     */
+    port?: number
+}
+
 export interface UnpluginFourzeOptions {
     /**
      * @default 'src/mock'
@@ -38,6 +54,8 @@ export interface UnpluginFourzeOptions {
      * @default "off"
      */
     logLevel?: "off" | "info" | "warn" | "error"
+
+    server?: UnpluginFourzeServer
 
     injectScript?: boolean
 
@@ -88,23 +106,35 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
     proxy.forEach(router.proxy)
 
     const transformCode = options.transformCode ?? mockJs
+
+    let newServer = false
+
+    logger.info(`${PLUGIN_NAME} is starting...`)
+
     return {
         name: PLUGIN_NAME,
+        enforce: "post",
         async buildStart() {
             await router.load()
             logger.info("buildStart", router.routes)
         },
 
         resolveId(id) {
-            if (id === CLIENT_ID || id === `/${CLIENT_ID}`) {
-                return `/${CLIENT_ID}`
+            if (isClientID(id)) {
+                return id
             }
         },
-        load(id) {
-            if (id === CLIENT_ID || id === `/${CLIENT_ID}`) {
-                console.log(router.routes)
+
+        async load(id) {
+            if (isClientID(id) && options.mock) {
                 return transformCode(router)
             }
+        },
+        async webpack() {
+            const port = options.server?.port ?? 7609
+            const host = options.server?.host ?? "localhost"
+            await app.listen(port, host)
+            console.log("Webpack Server listening on port", options.server?.port)
         },
         vite: {
             transformIndexHtml: {
@@ -126,6 +156,9 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
             },
             config(config, env) {
                 options.mock = options.mock ?? (env.command == "build" || env.mode === "mock")
+
+                newServer = options.server?.port != config.server?.port || options.server?.host != config.server?.host
+
                 return {
                     define: {
                         VITE_PLUGIN_FOURZE_MOCK: options.mock
@@ -136,8 +169,11 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
                 if (hmr) {
                     router.watch(watcher)
                 }
-
-                middlewares.use(app)
+                if (newServer) {
+                    middlewares.use(app)
+                } else {
+                    app.listen(options.server?.port, options.server?.host)
+                }
             }
         }
     }

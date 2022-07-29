@@ -1,5 +1,5 @@
 import type { FourzeRouter } from "@fourze/server"
-import { normalizePath } from "vite"
+import { normalizePath } from "@fourze/server"
 
 const TEMPORARY_FILE_SUFFIX = ".tmp.js"
 

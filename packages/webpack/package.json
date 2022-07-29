@@ -1,0 +1,28 @@
+{
+    "name": "@fourze/webpack",
+    "version": "0.6.0",
+    "description": "",
+    "main": "dist/index.cjs",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "keywords": [
+        "vite",
+        "mock",
+        "hmr"
+    ],
+    "files": [
+        "dist/"
+    ],
+    "scripts": {
+        "build": "unbuild",
+        "stub": "unbuild --stub"
+    },
+    "author": "chizuki",
+    "license": "MIT",
+    "dependencies": {
+        "@fourze/unplugin": "workspace:*"
+    },
+    "devDependencies": {
+        "webpack": "^5.74.0"
+    }
+}

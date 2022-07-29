@@ -104,13 +104,10 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
             try {
                 await build({
                     entryPoints: [mod],
-                    external: ["@fourze/core"],
                     outfile: modName,
                     write: true,
                     platform: "node",
-                    bundle: true,
                     format: "cjs",
-                    metafile: true,
                     target: "es6"
                 })
 
