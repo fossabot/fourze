@@ -17,8 +17,8 @@ export interface FourzeRouterOptions {
 
 export interface FourzeRouter extends FourzeMiddleware {
     name: string
-    load(): Promise<void>
-    load(moduleName: string): Promise<void>
+    load(): Promise<boolean>
+    load(moduleName: string): Promise<boolean>
     remove(moduleName: string): this
     watch(watcher?: FSWatcher): this
     watch(dir?: string, watcher?: FSWatcher): this
@@ -78,30 +78,35 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
 
     router.load = async function (this: FourzeRouter, moduleName: string = rootDir) {
         if (!fs.existsSync(moduleName)) {
-            return
+            return false
         }
 
         const loadModule = async (mod: string) => {
-            logger.info("load module", mod)
             if (mod.endsWith(".ts")) {
-                await loadTsModule(mod)
+                return loadTsModule(mod)
             } else {
-                await loadJsModule(mod)
+                return loadJsModule(mod)
             }
         }
 
-        const loadJsModule = async (mod: string) => {
-            const module = require(mod)
-            const route = module?.exports?.default ?? module?.default
+        const loadJsModule = async (f: string) => {
+            delete require.cache[f]
+            const mod = require(f)
+            const route = mod?.exports?.default ?? mod?.default ?? mod?.exports
             if (isFourze(route) || isRoute(route) || (Array.isArray(route) && route.some(isRoute))) {
-                moduleNames.add(mod)
-            } else {
-                logger.error(`find not route with "${mod}" `, route)
+                moduleNames.add(f)
+                return true
             }
+            logger.error(`find not route with "${f}" `, route)
+            return false
         }
 
         const loadTsModule = async (mod: string) => {
+            if (!fs.existsSync(mod)) {
+                return false
+            }
             const modName = mod.replace(".ts", TEMPORARY_FILE_SUFFIX)
+
             const { build } = require("esbuild") as typeof import("esbuild")
             try {
                 await build({
@@ -116,29 +121,31 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
                     allowOverwrite: true,
                     target: "es6"
                 })
-
-                await loadJsModule(modName)
+                return loadJsModule(modName)
             } catch (err) {
                 logger.error(`load file ${modName}`, err)
+            } finally {
+                try {
+                    await fs.promises.unlink(modName)
+                } catch (err) {
+                    logger.error("delete file " + modName + " error", err)
+                }
             }
-            try {
-                await fs.promises.unlink(modName)
-            } catch (err) {
-                logger.error("delete file " + modName + " error", err)
-            }
+            return false
         }
 
         const stat = await fs.promises.stat(moduleName)
         if (stat.isDirectory()) {
             const files = await fs.promises.readdir(moduleName)
             const tasks = files.map(name => this.load(join(moduleName, name)))
-            await Promise.all(tasks)
+            return await Promise.all(tasks).then(r => r.some(f => f))
         } else if (stat.isFile()) {
             if (!pattern.some(e => e.test(moduleName))) {
-                return
+                return false
             }
-            await loadModule(moduleName)
+            return loadModule(moduleName)
         }
+        return false
     }
 
     router.watch = function watch(this: FourzeRouter, dir?: string | FSWatcher, customWatcher?: FSWatcher) {
@@ -166,23 +173,23 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
             }
 
             switch (event) {
-                case "add":
-                    await this.load(path)
+                case "add": {
+                    const load = await this.load(path)
+                    if (load) {
+                        logger.info(`load module ${path}`)
+                    }
                     break
-                case "change":
-                    this.remove(path)
-                    await this.load(path)
+                }
+                case "change": {
+                    const load = await this.load(path)
+                    if (load) {
+                        logger.info(`reload module ${path}`)
+                    }
                     break
+                }
                 case "unlink":
                     this.remove(path)
-                    break
-                case "unlinkDir":
-                    for (const modName of Object.keys(require.cache)) {
-                        if (modName.startsWith(path)) {
-                            this.remove(modName)
-                        }
-                    }
-                    await this.load()
+                    logger.info(`remove module ${path}`)
                     break
             }
         })
@@ -239,7 +246,7 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
                         Array.from(moduleNames)
                             .map(modName => {
                                 const mod = require.cache[modName]
-                                const instance = mod?.exports?.default
+                                const instance = mod?.exports?.default ?? mod?.exports
                                 if (isFourze(instance)) {
                                     return instance.routes
                                 }
