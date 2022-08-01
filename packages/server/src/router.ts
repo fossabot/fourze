@@ -17,8 +17,8 @@ export interface FourzeRouterOptions {
 
 export interface FourzeRouter extends FourzeMiddleware {
     name: string
-    load(): void | Promise<void>
-    load(moduleName: string): void | Promise<void>
+    load(): Promise<void>
+    load(moduleName: string): Promise<void>
     remove(moduleName: string): this
     watch(watcher?: FSWatcher): this
     watch(dir?: string, watcher?: FSWatcher): this
@@ -95,6 +95,9 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
             const route = module?.exports?.default ?? module?.default
             if (isFourze(route) || isRoute(route) || (Array.isArray(route) && route.some(isRoute))) {
                 moduleNames.add(mod)
+                logger.info("register route", route)
+            } else {
+                logger.error("find not route", mod, route, typeof route, isFourze(route))
             }
         }
 
@@ -104,10 +107,14 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
             try {
                 await build({
                     entryPoints: [mod],
+                    external: ["@fourze/core"],
                     outfile: modName,
                     write: true,
                     platform: "node",
+                    bundle: true,
                     format: "cjs",
+                    metafile: true,
+                    allowOverwrite: true,
                     target: "es6"
                 })
 
@@ -133,6 +140,8 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
             }
             await loadModule(moduleName)
         }
+
+        logger.info("load module done", moduleName)
     }
 
     router.watch = function watch(this: FourzeRouter, dir?: string | FSWatcher, customWatcher?: FSWatcher) {

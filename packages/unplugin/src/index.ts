@@ -113,7 +113,6 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
     return {
         name: PLUGIN_NAME,
-        enforce: "post",
         async buildStart() {
             await router.load()
             logger.info("buildStart", router.routes)
@@ -170,9 +169,10 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
                     router.watch(watcher)
                 }
                 if (newServer) {
-                    middlewares.use(app)
-                } else {
                     app.listen(options.server?.port, options.server?.host)
+                } else {
+                    console.log(router.routes)
+                    middlewares.use(app)
                 }
             }
         }
