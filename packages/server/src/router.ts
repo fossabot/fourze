@@ -95,9 +95,8 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
             const route = module?.exports?.default ?? module?.default
             if (isFourze(route) || isRoute(route) || (Array.isArray(route) && route.some(isRoute))) {
                 moduleNames.add(mod)
-                logger.info("register route", route)
             } else {
-                logger.error("find not route", mod, route, typeof route, isFourze(route))
+                logger.error(`find not route with "${mod}" `, route)
             }
         }
 
@@ -140,8 +139,6 @@ export function createRouter(params: FourzeRouterOptions | FourzeSetup): FourzeR
             }
             await loadModule(moduleName)
         }
-
-        logger.info("load module done", moduleName)
     }
 
     router.watch = function watch(this: FourzeRouter, dir?: string | FSWatcher, customWatcher?: FSWatcher) {
