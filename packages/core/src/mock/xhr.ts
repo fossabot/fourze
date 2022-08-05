@@ -1,3 +1,4 @@
+import { Logger } from "../logger"
 import type { FourzeRequest, FourzeRoute } from "../shared"
 import { createRequest, createResponse } from "../shared"
 import { HTTP_STATUS_CODES } from "./code"
@@ -121,6 +122,7 @@ interface MockXmlHttpRequest extends XMLHttpRequestEventTarget {
 }
 
 export function createProxyXHR(routes: FourzeRoute[]) {
+    const logger = new Logger("@fourze/mock")
     const MockXHR = function (this: MockXmlHttpRequest) {
         this.requestHeaders = {}
         this.responseHeaders = {}
@@ -138,6 +140,8 @@ export function createProxyXHR(routes: FourzeRoute[]) {
         this.statusText = ""
 
         this.timeout = 0
+
+        this.withCredentials = false
 
         this.events = {}
 
@@ -202,16 +206,8 @@ export function createProxyXHR(routes: FourzeRoute[]) {
             this.dispatchEvent(new Event(event.type))
         }
 
-        console.log("mock url ->", url, routes)
-
         this.$route = routes.find(e => e.match(url.toString(), method))
-        console.log("find mock route", this.$route?.path)
         this.$base = null
-        this.request = createRequest({
-            url: url.toString(),
-            method,
-            headers: this.requestHeaders
-        })
 
         if (!this.$route) {
             this.$base = new OriginalXmlHttpRequest()
@@ -219,20 +215,32 @@ export function createProxyXHR(routes: FourzeRoute[]) {
                 this.$base.addEventListener(event, handle)
             }
             this.$base.open(method, url, async, username, password)
+            return
         }
+
+        logger.info("mock url ->", url, routes)
+        this.request = createRequest({
+            url: url.toString(),
+            method,
+            headers: this.requestHeaders
+        })
 
         this.readyState = this.OPENED
         this.dispatchEvent(new Event("readystatechange"))
     }
 
     MockXHR.prototype.send = function (this: MockXmlHttpRequest, data?: any) {
-        console.log("send request", this.request.url, this.request.method, data)
-        this.request.body = (typeof data === "string" ? JSON.parse(data) : data) ?? this.request.body ?? {}
-
         if (!!this.$base) {
+            this.$base.timeout = this.timeout
+            this.$base.responseType = this.responseType
+            this.$base.withCredentials = this.withCredentials
             this.$base.send(data)
             return
         }
+
+        logger.info("send request", this.request.url, this.request.method, data)
+        this.request.body = (typeof data === "string" ? JSON.parse(data) : data) ?? this.request.body ?? {}
+
         this.setRequestHeader("X-Requested-With", "Fourze XHR Proxy")
         this.dispatchEvent(new Event("loadstart"))
 
@@ -264,11 +272,7 @@ export function createProxyXHR(routes: FourzeRoute[]) {
             this.dispatchEvent(new Event("loadend"))
         }
 
-        if (this.async) {
-            setTimeout(done, this.timeout)
-        } else {
-            done()
-        }
+        done()
     }
 
     MockXHR.prototype.abort = function (this: MockXmlHttpRequest) {

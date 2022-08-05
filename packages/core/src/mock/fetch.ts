@@ -41,11 +41,11 @@ class ProxyFetchResponse implements Response {
     }
 
     async arrayBuffer() {
-        return new ArrayBuffer(0)
+        return new Blob([this.data]).arrayBuffer()
     }
 
     async blob(): Promise<Blob> {
-        return new Blob()
+        return new Blob([this.data])
     }
 
     async formData() {

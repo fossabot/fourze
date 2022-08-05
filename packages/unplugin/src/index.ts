@@ -107,8 +107,6 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
     const transformCode = options.transformCode ?? mockJs
 
-    let newServer = false
-
     logger.info(`${PLUGIN_NAME} is starting...`)
 
     return {
