@@ -111,5 +111,5 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
 }
 
 export function isFourze(fourze: any): fourze is Fourze {
-    return fourze && fourze[FOURZE_SYMBOL]
+    return !!fourze && fourze[FOURZE_SYMBOL]
 }

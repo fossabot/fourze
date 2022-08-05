@@ -19,5 +19,5 @@
             "@fourze/unplugin": ["./packages/unplugin/src/index.ts"]
         }
     },
-    "include": ["playgrounds/**/*.ts", "playgrounds/**/*.tsx", "packages/**/*.ts"]
+    "include": ["playgrounds/**/*.ts", "playgrounds/**/*.tsx", "packages/**/*.ts", "playgrounds/vue-cli/vue.config.js"]
 }

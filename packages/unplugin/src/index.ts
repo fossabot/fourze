@@ -113,7 +113,6 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
     return {
         name: PLUGIN_NAME,
-        enforce: "post",
         async buildStart() {
             await router.load()
             logger.info("buildStart", router.routes)
@@ -157,22 +156,26 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
             config(config, env) {
                 options.mock = options.mock ?? (env.command == "build" || env.mode === "mock")
 
-                newServer = options.server?.port != config.server?.port || options.server?.host != config.server?.host
-
                 return {
                     define: {
                         VITE_PLUGIN_FOURZE_MOCK: options.mock
                     }
                 }
             },
-            configureServer({ middlewares, watcher }) {
+            configureServer({ middlewares, httpServer, watcher }) {
                 if (hmr) {
                     router.watch(watcher)
                 }
-                if (newServer) {
-                    middlewares.use(app)
+
+                if (options.server) {
+                    try {
+                        app.listen(options.server?.port, options.server?.host)
+                    } catch (error) {
+                        logger.error("Server listen failed.", error)
+                    }
                 } else {
-                    app.listen(options.server?.port, options.server?.host)
+                    middlewares.use(app)
+                    logger.info("Fourze middleware was installed!")
                 }
             }
         }

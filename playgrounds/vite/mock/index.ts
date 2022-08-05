@@ -1,6 +1,7 @@
 import { defineFourze, FourzeHandle, randomInt } from "@fourze/core"
 import fs from "fs"
 import path from "path"
+import { successResponseWrap } from "../utils/setup-mock"
 
 const keymap = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -25,7 +26,7 @@ export default defineFourze(fourze => {
             }
             rs[str] = `${new Date().toString()} ---- ${phone}`
         }
-        return rs
+        return successResponseWrap(rs)
     }
 
     fourze("POST:http://test.com/Search/:name", handleSearch)

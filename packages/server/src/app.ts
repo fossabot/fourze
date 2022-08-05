@@ -42,6 +42,8 @@ export interface FourzeApp extends EventEmitter {
     createServer(): Server
 
     listen(port?: number, host?: string): Promise<Server>
+
+    close(): void
 }
 
 export interface FouzeServerContext {
@@ -229,6 +231,10 @@ export function createApp(options: FourzeAppOptions = {}) {
         })
     }
 
+    app.close = function () {
+        this.server?.close()
+    }
+
     Object.defineProperties(app, {
         port: {
             get() {
@@ -247,10 +253,5 @@ export function createApp(options: FourzeAppOptions = {}) {
         }
     })
 
-    process.on("SIGINT", () => {
-        logger.info(`Server process [${process.pid}] is shutting down...`)
-        _server?.close()
-        process.exit(0)
-    })
     return app
 }

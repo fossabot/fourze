@@ -1,13 +1,15 @@
 <script lang="tsx">
 import axios from "axios"
-import { defineComponent, ref } from "vue"
 import $ from "jquery"
+import { defineComponent, ref } from "vue"
+import { ResponseData } from "./utils/setup-mock"
 
 export default defineComponent(() => {
     const list = ref<any[]>([])
     function fetchClick() {
         fetch(`/api/search/${Math.floor(Math.random() * 9)}`, { method: "post", body: JSON.stringify({ phone: 2 }) })
             .then(r => r.json())
+            .then(r => r.data)
             .then(r => {
                 list.value = Array.isArray(r) ? r : Object.entries(r)
             })
@@ -15,9 +17,9 @@ export default defineComponent(() => {
 
     function xhrClick() {
         axios
-            .post(`/api/search/${Math.floor(Math.random() * 9)}`, { phone: 2 })
+            .post<ResponseData>(`/api/search/${Math.floor(Math.random() * 9)}`, { phone: 2 })
             .then(r => {
-                return r.data
+                return r.data.data
             })
             .then(r => (list.value = Array.isArray(r) ? r : Object.entries(r)))
     }
@@ -30,6 +32,7 @@ export default defineComponent(() => {
             dataType: "json",
             contentType: "application/json",
             success(r) {
+                r = r.data
                 list.value = Array.isArray(r) ? r : Object.entries(r)
             },
             error(r) {
