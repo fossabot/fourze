@@ -155,7 +155,6 @@ importers:
       '@babel/core': ^7.12.16
       '@babel/eslint-parser': ^7.12.16
       '@fourze/core': workspace:*
-      '@fourze/unplugin': workspace:*
       '@fourze/webpack': workspace:*
       '@typescript-eslint/eslint-plugin': ^5.4.0
       '@typescript-eslint/parser': ^5.4.0
@@ -184,7 +183,6 @@ importers:
       '@babel/core': 7.18.9
       '@babel/eslint-parser': 7.18.9_o5peei4wpze5egwf42u76kwdva
       '@fourze/core': link:../../packages/core
-      '@fourze/unplugin': link:../../packages/unplugin
       '@fourze/webpack': link:../../packages/webpack
       '@typescript-eslint/eslint-plugin': 5.31.0_4jrpqvszkjcwtaspamifhp3x7e
       '@typescript-eslint/parser': 5.31.0_sgaiclxgc5mltnpgmg7py4v6ca
