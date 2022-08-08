@@ -1,4 +1,5 @@
 import { Logger } from "../logger"
+import { FourzeRouter } from "../router"
 import type { FourzeRequest, FourzeRoute } from "../shared"
 import { createRequest, createResponse } from "../shared"
 import { HTTP_STATUS_CODES } from "./code"
@@ -121,7 +122,7 @@ interface MockXmlHttpRequest extends XMLHttpRequestEventTarget {
     removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void
 }
 
-export function createProxyXHR(routes: FourzeRoute[]) {
+export function createProxyXHR(router: FourzeRouter) {
     const logger = new Logger("@fourze/mock")
     const MockXHR = function (this: MockXmlHttpRequest) {
         this.requestHeaders = {}
@@ -150,7 +151,7 @@ export function createProxyXHR(routes: FourzeRoute[]) {
         return this
     }
 
-    Object.defineProperty(MockXHR.prototype, "$routes", () => routes)
+    Object.defineProperty(MockXHR.prototype, "$routes", () => router.routes)
 
     MockXHR.UNSENT = 0
     MockXHR.OPENED = 1
@@ -206,7 +207,7 @@ export function createProxyXHR(routes: FourzeRoute[]) {
             this.dispatchEvent(new Event(event.type))
         }
 
-        this.$route = routes.find(e => e.match(url.toString(), method))
+        this.$route = router.match(url.toString(), method)
         this.$base = null
 
         if (!this.$route) {
@@ -218,7 +219,7 @@ export function createProxyXHR(routes: FourzeRoute[]) {
             return
         }
 
-        logger.info("mock url ->", url, routes)
+        logger.info("mock url ->", url, router.routes)
         this.request = createRequest({
             url: url.toString(),
             method,
@@ -252,11 +253,9 @@ export function createProxyXHR(routes: FourzeRoute[]) {
             this.status = 200
             this.statusText = HTTP_STATUS_CODES[200]
 
-            const route = this.$route!
-
             const response = createResponse()
 
-            await route.dispatch(this.request, response)
+            await router(this.request, response)
 
             this.response = response.result
 

@@ -1,11 +1,12 @@
-import type { IncomingMessage, ServerResponse } from "http"
-import { parseUrl } from "query-string"
+import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
 
 import { version as FOURZE_VERSION } from "../package.json"
 
 export { FOURZE_VERSION }
 
 const FOURZE_ROUTE_SYMBOL = Symbol("FourzeRoute")
+const FOURZE_HOOK_SYMBOL = Symbol("FourzeInterceptor")
+
 export interface FourzeRequest extends IncomingMessage {
     url: string
     method?: string
@@ -45,11 +46,10 @@ export interface FourzeRoute extends FourzeBaseRoute {
     [FOURZE_ROUTE_SYMBOL]: true
     pathRegex: RegExp
     pathParams: RegExpMatchArray
-    dispatch: FourzeDispatch
     match: (url: string, method?: string) => boolean
 }
 
-export type FourzeHandle = (request: FourzeRequest, response: FourzeResponse) => any | Promise<any>
+export type FourzeHandle<R = any> = (request: FourzeRequest, response: FourzeResponse) => R | Promise<R>
 
 export type FourzeDispatch = (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) => void | Promise<void>
 
@@ -88,47 +88,6 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
 
     const pathParams = path.match(PARAM_KEY_REGEX) || []
 
-    async function dispatch(this: FourzeRoute, request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) {
-        if (!method || !request.method || request.method.toLowerCase() === method.toLowerCase()) {
-            const { url } = request
-
-            const matches = url.match(pathRegex)
-
-            if (matches) {
-                const params: Record<string, any> = {}
-                for (let i = 0; i < pathParams.length; i++) {
-                    const key = pathParams[i].replace(/^[\:\{]/g, "").replace(/\}$/g, "")
-                    const value = matches[i + 1]
-                    params[key] = value
-                }
-                request.route = this
-                request.query = parseUrl(url, {
-                    parseNumbers: true,
-                    parseBooleans: true
-                }).query
-
-                if (matches.length > pathParams.length) {
-                    request.relativePath = matches[matches.length - 2]
-                }
-                request.params = params
-                request.data = {
-                    ...request.body,
-                    ...request.query,
-                    ...request.params
-                }
-
-                const result = await handle(request, response)
-                response.result = result ?? response.result
-                response.matched = true
-                if (!response.writableEnded && !response.hasHeader("Content-Type")) {
-                    response.json(response.result)
-                }
-                return
-            }
-        }
-        await next?.()
-    }
-
     function match(this: FourzeRoute, url: string, method?: string) {
         return (!route.method || !method || route.method.toLowerCase() === method.toLowerCase()) && this.pathRegex.test(url)
     }
@@ -140,7 +99,6 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         pathRegex,
         pathParams,
         handle,
-        dispatch,
         match,
         get [FOURZE_ROUTE_SYMBOL](): true {
             return true
@@ -148,11 +106,84 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
     }
 }
 
+export type FourzeHookHandler = (request: FourzeRequest, response: FourzeResponse, handle: FourzeHandle) => any | Promise<any>
+
+export interface FourzeBaseHook extends FourzeHookHandler {
+    base?: string
+}
+
+export interface FourzeHook {
+    handle: FourzeHookHandler
+    base?: string
+    [FOURZE_HOOK_SYMBOL]: true
+}
+
+export function defineFourzeHook(base: string, interceptor: FourzeBaseHook): FourzeHook
+
+export function defineFourzeHook(interceptor: FourzeBaseHook): FourzeHook
+
+export function defineFourzeHook(interceptor: DefineFourzeHook): FourzeHook
+
+export function defineFourzeHook(param0: string | DefineFourzeHook | FourzeBaseHook, param1?: FourzeBaseHook) {
+    const base = typeof param0 === "string" ? param0 : param0.base
+
+    const hook = {
+        base,
+        handle:
+            param1 ?? typeof param0 === "string"
+                ? param1
+                : typeof param0 == "function"
+                ? param0
+                : async (request: FourzeRequest, response: FourzeResponse, handle: FourzeHandle) => {
+                      await param0.before?.(request, response)
+                      const result = await handle(request, response)
+                      await param0.after?.(request, response)
+                      return result
+                  }
+    } as FourzeHook
+
+    Object.defineProperty(hook, "base", {
+        get() {
+            return base
+        }
+    })
+
+    Object.defineProperty(hook, FOURZE_HOOK_SYMBOL, {
+        get() {
+            return true
+        }
+    })
+    return hook
+}
+
+export type DefineFourzeHook = {
+    base?: string
+    before?: FourzeHandle<void>
+    handle?: FourzeHandle<any>
+    after?: FourzeHandle<void>
+}
+
+export interface FourzeInstance {
+    routes: FourzeRoute[]
+    hooks: FourzeHook[]
+}
+
+export interface CommonMiddleware {
+    (req: IncomingMessage, res: OutgoingMessage, next?: () => void | Promise<void>): void | Promise<void>
+}
+
+export interface FourzeMiddleware {
+    (req: FourzeRequest, res: FourzeResponse, next?: () => void | Promise<void>): void | Promise<void>
+    name?: string
+}
+
 const FOURZE_RESPONSE_SYMBOL = Symbol("FourzeResponse")
 
 export function createResponse(res?: FourzeBaseResponse) {
     const response = (res ?? {
         headers: {},
+        writableEnded: false,
+        matched: false,
         setHeader(name: string, value: string) {
             if (this.hasHeader(name)) {
                 this.headers[name] += `,${value}`
@@ -239,4 +270,8 @@ export function isFourzeResponse(obj: any): obj is FourzeResponse {
 
 export function isFourzeRequest(obj: any): obj is FourzeRequest {
     return !!obj && !!obj[FOURZE_REQUEST_SYMBOL]
+}
+
+export function isFourzeHook(hook: any): hook is FourzeHook {
+    return !!hook && !!hook[FOURZE_HOOK_SYMBOL]
 }
