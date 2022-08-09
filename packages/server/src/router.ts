@@ -122,8 +122,8 @@ export function createHotRouter(params: FourzeHotRouterOptions | FourzeSetup): F
 
             extraRoutesMap.set(f, extras)
             extraHooksMap.set(f, hooks)
+            moduleNames.add(f)
 
-            console.log(extras, hooks)
             if (extras.length > 0 || hooks.length > 0) {
                 return true
             }
@@ -229,6 +229,7 @@ export function createHotRouter(params: FourzeHotRouterOptions | FourzeSetup): F
     router.remove = function (this: FourzeHotRouter, moduleName: string) {
         moduleNames.delete(moduleName)
         extraRoutesMap.delete(moduleName)
+        extraHooksMap.delete(moduleName)
         delete require.cache[moduleName]
         return this
     }

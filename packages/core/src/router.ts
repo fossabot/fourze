@@ -47,10 +47,9 @@ export function createRouter(instance: FourzeInstance): FourzeRouter {
                         const hook = hooks.shift()
                         if (hook) {
                             return (await hook.handle(request, response, handle)) ?? response.result
-                        } else {
-                            response.result = (await route.handle(request, response)) ?? response.result
-                            return response.result
                         }
+                        response.result = (await route.handle(request, response)) ?? response.result
+                        return response.result
                     }
 
                     response.result = await handle(request, response)
