@@ -1,4 +1,5 @@
 import { DefineFourzeHook, defineFourzeHook, defineRoute, FourzeBaseHook, FourzeBaseRoute, FourzeHandle, FourzeHook, FourzeRoute, FOURZE_METHODS, isFourzeHook, isRoute, RequestMethod } from "./shared"
+import { overload } from "./utils"
 export interface FourzeOptions {
     base?: string
     setup?: FourzeSetup
@@ -13,7 +14,8 @@ export type FourzeRequestFunctions = {
 }
 
 export interface Fourze extends FourzeRequestFunctions {
-    (path: string, method: RequestMethod | undefined, handle: FourzeHandle): Fourze
+    (path: string, method: RequestMethod, handle: FourzeHandle): Fourze
+    (path: string, method: RequestMethod, meta: Record<string, string>, handle: FourzeHandle): Fourze
     (path: string, handle: FourzeHandle): Fourze
     (route: FourzeBaseRoute): Fourze
     (routes: FourzeBaseRoute[]): Fourze
@@ -57,22 +59,27 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
         } else if (typeof param0 === "object") {
             routes.push(param0)
         } else {
-            let method: RequestMethod | undefined = undefined
-            let handle: FourzeHandle
-            let path = param0
-
-            if (typeof param1 === "string") {
-                method = param1 as RequestMethod
-                handle = param2 as FourzeHandle
-            } else {
-                handle = param1 as FourzeHandle
-            }
-
-            routes.push({
-                path,
-                method,
-                handle
-            })
+            routes.push(
+                overload(
+                    [
+                        {
+                            type: "string",
+                            name: "path",
+                            required: true
+                        },
+                        {
+                            type: "string",
+                            name: "method"
+                        },
+                        {
+                            type: "function",
+                            name: "handle",
+                            required: true
+                        }
+                    ],
+                    [param0, param1, param2]
+                )
+            )
         }
         return this
     } as Fourze

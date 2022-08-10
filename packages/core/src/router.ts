@@ -1,17 +1,16 @@
 import { parseUrl } from "query-string"
 import { Logger } from "./logger"
-import type { FourzeInstance, FourzeMiddleware, FourzeRequest, FourzeResponse, FourzeRoute } from "./shared"
+import type { FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute } from "./shared"
 
 export interface FourzeRouter extends FourzeMiddleware {
-    match(request: FourzeRequest): FourzeRoute | undefined
-    match(url: string, method: string): FourzeRoute | undefined
+    match(url: string, method?: string): FourzeRoute | undefined
 
     readonly routes: FourzeRoute[]
 }
 
 export function createRouter(instance: FourzeInstance): FourzeRouter {
     const logger = new Logger("@fourze/core")
-    const router = (async (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) => {
+    const router = (async (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) => {
         for (const route of instance.routes) {
             if (!route.method || !request.method || request.method.toLowerCase() === route.method.toLowerCase()) {
                 const { url } = request
@@ -40,6 +39,8 @@ export function createRouter(instance: FourzeInstance): FourzeRouter {
                         ...request.query,
                         ...request.params
                     }
+
+                    request.meta = route.meta ?? {}
 
                     const hooks = instance.hooks.filter(e => !e.base || route.path.startsWith(e.base))
 
@@ -72,9 +73,7 @@ export function createRouter(instance: FourzeInstance): FourzeRouter {
         }
     }) as FourzeRouter
 
-    router.match = function (request: FourzeRequest | string, method?: string): FourzeRoute | undefined {
-        const url = typeof request == "string" ? request : request.url
-        method = (typeof request == "string" ? method : request.method) ?? method
+    router.match = function (url: string, method?: string): FourzeRoute | undefined {
         return instance.routes.find(e => e.match(url, method))
     }
 

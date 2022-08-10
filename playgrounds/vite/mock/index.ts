@@ -10,16 +10,26 @@ export default defineFourze(fourze => {
         {
             path: "/test",
             method: "get",
+            meta: {},
             handle(req, res) {}
         }
     ])
 
     fourze.hook(async (req, res, handle) => {
-        await handle(req, res)
-        res.result = successResponseWrap(res.result)
+        const cache = req.meta.cache ?? {}
+        if (cache[req.url]) {
+            res.result = cache[req.url]
+            console.log("hit cache", req.url)
+        } else {
+            await handle(req, res)
+            cache[req.url] = res.result
+            req.meta.cache = cache
+        }
+        res.result = successResponseWrap(res.result, req.route.path)
     })
 
     const handleSearch: FourzeHandle = async (req, res) => {
+        console.log("search", req.url)
         const num = Number(req.params.name ?? 0)
         const phone: number = req.body.phone ?? 1
         const rs: Record<string, string> = {}
@@ -42,6 +52,7 @@ export default defineFourze(fourze => {
         const f = await fs.promises.readFile(path.resolve(__dirname, "./test.jpg"))
         res.image(f)
     })
+
     fourze("/download/a", async (req, res) => {
         const f = await fs.promises.readFile(path.resolve(__dirname, "./index.ts"))
         res.binary(f)

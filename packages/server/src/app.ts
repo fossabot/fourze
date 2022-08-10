@@ -1,4 +1,4 @@
-import { CommonMiddleware, createRequest, createResponse, FourzeMiddleware, FourzeRequest, FourzeResponse, FOURZE_VERSION, Logger } from "@fourze/core"
+import { CommonMiddleware, createRequest, createResponse, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FOURZE_VERSION, Logger } from "@fourze/core"
 import EventEmitter from "events"
 import type { IncomingMessage, OutgoingMessage, Server } from "http"
 import http from "http"
@@ -127,7 +127,7 @@ export function createApp(options: FourzeAppOptions = {}) {
 
     const middlewareMap = new Map<string, FourzeMiddleware[]>()
 
-    const app = async function (req: IncomingMessage, res: OutgoingMessage, next?: () => void | Promise<void>) {
+    const app = async function (req: IncomingMessage, res: OutgoingMessage, next?: FourzeNext) {
         const context = await createServerContext(req, res)
         const { request, response } = context
         try {

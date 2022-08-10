@@ -1,6 +1,7 @@
 import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
 
 import { version as FOURZE_VERSION } from "../package.json"
+import { MaybePromise } from "./types"
 
 export { FOURZE_VERSION }
 
@@ -19,6 +20,9 @@ export interface FourzeRequest extends IncomingMessage {
      *  {...query, ...params, ...body}
      */
     data: Record<string, any>
+
+    meta: Record<string, any>
+
     headers: Record<string, string | string[] | undefined>
 }
 
@@ -40,18 +44,22 @@ export interface FourzeBaseRoute {
     base?: string
     method?: RequestMethod
     handle: FourzeHandle
+    meta?: Record<string, any>
 }
 
 export interface FourzeRoute extends FourzeBaseRoute {
     [FOURZE_ROUTE_SYMBOL]: true
     pathRegex: RegExp
     pathParams: RegExpMatchArray
+    meta: Record<string, any>
     match: (url: string, method?: string) => boolean
 }
 
-export type FourzeHandle<R = any> = (request: FourzeRequest, response: FourzeResponse) => R | Promise<R>
+export type FourzeNext = () => MaybePromise<void>
 
-export type FourzeDispatch = (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) => void | Promise<void>
+export type FourzeHandle<R = any> = (request: FourzeRequest, response: FourzeResponse) => MaybePromise<R>
+
+export type FourzeDispatch = (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) => MaybePromise<void>
 
 export const FOURZE_METHODS: RequestMethod[] = ["get", "post", "delete", "put", "patch", "options", "head", "trace", "connect"]
 
@@ -68,7 +76,7 @@ const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
 const NOT_NEED_BASE = /^((https?|file):)?\/\//gi
 
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
-    let { handle, method, path, base } = route
+    let { handle, method, path, base, meta = {} } = route
 
     if (!method && REQUEST_PATH_REGEX.test(route.path)) {
         const index = route.path.indexOf(":")
@@ -100,13 +108,14 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         pathParams,
         handle,
         match,
+        meta,
         get [FOURZE_ROUTE_SYMBOL](): true {
             return true
         }
     }
 }
 
-export type FourzeHookHandler = (request: FourzeRequest, response: FourzeResponse, handle: FourzeHandle) => any | Promise<any>
+export type FourzeHookHandler = (request: FourzeRequest, response: FourzeResponse, handle: FourzeHandle) => MaybePromise
 
 export interface FourzeBaseHook extends FourzeHookHandler {
     base?: string
@@ -169,11 +178,11 @@ export interface FourzeInstance {
 }
 
 export interface CommonMiddleware {
-    (req: IncomingMessage, res: OutgoingMessage, next?: () => void | Promise<void>): void | Promise<void>
+    (req: IncomingMessage, res: OutgoingMessage, next?: FourzeNext): void | Promise<void>
 }
 
 export interface FourzeMiddleware {
-    (req: FourzeRequest, res: FourzeResponse, next?: () => void | Promise<void>): void | Promise<void>
+    (req: FourzeRequest, res: FourzeResponse, next?: FourzeNext): void | Promise<void>
     name?: string
 }
 

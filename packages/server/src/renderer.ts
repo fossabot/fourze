@@ -1,4 +1,4 @@
-import { defineFourzeComponent, FourzeComponent, FourzeMiddleware, FourzeRequest, FourzeResponse, isFourzeComponent, Logger } from "@fourze/core"
+import { defineFourzeComponent, FourzeComponent, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, isFourzeComponent, Logger } from "@fourze/core"
 import { createHash } from "crypto"
 import { build } from "esbuild"
 import fs from "fs"
@@ -124,7 +124,7 @@ export function createRenderer(options: FourzeRendererOptions | string = {}): Fo
         return renderFile(request, response, context)
     }
 
-    const renderer = async function (request: FourzeRequest, response: FourzeResponse, next?: () => void | Promise<void>) {
+    const renderer = async function (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) {
         const url = request.relativePath
         if (url.startsWith(base)) {
             const context = { file: path.join(dir, url), logger, dir }
