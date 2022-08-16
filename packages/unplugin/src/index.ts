@@ -1,4 +1,4 @@
-import { FourzeBaseRoute, Logger } from "@fourze/core"
+import { DelayMsType, FourzeBaseRoute, Logger } from "@fourze/core"
 import { createUnplugin } from "unplugin"
 
 import { createApp, createHotRouter, FourzeHotRouter, FourzeProxyOption } from "@fourze/server"
@@ -63,7 +63,7 @@ export interface UnpluginFourzeOptions {
 
     proxy?: (FourzeProxyOption | string)[] | Record<string, string>
 
-    timeout?: number | string | [number, number]
+    delay?: DelayMsType
 
     transformCode?: (router: FourzeHotRouter) => string
 }
@@ -96,7 +96,8 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
         base,
         dir,
         pattern,
-        routes
+        routes,
+        delay: options.delay
     })
 
     const app = createApp()

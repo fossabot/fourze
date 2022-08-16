@@ -219,7 +219,7 @@ export function createProxyXHR(router: FourzeRouter) {
             return
         }
 
-        logger.info("mock url ->", url, router.routes)
+        logger.info("mock url ->", url)
         this.request = createRequest({
             url: url.toString(),
             method,
@@ -239,11 +239,11 @@ export function createProxyXHR(router: FourzeRouter) {
             return
         }
 
-        logger.info("send request", this.request.url, this.request.method, data)
         this.request.body = (typeof data === "string" ? JSON.parse(data) : data) ?? this.request.body ?? {}
 
         this.setRequestHeader("X-Requested-With", "Fourze XHR Proxy")
         this.dispatchEvent(new Event("loadstart"))
+        logger.info("send request", this.request.url, this.request.method, data)
 
         const done = async () => {
             this.readyState = MockXHR.HEADERS_RECEIVED
@@ -265,10 +265,9 @@ export function createProxyXHR(router: FourzeRouter) {
 
             this.dispatchEvent(new Event("readystatechange"))
 
-            console.log("readystate", this.readyState)
-
             this.dispatchEvent(new Event("load"))
             this.dispatchEvent(new Event("loadend"))
+            logger.info("request end", response.result)
         }
 
         done()

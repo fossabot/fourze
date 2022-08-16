@@ -15,7 +15,7 @@ export default defineFourze(fourze => {
         }
     ])
 
-    fourze.hook(async (req, res, handle) => {
+    fourze.use(async (req, res, handle) => {
         const cache = req.meta.cache ?? {}
         if (cache[req.url]) {
             res.result = cache[req.url]

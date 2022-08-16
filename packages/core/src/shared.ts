@@ -115,7 +115,7 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
     }
 }
 
-export type FourzeHookHandler = (request: FourzeRequest, response: FourzeResponse, handle: FourzeHandle) => MaybePromise
+export type FourzeHookHandler = (request: FourzeRequest, response: FourzeResponse, handle: FourzeHandle | FourzeNext) => MaybePromise
 
 export interface FourzeBaseHook extends FourzeHookHandler {
     base?: string

@@ -1,11 +1,12 @@
 import { parseUrl } from "query-string"
 import { Logger } from "./logger"
-import type { FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute } from "./shared"
+import type { FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute } from "./shared"
 
 export interface FourzeRouter extends FourzeMiddleware {
     match(url: string, method?: string): FourzeRoute | undefined
 
     readonly routes: FourzeRoute[]
+    readonly hooks: FourzeHook[]
 }
 
 export function createRouter(instance: FourzeInstance): FourzeRouter {
@@ -44,16 +45,16 @@ export function createRouter(instance: FourzeInstance): FourzeRouter {
 
                     const hooks = instance.hooks.filter(e => !e.base || route.path.startsWith(e.base))
 
-                    const handle = async function (request: FourzeRequest, response: FourzeResponse) {
+                    const handle = async function (req: FourzeRequest = request, res: FourzeResponse = response) {
                         const hook = hooks.shift()
                         if (hook) {
-                            return (await hook.handle(request, response, handle)) ?? response.result
+                            return (await hook.handle(req, res, handle)) ?? res.result
                         }
-                        response.result = (await route.handle(request, response)) ?? response.result
-                        return response.result
+                        res.result = (await route.handle(req, res)) ?? res.result
+                        return res.result
                     }
 
-                    response.result = await handle(request, response)
+                    response.result = await handle()
                     response.matched = true
                     break
                 }
@@ -80,6 +81,12 @@ export function createRouter(instance: FourzeInstance): FourzeRouter {
     Object.defineProperty(router, "routes", {
         get() {
             return instance.routes
+        }
+    })
+
+    Object.defineProperty(router, "hooks", {
+        get() {
+            return instance.hooks
         }
     })
 
