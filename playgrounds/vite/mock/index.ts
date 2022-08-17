@@ -7,8 +7,9 @@ import { successResponseWrap } from "../utils/setup-mock"
 const keymap = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 export default defineFourze(fourze => {
+    const cache: Record<string, any> = {}
+
     fourze.use(async (req, res, next) => {
-        const cache = req.meta.cache ?? {}
         if (cache[req.url]) {
             res.result = cache[req.url]
             console.log("hit cache", req.url)

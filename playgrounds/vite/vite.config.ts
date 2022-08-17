@@ -3,6 +3,7 @@ import vue from "@vitejs/plugin-vue"
 import jsx from "@vitejs/plugin-vue-jsx"
 import path from "path"
 import { defineConfig } from "vite"
+import inspect from "vite-plugin-inspect"
 
 export default defineConfig({
     server: {
@@ -12,6 +13,7 @@ export default defineConfig({
     plugins: [
         vue(),
         jsx(),
+        inspect(),
         fourze({
             base: "/api",
             dir: path.resolve(__dirname, "mock"),

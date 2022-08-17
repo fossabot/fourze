@@ -120,36 +120,39 @@ export function createHotRouter(params: FourzeHotRouterOptions | FourzeSetup): F
         }
 
         const loadJsModule = async (f: string) => {
-            delete require.cache[f]
+            try {
+                delete require.cache[f]
+                const mod = require(f)
+                const instance = mod?.default ?? mod
+                const extras: FourzeBaseRoute[] = []
+                const hooks: FourzeHook[] = []
 
-            const mod = require(f)
-            const instance = mod?.default ?? mod
-            const extras: FourzeBaseRoute[] = []
-            const hooks: FourzeHook[] = []
-
-            const fn = (ins: any) => {
-                if (isFourze(ins)) {
-                    extras.push(...ins.routes)
-                    hooks.push(...ins.hooks)
-                } else if (Array.isArray(ins)) {
-                    ins.forEach(fn)
-                } else if (isRoute(ins)) {
-                    extras.push(ins)
-                } else if (isFourzeHook(ins)) {
-                    hooks.push(ins)
+                const fn = (ins: any) => {
+                    if (isFourze(ins)) {
+                        extras.push(...ins.routes)
+                        hooks.push(...ins.hooks)
+                    } else if (Array.isArray(ins)) {
+                        ins.forEach(fn)
+                    } else if (isRoute(ins)) {
+                        extras.push(ins)
+                    } else if (isFourzeHook(ins)) {
+                        hooks.push(ins)
+                    }
                 }
+
+                fn(instance)
+
+                extraRoutesMap.set(f, extras)
+                extraHooksMap.set(f, hooks)
+                moduleNames.add(f)
+
+                if (extras.length > 0 || hooks.length > 0) {
+                    return true
+                }
+                logger.error(`find not route with "${f}" `)
+            } catch (e) {
+                logger.error(e)
             }
-
-            fn(instance)
-
-            extraRoutesMap.set(f, extras)
-            extraHooksMap.set(f, hooks)
-            moduleNames.add(f)
-
-            if (extras.length > 0 || hooks.length > 0) {
-                return true
-            }
-            logger.error(`find not route with "${f}" `)
             return false
         }
 

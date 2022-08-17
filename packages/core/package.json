@@ -10,9 +10,7 @@
     ],
     "scripts": {
         "build": "unbuild",
-        "stub": "unbuild --stub",
-        "test": "vitest run",
-        "test:dev": "vitest"
+        "stub": "unbuild --stub"
     },
     "author": "chizuki",
     "license": "MIT",
