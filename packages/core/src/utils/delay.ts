@@ -1,20 +1,10 @@
-import { MaybeFn } from "../types"
-import { randomInt } from "./random"
+import type { MaybeArray, MaybeFn, Num } from "../types"
+import { parseMockNumber } from "./mock"
 
-export type DelayMsType = MaybeFn<number | string>
+export type DelayMsType = MaybeFn<MaybeArray<Num>>
 
 export function delay(ms: DelayMsType) {
-    const tmp = parseDelayMs(ms)
-    return new Promise<void>(resolve => setTimeout(resolve, tmp))
-}
-
-function parseDelayMs(ms: DelayMsType): number {
-    const tmp = typeof ms === "function" ? ms() : ms
-    if (typeof tmp === "string") {
-        if (tmp.match(/^\d+-\d+$/g)) {
-            return randomInt(tmp)
-        }
-        return parseInt(tmp)
-    }
-    return tmp
+    ms = typeof ms === "function" ? ms() : ms
+    const tmp = parseMockNumber(ms)
+    return new Promise<number>(resolve => setTimeout(() => resolve(tmp), tmp))
 }

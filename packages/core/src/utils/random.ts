@@ -7,6 +7,12 @@ export function randomInt(max: number): number
 
 export function randomInt(min: number, max: number): number
 
+/**
+ *
+ * @param param0  min value
+ * @param max  max value
+ * @returns
+ */
 export function randomInt(param0: number | string, max?: number) {
     let min: number
     if (typeof param0 === "string") {
@@ -54,6 +60,6 @@ export function randomArray<T>(callback: (index: number) => T, minLength: number
         {
             length: randomInt(minLength, maxLength!)
         },
-        callback
+        (v, k) => callback(k)
     )
 }

@@ -1,9 +1,9 @@
 import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
 
-import { version as FOURZE_VERSION } from "../package.json"
+import { version } from "../package.json"
 import { MaybePromise } from "./types"
 
-export { FOURZE_VERSION }
+export const FOURZE_VERSION = version
 
 const FOURZE_ROUTE_SYMBOL = Symbol("FourzeRoute")
 const FOURZE_HOOK_SYMBOL = Symbol("FourzeInterceptor")
@@ -59,8 +59,6 @@ export type FourzeNext = () => MaybePromise<void>
 
 export type FourzeHandle<R = any> = (request: FourzeRequest, response: FourzeResponse) => MaybePromise<R>
 
-export type FourzeDispatch = (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) => MaybePromise<void>
-
 export const FOURZE_METHODS: RequestMethod[] = ["get", "post", "delete", "put", "patch", "options", "head", "trace", "connect"]
 
 export type RequestMethod = "get" | "post" | "delete" | "put" | "patch" | "head" | "options" | "trace" | "connect"
@@ -115,14 +113,12 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
     }
 }
 
-export type FourzeHookHandler = (request: FourzeRequest, response: FourzeResponse, handle: FourzeHandle | FourzeNext) => MaybePromise
-
-export interface FourzeBaseHook extends FourzeHookHandler {
+export interface FourzeBaseHook extends FourzeMiddleware<any> {
     base?: string
 }
 
 export interface FourzeHook {
-    handle: FourzeHookHandler
+    handle: FourzeMiddleware<any>
     base?: string
     [FOURZE_HOOK_SYMBOL]: true
 }
@@ -178,11 +174,11 @@ export interface FourzeInstance {
 }
 
 export interface CommonMiddleware {
-    (req: IncomingMessage, res: OutgoingMessage, next?: FourzeNext): void | Promise<void>
+    (req: IncomingMessage, res: OutgoingMessage, next?: FourzeNext): MaybePromise<void>
 }
 
-export interface FourzeMiddleware {
-    (req: FourzeRequest, res: FourzeResponse, next?: FourzeNext): void | Promise<void>
+export interface FourzeMiddleware<T = void> {
+    (req: FourzeRequest, res: FourzeResponse, next?: FourzeNext): MaybePromise<T>
     name?: string
 }
 

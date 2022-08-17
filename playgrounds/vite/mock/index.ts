@@ -1,4 +1,5 @@
 import { defineFourze, FourzeHandle, randomInt } from "@fourze/core"
+import dayjs from "dayjs"
 import fs from "fs"
 import path from "path"
 import { successResponseWrap } from "../utils/setup-mock"
@@ -6,22 +7,13 @@ import { successResponseWrap } from "../utils/setup-mock"
 const keymap = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 export default defineFourze(fourze => {
-    fourze([
-        {
-            path: "/test",
-            method: "get",
-            meta: {},
-            handle(req, res) {}
-        }
-    ])
-
-    fourze.use(async (req, res, handle) => {
+    fourze.use(async (req, res, next) => {
         const cache = req.meta.cache ?? {}
         if (cache[req.url]) {
             res.result = cache[req.url]
             console.log("hit cache", req.url)
         } else {
-            await handle(req, res)
+            await next?.()
             cache[req.url] = res.result
             req.meta.cache = cache
         }
@@ -29,7 +21,6 @@ export default defineFourze(fourze => {
     })
 
     const handleSearch: FourzeHandle = async (req, res) => {
-        console.log("search", req.url)
         const num = Number(req.params.name ?? 0)
         const phone: number = req.body.phone ?? 1
         const rs: Record<string, string> = {}
@@ -39,7 +30,7 @@ export default defineFourze(fourze => {
             for (let j = 0; j < len; j++) {
                 str += keymap[randomInt(0, keymap.length - 1)]
             }
-            rs[str] = `${new Date().toString()} ---- ${phone}`
+            rs[str] = `---[${dayjs().format("YYYY-MM-DD HH:mm:ss")}] ---- ${phone}`
         }
         return rs
     }
