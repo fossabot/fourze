@@ -1,7 +1,7 @@
 import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
+import { MaybePromise } from "maybe-types"
 
 import { version } from "../package.json"
-import { MaybePromise } from "./types"
 
 export const FOURZE_VERSION = version
 

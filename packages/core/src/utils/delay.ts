@@ -1,10 +1,10 @@
-import type { MaybeArray, MaybeFn, Num } from "../types"
-import { parseMockNumber } from "./mock"
+import { MaybeArray, MaybeFunction, MaybeNumber } from "maybe-types"
+import { parseFakerNumber } from "./faker"
 
-export type DelayMsType = MaybeFn<MaybeArray<Num>>
+export type DelayMsType = MaybeFunction<MaybeArray<MaybeNumber>>
 
 export function delay(ms: DelayMsType) {
     ms = typeof ms === "function" ? ms() : ms
-    const tmp = parseMockNumber(ms)
+    const tmp = parseFakerNumber(ms)
     return new Promise<number>(resolve => setTimeout(() => resolve(tmp), tmp))
 }

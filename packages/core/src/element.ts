@@ -1,4 +1,4 @@
-import { MaybePromise } from "./types"
+import { MaybePromise } from "maybe-types"
 
 async function resolveElement(ele: any) {
     if (ele instanceof Promise) {

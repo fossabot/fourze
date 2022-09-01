@@ -1,5 +1,5 @@
 import dayjs from "dayjs"
-import { DateLike } from "../types"
+import type { MaybeDate } from "maybe-types"
 
 export function randomInt(tmp: string): number
 
@@ -29,11 +29,11 @@ export function randomInt(param0: number | string, max?: number) {
     return Math.floor(Math.random() * (max - min)) + min
 }
 
-export function randomDate(start: DateLike): Date
+export function randomDate(start: MaybeDate): Date
 
-export function randomDate(start: DateLike, end: DateLike): Date
+export function randomDate(start: MaybeDate, end: MaybeDate): Date
 
-export function randomDate(start: DateLike, end?: DateLike): Date {
+export function randomDate(start: MaybeDate, end?: MaybeDate): Date {
     if (end === undefined) {
         end = start
         start = new Date()

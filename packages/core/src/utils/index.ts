@@ -13,6 +13,6 @@ export function slicePage<T>(source: T[], pagination: Pagination): PagingData<T>
 }
 
 export * from "./delay"
-export * from "./mock"
+export * from "./faker"
 export * from "./overload"
 export * from "./random"
