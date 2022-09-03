@@ -18,9 +18,8 @@ export function mockJs(router: FourzeHotRouter) {
     }
     code += `
   const base = "${router.base}"
-  const delay = "${router.delay ?? ""}"
-  const routes = [${names.join(",")}].flat()
+  const modules = [${names.join(",")}].flat()
 
-  setupMock({base,routes,delay})`
+  setupMock({base,modules})`
     return code
 }

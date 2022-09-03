@@ -207,6 +207,10 @@ export function createProxyXHR(router: FourzeRouter) {
             this.dispatchEvent(new Event(event.type))
         }
 
+        router.setup({
+            origin: location.host
+        })
+
         this.$route = router.match(url.toString(), method)
         this.$base = null
 

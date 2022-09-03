@@ -1,17 +1,28 @@
 import { parseUrl } from "query-string"
+import { defineFourze, FourzeSetup, isFourze } from "./app"
 import { Logger } from "./logger"
-import type { FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute } from "./shared"
+import type { FourzeApp as FourzeContext, FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute } from "./shared"
 
 export interface FourzeRouter extends FourzeMiddleware {
     match(url: string, method?: string): FourzeRoute | undefined
-
+    setup: (context: FourzeContext) => Promise<void>
     readonly routes: FourzeRoute[]
     readonly hooks: FourzeHook[]
+    readonly context: FourzeContext
 }
 
-export function createRouter(instance: FourzeInstance): FourzeRouter {
+export function createRouter(params: FourzeInstance | FourzeSetup): FourzeRouter {
+    const instance = typeof params === "function" ? defineFourze(params) : params
     const logger = new Logger("@fourze/core")
+    let _context: FourzeContext
+
     const router = (async (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) => {
+        if (isFourze(instance)) {
+            await instance.setup?.({
+                origin: request.headers["host"] as string
+            })
+        }
+
         for (const route of instance.routes) {
             if (!route.method || !request.method || request.method.toLowerCase() === route.method.toLowerCase()) {
                 const { url } = request
@@ -74,19 +85,35 @@ export function createRouter(instance: FourzeInstance): FourzeRouter {
         }
     }) as FourzeRouter
 
+    router.setup = async function (context: FourzeContext) {
+        if (isFourze(instance)) {
+            return instance.setup?.(context)
+        }
+    }
+
     router.match = function (url: string, method?: string): FourzeRoute | undefined {
         return instance.routes.find(e => e.match(url, method))
     }
 
-    Object.defineProperty(router, "routes", {
-        get() {
-            return instance.routes
-        }
-    })
+    router.install = function (context: FourzeContext) {
+        _context = context
+    }
 
-    Object.defineProperty(router, "hooks", {
-        get() {
-            return instance.hooks
+    Object.defineProperties(router, {
+        routes: {
+            get() {
+                return instance.routes
+            }
+        },
+        hooks: {
+            get() {
+                return instance.hooks
+            }
+        },
+        context: {
+            get() {
+                return _context
+            }
         }
     })
 

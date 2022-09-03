@@ -1,22 +1,8 @@
-import {
-    createRouter,
-    defineFourze,
-    defineRoute,
-    delayHook,
-    DelayMsType,
-    FourzeBaseRoute,
-    FourzeHook,
-    FourzeRoute,
-    FourzeRouter,
-    FourzeSetup,
-    isFourze,
-    isFourzeHook,
-    isRoute,
-    Logger
-} from "@fourze/core"
+import { createRouter, defineFourze, defineRoute, Fourze, FourzeBaseRoute, FourzeRoute, FourzeRouter, isFourze, isRoute, Logger } from "@fourze/core"
 import type { FSWatcher } from "chokidar"
 import fs from "fs"
 import { join, resolve } from "path"
+import { FourzeBaseHook } from "./../../core/src/shared"
 import { createRenderer } from "./renderer"
 import { normalizePath } from "./utils"
 
@@ -25,10 +11,8 @@ export interface FourzeHotRouterOptions {
     dir?: string
     watcher?: FSWatcher
     pattern?: (string | RegExp)[]
-    routes?: FourzeBaseRoute[]
-    hooks?: FourzeHook[]
+    modules?: Fourze[]
     moduleNames?: string[]
-    delay?: DelayMsType
 }
 
 export interface FourzeHotRouter extends FourzeRouter {
@@ -42,7 +26,6 @@ export interface FourzeHotRouter extends FourzeRouter {
     readonly base: string
     readonly routes: FourzeRoute[]
     readonly moduleNames: string[]
-    delay?: DelayMsType
 }
 
 const TEMPORARY_FILE_SUFFIX = ".tmp.js"
@@ -60,30 +43,28 @@ export interface FourzeProxyOption extends Omit<FourzeBaseRoute, "handle"> {
     target?: string
 }
 
-export function createHotRouter(params: FourzeHotRouterOptions | FourzeSetup): FourzeHotRouter {
-    const options: FourzeHotRouterOptions = typeof params == "function" ? defineFourze(params) : params
-
+export function createHotRouter(options: FourzeHotRouterOptions): FourzeHotRouter {
     const base = (options.base = options.base ?? "/")
     const rootDir = resolve(process.cwd(), options.dir ?? "./routes")
     const pattern = transformPattern(options.pattern ?? [".ts", ".js"])
     const moduleNames = new Set(Array.from(options.moduleNames ?? []))
 
-    const routes: FourzeBaseRoute[] = Array.from(options.routes ?? [])
-    const hooks: FourzeHook[] = Array.from(options.hooks ?? [])
+    const modules: Fourze[] = Array.from(options.modules ?? [])
+
     const logger = new Logger("@fourze/router")
 
-    const extraRoutesMap = new Map<string, FourzeBaseRoute[]>()
-    const extraHooksMap = new Map<string, FourzeHook[]>()
+    const extraModuleMap = new Map<string, Fourze[]>()
 
-    if (options.delay) {
-        hooks.push(delayHook(options.delay))
+    function getModules() {
+        const extras = Array.from(extraModuleMap.values()).flat()
+        return modules.concat(extras)
     }
 
     function getRoutes() {
-        const extras: FourzeBaseRoute[] = Array.from(extraRoutesMap.values()).flat()
+        const routes = getModules()
+            .map(r => r.routes)
+            .flat()
 
-        return routes
-            .concat(extras)
             .map(e => (e.base ? e : defineRoute({ ...e, base })))
             .sort((a, b) => {
                 if (b.path.startsWith(a.path)) {
@@ -91,18 +72,24 @@ export function createHotRouter(params: FourzeHotRouterOptions | FourzeSetup): F
                 }
                 return b.path.localeCompare(a.path)
             }) as FourzeRoute[]
+
+        return routes
     }
 
     function getHooks() {
-        return hooks.concat(Array.from(extraHooksMap.values()).flat())
+        return getModules()
+            .map(r => r.hooks)
+            .flat()
     }
 
-    const router = createRouter({
-        get routes() {
-            return getRoutes()
-        },
-        get hooks() {
-            return getHooks()
+    const router = createRouter(async (fourze, context) => {
+        const allModules = modules.concat(Array.from(extraModuleMap.values()).flat())
+        await Promise.all(allModules.map(m => m.setup(context)))
+        const routes = getRoutes()
+        const hooks = getHooks()
+        return {
+            routes,
+            hooks
         }
     }) as FourzeHotRouter
 
@@ -124,29 +111,37 @@ export function createHotRouter(params: FourzeHotRouterOptions | FourzeSetup): F
                 delete require.cache[f]
                 const mod = require(f)
                 const instance = mod?.default ?? mod
-                const extras: FourzeBaseRoute[] = []
-                const hooks: FourzeHook[] = []
+                const extras: Fourze[] = []
 
-                const fn = (ins: any) => {
+                const extraRoutes: FourzeBaseRoute[] = []
+                const extraHooks: FourzeBaseHook[] = []
+
+                const fn = async (ins: any) => {
                     if (isFourze(ins)) {
-                        extras.push(...ins.routes)
-                        hooks.push(...ins.hooks)
-                    } else if (Array.isArray(ins)) {
-                        ins.forEach(fn)
-                    } else if (isRoute(ins)) {
                         extras.push(ins)
-                    } else if (isFourzeHook(ins)) {
-                        hooks.push(ins)
+                    } else if (Array.isArray(ins)) {
+                        await Promise.all(ins.map(fn))
+                    } else if (isRoute(ins)) {
+                        extraRoutes.push(ins)
                     }
                 }
 
-                fn(instance)
+                await fn(instance)
 
-                extraRoutesMap.set(f, extras)
-                extraHooksMap.set(f, hooks)
+                if (extraRoutes.length > 0 || extraHooks.length > 0) {
+                    const extraModule = defineFourze({
+                        routes: extraRoutes,
+                        hooks: extraHooks
+                    })
+
+                    extras.push(extraModule)
+                }
+
+                extraModuleMap.set(f, extras)
+
                 moduleNames.add(f)
 
-                if (extras.length > 0 || hooks.length > 0) {
+                if (extras.length > 0) {
                     return true
                 }
                 logger.error(`find not route with "${f}" `)
@@ -253,8 +248,7 @@ export function createHotRouter(params: FourzeHotRouterOptions | FourzeSetup): F
 
     router.remove = function (this: FourzeHotRouter, moduleName: string) {
         moduleNames.delete(moduleName)
-        extraRoutesMap.delete(moduleName)
-        extraHooksMap.delete(moduleName)
+        extraModuleMap.delete(moduleName)
         delete require.cache[moduleName]
         return this
     }
@@ -272,11 +266,23 @@ export function createHotRouter(params: FourzeHotRouterOptions | FourzeSetup): F
             renderBase = p.base ?? base
         }
 
-        routes.push({
-            path,
-            base: renderBase,
-            handle: createRenderer(dir)
+        const module = defineFourze({
+            routes: [
+                {
+                    path,
+                    base: renderBase,
+                    handle: createRenderer(dir)
+                }
+            ]
         })
+
+        const proxyName = `proxymodules`
+
+        const modules = extraModuleMap.get(proxyName) ?? []
+        modules.push(module)
+
+        extraModuleMap.set(proxyName, modules)
+
         return this
     }
 
@@ -294,11 +300,6 @@ export function createHotRouter(params: FourzeHotRouterOptions | FourzeSetup): F
         moduleNames: {
             get() {
                 return Array.from(moduleNames)
-            }
-        },
-        delay: {
-            get() {
-                return options.delay
             }
         }
     })

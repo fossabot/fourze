@@ -1,7 +1,7 @@
-import { DelayMsType, FourzeBaseRoute, Logger } from "@fourze/core"
+import { DelayMsType, Logger } from "@fourze/core"
 import { createUnplugin } from "unplugin"
 
-import { createApp, createHotRouter, FourzeHotRouter, FourzeProxyOption } from "@fourze/server"
+import { createFourzeServer, createHotRouter, FourzeHotRouter, FourzeProxyOption } from "@fourze/server"
 import { mockJs } from "./mock"
 
 const PLUGIN_NAME = "unplugin-fourze"
@@ -10,18 +10,6 @@ const CLIENT_ID = "@fourze/client"
 
 function isClientID(id: string) {
     return id.endsWith(CLIENT_ID)
-}
-
-export interface UnpluginFourzeServer {
-    /**
-     *
-     */
-    host?: string
-
-    /**
-     *
-     */
-    port?: number
 }
 
 export interface UnpluginFourzeOptions {
@@ -55,11 +43,19 @@ export interface UnpluginFourzeOptions {
      */
     logLevel?: "off" | "info" | "warn" | "error"
 
-    server?: UnpluginFourzeServer
+    server?: {
+        /**
+         *
+         */
+        host?: string
+
+        /**
+         *
+         */
+        port?: number
+    }
 
     injectScript?: boolean
-
-    routes?: FourzeBaseRoute[]
 
     proxy?: (FourzeProxyOption | string)[] | Record<string, string>
 
@@ -90,19 +86,13 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
               }
           })
 
-    const routes = Array.from(options.routes ?? [])
-
     const router = createHotRouter({
         base,
         dir,
-        pattern,
-        routes,
-        delay: options.delay
+        pattern
     })
 
-    const app = createApp()
-
-    app.use(base, router)
+    const app = createFourzeServer()
 
     proxy.forEach(router.proxy)
 
@@ -131,6 +121,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
         async webpack(compiler) {
             const port = options.server?.port ?? 7609
             const host = options.server?.host ?? "localhost"
+            app.use(base, router)
             await app.listen(port, host)
             console.log("Webpack Server listening on port", options.server?.port)
         },
@@ -154,13 +145,13 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
             },
             config(config, env) {
                 options.mock = options.mock ?? (env.command == "build" || env.mode === "mock")
-
                 return {
                     define: {
                         VITE_PLUGIN_FOURZE_MOCK: options.mock
                     }
                 }
             },
+
             configureServer({ middlewares, httpServer, watcher }) {
                 if (hmr) {
                     router.watch(watcher)
@@ -176,6 +167,8 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
                     middlewares.use(app)
                     logger.info("Fourze middleware was installed!")
                 }
+
+                app.use(base, router)
             }
         }
     }

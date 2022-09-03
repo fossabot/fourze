@@ -5,17 +5,20 @@ import http from "http"
 import https from "https"
 import { AddressInfo } from "net"
 
-export interface FourzeAppOptions {
+export interface FourzeServerOptions {
+    host?: string
     port?: number
     server?: Server
     protocol?: "http" | "https"
     logger?: Logger
 }
 
-export interface FourzeApp extends EventEmitter {
+export interface FourzeServer extends EventEmitter {
     (req: IncomingMessage, res: OutgoingMessage, next?: () => void | Promise<void>): Promise<void>
 
-    readonly port: number
+    host: string
+    port: number
+
     readonly server?: Server
     readonly serverMode: "http" | "https"
 
@@ -54,6 +57,7 @@ export function createServerContext(req: IncomingMessage, res: OutgoingMessage):
         req.on("end", () => {
             const request = createRequest({
                 ...(req as FourzeRequest),
+                headers: req.headers,
                 body: body ? JSON.parse(body) : {},
                 query: {},
                 params: {},
@@ -69,7 +73,7 @@ export function createServerContext(req: IncomingMessage, res: OutgoingMessage):
     })
 }
 
-function injectEventEmitter(app: FourzeApp) {
+function injectEventEmitter(app: FourzeServer) {
     const _emitter = new EventEmitter()
     app.addListener = function (event: string, listener: (...args: any[]) => void) {
         _emitter.addListener(event, listener)
@@ -105,7 +109,7 @@ function injectEventEmitter(app: FourzeApp) {
     }
 }
 
-function normalizeAddress(address: AddressInfo | string | null): string {
+function normalizeAddress(address?: AddressInfo | string | null): string {
     if (address) {
         if (typeof address === "string") {
             return address
@@ -115,10 +119,11 @@ function normalizeAddress(address: AddressInfo | string | null): string {
     return "unknown"
 }
 
-function injectSeverEvents(app: FourzeApp, server: Server) {}
+function injectSeverEvents(app: FourzeServer, server: Server) {}
 
-export function createApp(options: FourzeAppOptions = {}) {
-    let _port = options.port
+export function createFourzeServer(options: FourzeServerOptions = {}) {
+    let _host = options.host ?? "localhost"
+    let _port = options.port ?? 7609
     let _server = options.server
 
     let _protocol = options.protocol ?? "http"
@@ -156,7 +161,7 @@ export function createApp(options: FourzeAppOptions = {}) {
                 response.end(`Internal Server Error`)
             }
         }
-    } as FourzeApp
+    } as FourzeServer
 
     injectEventEmitter(app)
 
@@ -176,6 +181,7 @@ export function createApp(options: FourzeAppOptions = {}) {
                     value: `anonymous@${Math.random().toString(36).slice(2, 8)}`
                 })
             }
+
             app.emit(`use:${middleware.name}`, middleware)
             logger.info("Middleware", `[${middleware.name}]`, `was registered on '${base}'.`)
         }
@@ -231,6 +237,9 @@ export function createApp(options: FourzeAppOptions = {}) {
         port: {
             get() {
                 return _port
+            },
+            set(port: string | number) {
+                _port = Number(port)
             }
         },
         server: {

@@ -1,4 +1,19 @@
-import { DefineFourzeHook, defineFourzeHook, defineRoute, FourzeBaseHook, FourzeBaseRoute, FourzeHandle, FourzeHook, FourzeRoute, FOURZE_METHODS, isFourzeHook, isRoute, RequestMethod } from "./shared"
+import { MaybePromise } from "maybe-types"
+import {
+    DefineFourzeHook,
+    defineFourzeHook,
+    defineRoute,
+    FourzeBaseHook,
+    FourzeBaseRoute,
+    FourzeHandle,
+    FourzeHook,
+    FourzeInstance,
+    FourzeRoute,
+    FOURZE_METHODS,
+    isFourzeHook,
+    isRoute,
+    RequestMethod
+} from "./shared"
 import { overload } from "./utils"
 export interface FourzeOptions {
     base?: string
@@ -7,7 +22,7 @@ export interface FourzeOptions {
     hooks?: FourzeBaseHook[]
 }
 
-export type FourzeSetup = (fourze: Fourze) => void | FourzeBaseRoute[]
+export type FourzeSetup = (fourze: Fourze, context: FourzeSetupContext) => MaybePromise<void | FourzeBaseRoute[] | FourzeInstance>
 
 export type FourzeRequestFunctions = {
     [K in RequestMethod]: (path: string, handle: FourzeHandle) => Fourze
@@ -19,15 +34,22 @@ export interface Fourze extends FourzeRequestFunctions {
     (path: string, handle: FourzeHandle): Fourze
     (route: FourzeBaseRoute): Fourze
     (routes: FourzeBaseRoute[]): Fourze
-    (fourze: Fourze): Fourze
     use(hook: FourzeHook): Fourze
     use(hook: FourzeBaseHook): Fourze
     use(hook: DefineFourzeHook): Fourze
     use(base: string, hook: FourzeBaseHook): Fourze
-    apply(fourze: Fourze): Fourze
+    apply(fourze: FourzeInstance): Fourze
+
+    setup(context: FourzeSetupContext): Promise<void>
 
     readonly hooks: FourzeHook[]
     readonly routes: FourzeRoute[]
+
+    readonly setuped: boolean
+}
+
+export interface FourzeSetupContext {
+    origin: string
 }
 
 const FOURZE_SYMBOL = Symbol("FourzeInstance")
@@ -50,7 +72,9 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
     const routes = (isOption ? options.routes : isRoutes ? options : []) ?? []
     const hooks: FourzeHook[] = []
 
-    const fourze = function (this: Fourze, param0: string | FourzeBaseRoute | FourzeBaseRoute[] | Fourze, param1: string | FourzeHandle, param2?: FourzeHandle) {
+    let _setuped = false
+
+    const fourze = function (this: Fourze, param0: string | FourzeBaseRoute | FourzeBaseRoute[], param1: string | FourzeHandle, param2?: FourzeHandle) {
         if (isFourze(param0)) {
             routes.push(...param0.routes)
             hooks.push(...param0.hooks)
@@ -94,10 +118,9 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
         return this
     }
 
-    fourze.apply = function (instance: Fourze) {
-        if (isFourze(instance)) {
-            routes.push(...instance.routes)
-        }
+    fourze.apply = function (instance: FourzeInstance) {
+        routes.push(...instance.routes)
+        hooks.push(...instance.hooks)
         return this
     }
 
@@ -134,6 +157,11 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
             ])
         ),
 
+        setuped: {
+            get() {
+                return _setuped
+            }
+        },
         [FOURZE_SYMBOL]: {
             get() {
                 return true
@@ -141,10 +169,18 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
         }
     })
 
-    const extra = setup?.(fourze) ?? []
+    fourze.setup = async function (context: FourzeSetupContext) {
+        if (_setuped) {
+            return
+        }
+        const extra = (await setup?.(fourze, context)) ?? []
+        if (Array.isArray(extra)) {
+            routes.push(...extra)
+        } else if (extra) {
+            fourze.apply(extra)
+        }
 
-    if (Array.isArray(extra) && extra.length > 0) {
-        routes.push(...extra)
+        _setuped = true
     }
 
     return fourze

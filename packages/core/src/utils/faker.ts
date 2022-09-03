@@ -149,32 +149,3 @@ export function parseFakerObject(obj: MaybeArray<MaybeNumber | Record<string, an
         })
     )
 }
-
-console.log(
-    parseFakerObject(
-        {
-            a: "{100|300}",
-            b: ["{100|300}", "{100-300}", "{100}"],
-            c: "string|8799",
-            d: ["100", 30, "_id"],
-            e: {
-                a: "{100|300}"
-            },
-            f: "text-{1-299}--{20|mail()|test}",
-            get g() {
-                return "{200|300|300}"
-            }
-        },
-        {
-            context: {
-                mail() {
-                    return "test@mail.com"
-                },
-                test() {
-                    return "test2022"
-                }
-            }
-        }
-    ),
-    parseFakerNumber("3000-9000")
-)

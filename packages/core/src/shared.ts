@@ -1,5 +1,5 @@
 import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
-import { MaybePromise } from "maybe-types"
+import type { MaybePromise } from "maybe-types"
 
 import { version } from "../package.json"
 
@@ -92,7 +92,7 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
 
     const pathRegex = new RegExp(`^${path.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"), "i")
 
-    const pathParams = path.match(PARAM_KEY_REGEX) || []
+    const pathParams = path.match(PARAM_KEY_REGEX) ?? []
 
     function match(this: FourzeRoute, url: string, method?: string) {
         return (!route.method || !method || route.method.toLowerCase() === method.toLowerCase()) && this.pathRegex.test(url)
@@ -169,6 +169,7 @@ export type DefineFourzeHook = {
 }
 
 export interface FourzeInstance {
+    base?: string
     routes: FourzeRoute[]
     hooks: FourzeHook[]
 }
@@ -179,7 +180,12 @@ export interface CommonMiddleware {
 
 export interface FourzeMiddleware<T = void> {
     (req: FourzeRequest, res: FourzeResponse, next?: FourzeNext): MaybePromise<T>
+    install?: (app: FourzeApp) => void
     name?: string
+}
+
+export interface FourzeApp {
+    origin: string
 }
 
 const FOURZE_RESPONSE_SYMBOL = Symbol("FourzeResponse")

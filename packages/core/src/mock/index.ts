@@ -1,44 +1,31 @@
-import { Fourze, isFourze } from "../app"
-import { delayHook } from "../hooks"
+import { Fourze } from "../app"
 import { createRouter } from "../router"
-import { defineRoute, FourzeHook, FourzeRoute, isRoute } from "../shared"
-import { DelayMsType } from "../utils"
+import type { DelayMsType } from "../utils"
 import { createProxyFetch } from "./fetch"
 import { createProxyXHR } from "./xhr"
 
 interface MockOptions {
     base?: string
-    routes?: FourzeRoute[] | Fourze[]
-    hooks?: FourzeHook[]
+    modules?: Fourze[]
     delay?: DelayMsType
 }
 
-export function setupMock({ base, routes = [], hooks = [], delay }: MockOptions) {
-    const _routes: FourzeRoute[] = []
-    for (let route of routes) {
-        if (isFourze(route)) {
-            _routes.push(...route.routes)
-            hooks.push(...route.hooks)
-        } else if (isRoute(route)) {
-            _routes.push(route)
+export async function setupMock({ base, modules = [] }: MockOptions) {
+    const instance = createRouter(async (fourze, context) => {
+        const allModules = await Promise.all(
+            modules.map(m => {
+                m.setup(context)
+                return m
+            })
+        )
+        const routes = allModules.map(m => m.routes).flat()
+        const hooks = allModules.map(m => m.hooks).flat()
+
+        return {
+            base,
+            routes,
+            hooks
         }
-    }
-
-    if (delay) {
-        hooks.push(delayHook(delay))
-    }
-
-    const instance = createRouter({
-        routes: _routes.map(r => (r.base ? r : defineRoute({ ...r, base }))),
-        hooks: hooks.map(r => {
-            if (r.base) {
-                return r
-            }
-            return {
-                ...r,
-                base
-            }
-        })
     })
 
     globalThis.XMLHttpRequest = createProxyXHR(instance)

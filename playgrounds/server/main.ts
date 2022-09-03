@@ -2,7 +2,7 @@ import comporession from "compression"
 import ejs from "ejs"
 
 import { CommonMiddleware, FourzeRequest, FourzeResponse } from "@fourze/core"
-import { createApp, createHotRouter, createRenderer, FourzeRendererContext } from "@fourze/server"
+import { createFourzeServer, createHotRouter, createRenderer, FourzeRendererContext } from "@fourze/server"
 import fs from "fs"
 import path from "path"
 
@@ -33,7 +33,7 @@ const renderer = createRenderer({ dir: path.resolve(process.cwd(), "./"), fallba
 
 renderer.use(renderEjs)
 
-const app = createApp({})
+const app = createFourzeServer({})
 
 app.use("/test", comporession({ threshold: 0 }) as CommonMiddleware)
 app.use(router, router2)
