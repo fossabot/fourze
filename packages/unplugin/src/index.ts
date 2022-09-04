@@ -126,19 +126,22 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
             console.log("Webpack Server listening on port", options.server?.port)
         },
         vite: {
-            transformIndexHtml(html) {
-                if (options.mock && injectScript) {
-                    return {
-                        html,
-                        tags: [
-                            {
-                                tag: "script",
-                                attrs: { type: "module", src: `/${CLIENT_ID}` }
-                            }
-                        ]
+            transformIndexHtml: {
+                enforce: "pre",
+                transform(html) {
+                    if (options.mock && injectScript) {
+                        return {
+                            html,
+                            tags: [
+                                {
+                                    tag: "script",
+                                    attrs: { type: "module", src: `/${CLIENT_ID}` }
+                                }
+                            ]
+                        }
                     }
+                    return html
                 }
-                return html
             },
             config(config, env) {
                 options.mock = options.mock ?? (env.command == "build" || env.mode === "mock")
