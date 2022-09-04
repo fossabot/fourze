@@ -127,7 +127,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
         },
         vite: {
             transformIndexHtml: {
-                enforce: "pre",
+                enforce: "post",
                 transform(html) {
                     if (options.mock && injectScript) {
                         return {

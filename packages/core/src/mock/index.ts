@@ -1,4 +1,5 @@
 import { Fourze } from "../app"
+import { Logger } from "../logger"
 import { createRouter } from "../router"
 import type { DelayMsType } from "../utils"
 import { createProxyFetch } from "./fetch"
@@ -11,13 +12,16 @@ interface MockOptions {
 }
 
 export async function setupMock({ base, modules = [] }: MockOptions) {
-    const instance = createRouter(async (fourze, context) => {
+    const instance = createRouter(async () => {
         const allModules = await Promise.all(
-            modules.map(m => {
-                m.setup(context)
+            modules.map(async m => {
+                await m.setup()
                 return m
             })
         )
+
+        console.log("allModules", allModules)
+
         const routes = allModules.map(m => m.routes).flat()
         const hooks = allModules.map(m => m.hooks).flat()
 
@@ -27,6 +31,10 @@ export async function setupMock({ base, modules = [] }: MockOptions) {
             hooks
         }
     })
+
+    const logger = new Logger("@fourze/mock")
+
+    logger.info("Fourze Mock is starting...")
 
     globalThis.XMLHttpRequest = createProxyXHR(instance)
     globalThis.fetch = createProxyFetch(instance)

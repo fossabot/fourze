@@ -180,11 +180,11 @@ export interface CommonMiddleware {
 
 export interface FourzeMiddleware<T = void> {
     (req: FourzeRequest, res: FourzeResponse, next?: FourzeNext): MaybePromise<T>
-    install?: (app: FourzeApp) => void
     name?: string
 }
 
-export interface FourzeApp {
+export interface FourzeSetupContext {
+    host: string
     origin: string
 }
 

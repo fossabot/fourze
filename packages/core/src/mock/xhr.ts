@@ -207,21 +207,11 @@ export function createProxyXHR(router: FourzeRouter) {
             this.dispatchEvent(new Event(event.type))
         }
 
-        router.setup({
-            origin: location.host
-        })
-
-        this.$route = router.match(url.toString(), method)
-        this.$base = null
-
-        if (!this.$route) {
-            this.$base = new OriginalXmlHttpRequest()
-            for (let event of XHR_EVENTS) {
-                this.$base.addEventListener(event, handle)
-            }
-            this.$base.open(method, url, async, username, password)
-            return
+        this.$base = new OriginalXmlHttpRequest()
+        for (let event of XHR_EVENTS) {
+            this.$base.addEventListener(event, handle)
         }
+        this.$base.open(method, url, async, username, password)
 
         logger.info("mock url ->", url)
         this.request = createRequest({
@@ -230,51 +220,58 @@ export function createProxyXHR(router: FourzeRouter) {
             headers: this.requestHeaders
         })
 
-        this.readyState = this.OPENED
+        this.readyState = MockXHR.OPENED
+
         this.dispatchEvent(new Event("readystatechange"))
     }
 
-    MockXHR.prototype.send = function (this: MockXmlHttpRequest, data?: any) {
-        if (!!this.$base) {
-            this.$base.timeout = this.timeout
-            this.$base.responseType = this.responseType
-            this.$base.withCredentials = this.withCredentials
-            this.$base.send(data)
-            return
-        }
-
+    MockXHR.prototype.send = async function (this: MockXmlHttpRequest, data?: any) {
         this.request.body = (typeof data === "string" ? JSON.parse(data) : data) ?? this.request.body ?? {}
 
+        const response = createResponse()
+
+        await router.setup()
+
+        const route = router.match(this.request.url, this.request.method)
+
+        if (!route) {
+            if (!!this.$base) {
+                this.$base.timeout = this.timeout
+                this.$base.responseType = this.responseType
+                this.$base.withCredentials = this.withCredentials
+                this.$base.send(data)
+                return
+            }
+        }
+        this.$base?.abort()
+        logger.info("match route ->", route)
+
         this.setRequestHeader("X-Requested-With", "Fourze XHR Proxy")
+        this.setRequestHeader("origin", location.origin)
+        this.setRequestHeader("host", location.host)
         this.dispatchEvent(new Event("loadstart"))
         logger.info("send request", this.request.url, this.request.method, data)
 
-        const done = async () => {
-            this.readyState = MockXHR.HEADERS_RECEIVED
-            this.dispatchEvent(new Event("readystatechange"))
-            this.readyState = MockXHR.LOADING
-            this.dispatchEvent(new Event("readystatechange"))
-            this.status = 200
-            this.statusText = HTTP_STATUS_CODES[200]
+        this.readyState = MockXHR.HEADERS_RECEIVED
+        this.dispatchEvent(new Event("readystatechange"))
+        this.readyState = MockXHR.LOADING
+        this.dispatchEvent(new Event("readystatechange"))
+        this.status = 200
+        this.statusText = HTTP_STATUS_CODES[200]
 
-            const response = createResponse()
+        await router(this.request, response)
 
-            await router(this.request, response)
+        this.response = response.result
 
-            this.response = response.result
+        this.responseText = response.result
 
-            this.responseText = response.result
+        this.readyState = MockXHR.DONE
 
-            this.readyState = MockXHR.DONE
+        this.dispatchEvent(new Event("readystatechange"))
 
-            this.dispatchEvent(new Event("readystatechange"))
-
-            this.dispatchEvent(new Event("load"))
-            this.dispatchEvent(new Event("loadend"))
-            logger.info("request end", response.result)
-        }
-
-        done()
+        this.dispatchEvent(new Event("load"))
+        this.dispatchEvent(new Event("loadend"))
+        logger.info("request end", response.result)
     }
 
     MockXHR.prototype.abort = function (this: MockXmlHttpRequest) {

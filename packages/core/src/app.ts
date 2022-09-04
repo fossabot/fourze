@@ -14,7 +14,7 @@ import {
     isRoute,
     RequestMethod
 } from "./shared"
-import { overload } from "./utils"
+import { asyncLock, overload } from "./utils"
 export interface FourzeOptions {
     base?: string
     setup?: FourzeSetup
@@ -22,7 +22,7 @@ export interface FourzeOptions {
     hooks?: FourzeBaseHook[]
 }
 
-export type FourzeSetup = (fourze: Fourze, context: FourzeSetupContext) => MaybePromise<void | FourzeBaseRoute[] | FourzeInstance>
+export type FourzeSetup = (fourze: Fourze) => MaybePromise<void | FourzeBaseRoute[] | FourzeInstance>
 
 export type FourzeRequestFunctions = {
     [K in RequestMethod]: (path: string, handle: FourzeHandle) => Fourze
@@ -40,16 +40,10 @@ export interface Fourze extends FourzeRequestFunctions {
     use(base: string, hook: FourzeBaseHook): Fourze
     apply(fourze: FourzeInstance): Fourze
 
-    setup(context: FourzeSetupContext): Promise<void>
+    setup(): Promise<void>
 
     readonly hooks: FourzeHook[]
     readonly routes: FourzeRoute[]
-
-    readonly setuped: boolean
-}
-
-export interface FourzeSetupContext {
-    origin: string
 }
 
 const FOURZE_SYMBOL = Symbol("FourzeInstance")
@@ -71,8 +65,6 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
     const setup = isOption ? options.setup : isSetup ? options : undefined
     const routes = (isOption ? options.routes : isRoutes ? options : []) ?? []
     const hooks: FourzeHook[] = []
-
-    let _setuped = false
 
     const fourze = function (this: Fourze, param0: string | FourzeBaseRoute | FourzeBaseRoute[], param1: string | FourzeHandle, param2?: FourzeHandle) {
         if (isFourze(param0)) {
@@ -157,11 +149,6 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
             ])
         ),
 
-        setuped: {
-            get() {
-                return _setuped
-            }
-        },
         [FOURZE_SYMBOL]: {
             get() {
                 return true
@@ -169,19 +156,14 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
         }
     })
 
-    fourze.setup = async function (context: FourzeSetupContext) {
-        if (_setuped) {
-            return
-        }
-        const extra = (await setup?.(fourze, context)) ?? []
+    fourze.setup = asyncLock(async () => {
+        const extra = (await setup?.(fourze)) ?? []
         if (Array.isArray(extra)) {
             routes.push(...extra)
         } else if (extra) {
             fourze.apply(extra)
         }
-
-        _setuped = true
-    }
+    })
 
     return fourze
 }

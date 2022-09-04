@@ -82,9 +82,9 @@ export function createHotRouter(options: FourzeHotRouterOptions): FourzeHotRoute
             .flat()
     }
 
-    const router = createRouter(async (fourze, context) => {
+    const router = createRouter(async () => {
         const allModules = modules.concat(Array.from(extraModuleMap.values()).flat())
-        await Promise.all(allModules.map(m => m.setup(context)))
+        await Promise.all(allModules.map(m => m.setup()))
         const routes = getRoutes()
         const hooks = getHooks()
         return {

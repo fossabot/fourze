@@ -75,9 +75,7 @@ class ProxyFetchResponse implements Response {
 
 export function createProxyFetch(router: FourzeRouter) {
     return async (input: RequestInfo | URL, init?: RequestInit) => {
-        await router.setup({
-            origin: location.host
-        })
+        await router.setup()
         let url: string
         let method: string = "GET"
         let body: any
@@ -93,6 +91,9 @@ export function createProxyFetch(router: FourzeRouter) {
 
         const route = router.match(url, method)
 
+        console.log(`route matched by ${url}`, route)
+        console.log(router.routes)
+
         if (route) {
             const headers: Record<string, string[]> = {}
             new Headers(init?.headers ?? {}).forEach((value, key) => {
@@ -103,7 +104,6 @@ export function createProxyFetch(router: FourzeRouter) {
                 }
             })
 
-            headers["host"] = [location.host]
             headers["X-Request-With"] = ["Fourze Fetch Proxy"]
             const request = createRequest({ url, method, body, headers })
             const response = createResponse()
