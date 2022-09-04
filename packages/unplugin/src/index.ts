@@ -114,7 +114,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
         },
 
         async load(id) {
-            if (isClientID(id) && options.mock) {
+            if (isClientID(id)) {
                 return transformCode(router)
             }
         },
