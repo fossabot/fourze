@@ -11,51 +11,67 @@ export function delay(ms: DelayMsType) {
 
 export interface AsyncLock<R> {
     (): Promise<R>
-    state: "ready" | "pending" | "done" | "error"
+    release(): void
+    readonly state: "ready" | "pending" | "done" | "error"
+    readonly callCount: number
 }
 
 export function asyncLock<R = any>(fn: () => MaybePromise<R>): AsyncLock<R> {
-    const listeners: ((data: R) => void)[] = []
+    const listeners = new Set<(data: R) => void>()
     const errors = new Set<(err: any) => void>()
     let _state: AsyncLock<R>["state"] = "ready"
     let _result: R
-    let error: any
-    const lock = (async () => {
+    let _error: any
+    let _callCount = 0
+
+    const lock = (() => {
+        _callCount++
         switch (_state) {
             case "ready":
                 _state = "pending"
                 try {
                     return new Promise<R>(async (resolve, reject) => {
-                        listeners.push(resolve)
+                        listeners.add(resolve)
+                        listeners.add(() => (_state = "done"))
                         errors.add(reject)
 
                         _result = await fn()
                         listeners.forEach(fn => fn(_result))
-                        _state = "done"
                     })
                 } catch (err) {
                     _state = "error"
-                    error = err
+                    _error = err
                     errors.forEach(fn => fn(err))
                     return
                 }
 
             case "pending":
                 return new Promise<R>((resolve, reject) => {
-                    listeners.push(resolve)
+                    listeners.add(resolve)
                     errors.add(reject)
                 })
             case "done":
-                return _result
+                return Promise.resolve(_result)
             case "error":
-                throw error
+                return Promise.reject(_error)
         }
     }) as AsyncLock<R>
+
+    lock.release = function () {
+        _state = "ready"
+        listeners.clear()
+        errors.clear()
+    }
 
     Object.defineProperties(lock, {
         state: {
             get() {
                 return _state
+            }
+        },
+        callCount: {
+            get() {
+                return _callCount
             }
         }
     })

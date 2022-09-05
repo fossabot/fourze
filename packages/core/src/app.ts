@@ -11,7 +11,6 @@ import {
     FourzeRoute,
     FOURZE_METHODS,
     isFourzeHook,
-    isRoute,
     RequestMethod
 } from "./shared"
 import { asyncLock, overload } from "./utils"
@@ -42,6 +41,8 @@ export interface Fourze extends FourzeRequestFunctions {
 
     setup(): Promise<void>
 
+    readonly base: string
+
     readonly hooks: FourzeHook[]
     readonly routes: FourzeRoute[]
 }
@@ -61,9 +62,9 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
     const isSetup = typeof options === "function"
     const isOption = !isRoutes && !isSetup
 
-    const base = isOption ? options.base : undefined
+    let _base = isOption ? options.base : undefined
     const setup = isOption ? options.setup : isSetup ? options : undefined
-    const routes = (isOption ? options.routes : isRoutes ? options : []) ?? []
+    const routes = Array.from((isOption ? options.routes : isRoutes ? options : []) ?? [])
     const hooks: FourzeHook[] = []
 
     const fourze = function (this: Fourze, param0: string | FourzeBaseRoute | FourzeBaseRoute[], param1: string | FourzeHandle, param2?: FourzeHandle) {
@@ -119,20 +120,22 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
     Object.defineProperties(fourze, {
         routes: {
             get() {
-                return routes.map(e => {
-                    if (isRoute(e)) {
-                        return e
-                    }
-                    return defineRoute({
-                        base,
-                        ...e
+                return routes.map(e =>
+                    defineRoute({
+                        ...e,
+                        base: e.base ?? _base
                     })
-                })
+                )
             }
         },
         hooks: {
             get() {
                 return hooks
+            }
+        },
+        base: {
+            get() {
+                return _base
             }
         },
 
@@ -158,10 +161,14 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
 
     fourze.setup = asyncLock(async () => {
         const extra = (await setup?.(fourze)) ?? []
+
         if (Array.isArray(extra)) {
             routes.push(...extra)
         } else if (extra) {
             fourze.apply(extra)
+            if (!!extra.base) {
+                _base = extra.base
+            }
         }
     })
 

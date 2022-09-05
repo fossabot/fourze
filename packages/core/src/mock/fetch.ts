@@ -1,3 +1,4 @@
+import { Logger } from "../logger"
 import { FourzeRouter } from "../router"
 import { createRequest, createResponse, FourzeRequest, FourzeResponse } from "../shared"
 
@@ -74,6 +75,7 @@ class ProxyFetchResponse implements Response {
 }
 
 export function createProxyFetch(router: FourzeRouter) {
+    const logger = new Logger("@fourze/mock")
     return async (input: RequestInfo | URL, init?: RequestInit) => {
         await router.setup()
         let url: string
@@ -91,10 +93,8 @@ export function createProxyFetch(router: FourzeRouter) {
 
         const route = router.match(url, method)
 
-        console.log(`route matched by ${url}`, route)
-        console.log(router.routes)
-
         if (route) {
+            logger.info(`Not found route by ${route.method} ${route.path}`)
             const headers: Record<string, string[]> = {}
             new Headers(init?.headers ?? {}).forEach((value, key) => {
                 if (headers[key]) {
@@ -104,12 +104,15 @@ export function createProxyFetch(router: FourzeRouter) {
                 }
             })
 
-            headers["X-Request-With"] = ["Fourze Fetch Proxy"]
-            const request = createRequest({ url, method, body, headers })
-            const response = createResponse()
-            await router(request, response)
-            return new ProxyFetchResponse(request, response)
+            if (headers["Use-Mock"]?.[0] !== "off") {
+                headers["X-Request-With"] = ["Fourze Fetch Proxy"]
+                const request = createRequest({ url, method, body, headers })
+                const response = createResponse()
+                await router(request, response)
+                return new ProxyFetchResponse(request, response)
+            }
         }
+        logger.info("Not found route, fallback to original fetch", method, url)
         return originalFetch(input, init)
     }
 }

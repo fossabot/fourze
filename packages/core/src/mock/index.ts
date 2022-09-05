@@ -12,6 +12,8 @@ interface MockOptions {
 }
 
 export async function setupMock({ base, modules = [] }: MockOptions) {
+    const logger = new Logger("@fourze/mock")
+
     const instance = createRouter(async () => {
         const allModules = await Promise.all(
             modules.map(async m => {
@@ -20,10 +22,10 @@ export async function setupMock({ base, modules = [] }: MockOptions) {
             })
         )
 
-        console.log("allModules", allModules)
+        logger.info("Fourze Mock is setuped in", base)
 
-        const routes = allModules.map(m => m.routes).flat()
-        const hooks = allModules.map(m => m.hooks).flat()
+        const routes = allModules.flatMap(m => m.routes)
+        const hooks = allModules.flatMap(m => m.hooks)
 
         return {
             base,
@@ -31,8 +33,6 @@ export async function setupMock({ base, modules = [] }: MockOptions) {
             hooks
         }
     })
-
-    const logger = new Logger("@fourze/mock")
 
     logger.info("Fourze Mock is starting...")
 

@@ -234,7 +234,8 @@ export function createProxyXHR(router: FourzeRouter) {
 
         const route = router.match(this.request.url, this.request.method)
 
-        if (!route) {
+        if (!route || this.requestHeaders["Use-Mock"] === "off") {
+            logger.warn("Not found route, fallback to original xhr", this.request.url)
             if (!!this.$base) {
                 this.$base.timeout = this.timeout
                 this.$base.responseType = this.responseType
@@ -243,12 +244,12 @@ export function createProxyXHR(router: FourzeRouter) {
                 return
             }
         }
+        logger.info("Found route for", this.request.url)
         this.$base?.abort()
-        logger.info("match route ->", route)
 
         this.setRequestHeader("X-Requested-With", "Fourze XHR Proxy")
-        this.setRequestHeader("origin", location.origin)
-        this.setRequestHeader("host", location.host)
+        this.setRequestHeader("Origin", location.origin)
+        this.setRequestHeader("Host", location.host)
         this.dispatchEvent(new Event("loadstart"))
         logger.info("send request", this.request.url, this.request.method, data)
 

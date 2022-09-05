@@ -1,4 +1,4 @@
-import { createRouter, defineFourze, defineRoute, Fourze, FourzeBaseRoute, FourzeRoute, FourzeRouter, isFourze, isRoute, Logger } from "@fourze/core"
+import { createRouter, defineFourze, Fourze, FourzeBaseRoute, FourzeRoute, FourzeRouter, isFourze, isRoute, Logger } from "@fourze/core"
 import type { FSWatcher } from "chokidar"
 import fs from "fs"
 import { join, resolve } from "path"
@@ -55,39 +55,13 @@ export function createHotRouter(options: FourzeHotRouterOptions): FourzeHotRoute
 
     const extraModuleMap = new Map<string, Fourze[]>()
 
-    function getModules() {
-        const extras = Array.from(extraModuleMap.values()).flat()
-        return modules.concat(extras)
-    }
-
-    function getRoutes() {
-        const routes = getModules()
-            .map(r => r.routes)
-            .flat()
-
-            .map(e => (e.base ? e : defineRoute({ ...e, base })))
-            .sort((a, b) => {
-                if (b.path.startsWith(a.path)) {
-                    return 1
-                }
-                return b.path.localeCompare(a.path)
-            }) as FourzeRoute[]
-
-        return routes
-    }
-
-    function getHooks() {
-        return getModules()
-            .map(r => r.hooks)
-            .flat()
-    }
-
     const router = createRouter(async () => {
         const allModules = modules.concat(Array.from(extraModuleMap.values()).flat())
         await Promise.all(allModules.map(m => m.setup()))
-        const routes = getRoutes()
-        const hooks = getHooks()
+        const routes = allModules.flatMap(r => r.routes)
+        const hooks = allModules.flatMap(r => r.hooks)
         return {
+            base,
             routes,
             hooks
         }
