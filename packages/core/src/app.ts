@@ -1,18 +1,5 @@
 import { MaybePromise } from "maybe-types"
-import {
-    DefineFourzeHook,
-    defineFourzeHook,
-    defineRoute,
-    FourzeBaseHook,
-    FourzeBaseRoute,
-    FourzeHandle,
-    FourzeHook,
-    FourzeInstance,
-    FourzeRoute,
-    FOURZE_METHODS,
-    isFourzeHook,
-    RequestMethod
-} from "./shared"
+import { DefineFourzeHook, defineFourzeHook, defineRoute, FourzeBaseHook, FourzeBaseRoute, FourzeHandle, FourzeHook, FourzeInstance, FOURZE_METHODS, isFourzeHook, RequestMethod } from "./shared"
 import { asyncLock, overload } from "./utils"
 export interface FourzeOptions {
     base?: string
@@ -27,7 +14,7 @@ export type FourzeRequestFunctions = {
     [K in RequestMethod]: (path: string, handle: FourzeHandle) => Fourze
 }
 
-export interface Fourze extends FourzeRequestFunctions {
+export interface Fourze extends FourzeRequestFunctions, FourzeInstance {
     (path: string, method: RequestMethod, handle: FourzeHandle): Fourze
     (path: string, method: RequestMethod, meta: Record<string, string>, handle: FourzeHandle): Fourze
     (path: string, handle: FourzeHandle): Fourze
@@ -38,13 +25,7 @@ export interface Fourze extends FourzeRequestFunctions {
     use(hook: DefineFourzeHook): Fourze
     use(base: string, hook: FourzeBaseHook): Fourze
     apply(fourze: FourzeInstance): Fourze
-
     setup(): Promise<void>
-
-    readonly base: string
-
-    readonly hooks: FourzeHook[]
-    readonly routes: FourzeRoute[]
 }
 
 const FOURZE_SYMBOL = Symbol("FourzeInstance")
@@ -136,6 +117,9 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
         base: {
             get() {
                 return _base
+            },
+            set(value) {
+                _base = value
             }
         },
 

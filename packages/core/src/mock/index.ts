@@ -1,4 +1,5 @@
 import { Fourze } from "../app"
+import { delayHook } from "../hooks"
 import { Logger } from "../logger"
 import { createRouter } from "../router"
 import type { DelayMsType } from "../utils"
@@ -11,7 +12,7 @@ interface MockOptions {
     delay?: DelayMsType
 }
 
-export async function setupMock({ base, modules = [] }: MockOptions) {
+export async function setupMock({ base, modules = [], delay }: MockOptions) {
     const logger = new Logger("@fourze/mock")
 
     const instance = createRouter(async () => {
@@ -26,6 +27,10 @@ export async function setupMock({ base, modules = [] }: MockOptions) {
 
         const routes = allModules.flatMap(m => m.routes)
         const hooks = allModules.flatMap(m => m.hooks)
+
+        if (delay) {
+            hooks.unshift(delayHook(delay))
+        }
 
         return {
             base,

@@ -3,7 +3,7 @@ import { normalizePath } from "@fourze/server"
 
 const TEMPORARY_FILE_SUFFIX = ".tmp.js"
 
-export function mockJs(router: FourzeHotRouter) {
+export function defaultMockCode(router: FourzeHotRouter) {
     let code = `import {isRoute,setupMock} from "@fourze/core"`
 
     const names: string[] = []
@@ -19,7 +19,8 @@ export function mockJs(router: FourzeHotRouter) {
     code += `
   const base = "${router.base}"
   const modules = [${names.join(",")}].flat()
+  const delay = "${router.delay}"
 
-  setupMock({base,modules})`
+  setupMock({base,modules,delay})`
     return code
 }

@@ -58,7 +58,3 @@ export const failResponseWrap = (data: unknown, msg: string) => {
         msg
     }
 }
-
-export function setTimeoutAsync(ms: number) {
-    return new Promise<void>(resolve => setTimeout(resolve, ms))
-}

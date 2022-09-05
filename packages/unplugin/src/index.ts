@@ -2,7 +2,7 @@ import { DelayMsType, Logger } from "@fourze/core"
 import { createUnplugin } from "unplugin"
 
 import { createFourzeServer, createHotRouter, FourzeHotRouter, FourzeProxyOption } from "@fourze/server"
-import { mockJs } from "./mock"
+import { defaultMockCode as defaultTransformCode } from "./mock"
 
 const PLUGIN_NAME = "unplugin-fourze"
 
@@ -69,6 +69,8 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
     const base = options.base ?? "/api"
 
+    const delay = options.delay ?? 0
+
     const pattern = Array.from(options.filePattern ?? [".ts$", ".js$"])
     const hmr = options.hmr ?? true
     const injectScript = options.injectScript ?? true
@@ -89,14 +91,13 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
     const router = createHotRouter({
         base,
         dir,
-        pattern
+        pattern,
+        delay
     })
-
-    const app = createFourzeServer()
 
     proxy.forEach(router.proxy)
 
-    const transformCode = options.transformCode ?? mockJs
+    const transformCode = options.transformCode ?? defaultTransformCode
 
     logger.info(`${PLUGIN_NAME} is starting...`)
 
@@ -118,9 +119,10 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
                 return transformCode(router)
             }
         },
-        async webpack(compiler) {
+        async webpack() {
             const port = options.server?.port ?? 7609
             const host = options.server?.host ?? "localhost"
+            const app = createFourzeServer()
             app.use(base, router)
             await app.listen(port, host)
             console.log("Webpack Server listening on port", options.server?.port)
@@ -156,6 +158,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
                 if (hmr) {
                     router.watch(watcher)
                 }
+                const app = createFourzeServer()
 
                 if (options.server) {
                     try {

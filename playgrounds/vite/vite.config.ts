@@ -1,9 +1,8 @@
 import fourze from "@fourze/vite"
 import vue from "@vitejs/plugin-vue"
 import jsx from "@vitejs/plugin-vue-jsx"
-import path from "path"
 import { defineConfig } from "vite"
-import inspect from "vite-plugin-inspect"
+import windicss from "vite-plugin-windicss"
 
 export default defineConfig({
     server: {
@@ -13,13 +12,12 @@ export default defineConfig({
     plugins: [
         vue(),
         jsx(),
-        inspect(),
+        windicss(),
         fourze({
             base: "/api",
-            dir: path.resolve(__dirname, "mock"),
             filePattern: [".ts$", ".js$"],
             hmr: true,
-            delay: "222-444",
+            delay: "200-500",
             logLevel: "info"
         })
     ]

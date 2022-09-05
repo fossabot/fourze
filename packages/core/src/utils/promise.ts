@@ -9,14 +9,14 @@ export function delay(ms: DelayMsType) {
     return new Promise<number>(resolve => setTimeout(() => resolve(tmp), tmp))
 }
 
-export interface AsyncLock<R> {
-    (): Promise<R>
+export interface AsyncLock<R, Arg extends any[] = any[]> {
+    (...args: Arg): Promise<R>
     release(): void
     readonly state: "ready" | "pending" | "done" | "error"
     readonly callCount: number
 }
 
-export function asyncLock<R = any>(fn: () => MaybePromise<R>): AsyncLock<R> {
+export function asyncLock<R = any, Arg extends any[] = any[]>(fn: (...args: Arg) => MaybePromise<R>): AsyncLock<R, Arg> {
     const listeners = new Set<(data: R) => void>()
     const errors = new Set<(err: any) => void>()
     let _state: AsyncLock<R>["state"] = "ready"
@@ -24,7 +24,7 @@ export function asyncLock<R = any>(fn: () => MaybePromise<R>): AsyncLock<R> {
     let _error: any
     let _callCount = 0
 
-    const lock = (() => {
+    const lock = ((...arg: Arg) => {
         _callCount++
         switch (_state) {
             case "ready":
@@ -35,7 +35,7 @@ export function asyncLock<R = any>(fn: () => MaybePromise<R>): AsyncLock<R> {
                         listeners.add(() => (_state = "done"))
                         errors.add(reject)
 
-                        _result = await fn()
+                        _result = await fn(...arg)
                         listeners.forEach(fn => fn(_result))
                     })
                 } catch (err) {

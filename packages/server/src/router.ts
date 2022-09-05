@@ -1,8 +1,7 @@
-import { createRouter, defineFourze, Fourze, FourzeBaseRoute, FourzeRoute, FourzeRouter, isFourze, isRoute, Logger } from "@fourze/core"
+import { createRouter, defineFourze, delayHook, DelayMsType, Fourze, FourzeBaseHook, FourzeBaseRoute, FourzeRoute, FourzeRouter, isFourze, isRoute, Logger } from "@fourze/core"
 import type { FSWatcher } from "chokidar"
 import fs from "fs"
 import { join, resolve } from "path"
-import { FourzeBaseHook } from "./../../core/src/shared"
 import { createRenderer } from "./renderer"
 import { normalizePath } from "./utils"
 
@@ -13,6 +12,7 @@ export interface FourzeHotRouterOptions {
     pattern?: (string | RegExp)[]
     modules?: Fourze[]
     moduleNames?: string[]
+    delay?: DelayMsType
 }
 
 export interface FourzeHotRouter extends FourzeRouter {
@@ -23,6 +23,7 @@ export interface FourzeHotRouter extends FourzeRouter {
     watch(watcher?: FSWatcher): this
     watch(dir?: string, watcher?: FSWatcher): this
     proxy(p: string | FourzeProxyOption): this
+    delay?: DelayMsType
     readonly base: string
     readonly routes: FourzeRoute[]
     readonly moduleNames: string[]
@@ -45,6 +46,7 @@ export interface FourzeProxyOption extends Omit<FourzeBaseRoute, "handle"> {
 
 export function createHotRouter(options: FourzeHotRouterOptions): FourzeHotRouter {
     const base = (options.base = options.base ?? "/")
+    const delay = options.delay ?? 0
     const rootDir = resolve(process.cwd(), options.dir ?? "./routes")
     const pattern = transformPattern(options.pattern ?? [".ts", ".js"])
     const moduleNames = new Set(Array.from(options.moduleNames ?? []))
@@ -60,6 +62,11 @@ export function createHotRouter(options: FourzeHotRouterOptions): FourzeHotRoute
         await Promise.all(allModules.map(m => m.setup()))
         const routes = allModules.flatMap(r => r.routes)
         const hooks = allModules.flatMap(r => r.hooks)
+
+        if (delay) {
+            hooks.unshift(delayHook(delay))
+        }
+
         return {
             base,
             routes,
@@ -269,6 +276,11 @@ export function createHotRouter(options: FourzeHotRouterOptions): FourzeHotRoute
         base: {
             get() {
                 return base
+            }
+        },
+        delay: {
+            get() {
+                return delay
             }
         },
         moduleNames: {
