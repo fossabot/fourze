@@ -7,7 +7,10 @@ import windicss from "vite-plugin-windicss"
 export default defineConfig({
     server: {
         port: 8000,
-        host: "0.0.0.0"
+        host: "0.0.0.0",
+        fs: {
+            strict: false
+        }
     },
     plugins: [
         vue(),

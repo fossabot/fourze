@@ -94,7 +94,7 @@ export function createProxyFetch(router: FourzeRouter) {
         const route = router.match(url, method)
 
         if (route) {
-            logger.info(`Not found route by ${route.method} ${route.path}`)
+            logger.info(`Found route by ${route.method} ${route.path}`)
             const headers: Record<string, string[]> = {}
             new Headers(init?.headers ?? {}).forEach((value, key) => {
                 if (headers[key]) {
