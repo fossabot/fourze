@@ -1,4 +1,4 @@
-import { createRouter, defineFourze, delayHook, DelayMsType, Fourze, FourzeBaseHook, FourzeBaseRoute, FourzeRoute, FourzeRouter, isFourze, isRoute, Logger } from "@fourze/core"
+import { createRouter, defineFourze, DelayMsType, Fourze, FourzeBaseHook, FourzeBaseRoute, FourzeRoute, FourzeRouter, isFourze, isRoute, Logger } from "@fourze/core"
 import type { FSWatcher } from "chokidar"
 import fs from "fs"
 import { join, resolve } from "path"
@@ -57,20 +57,12 @@ export function createHotRouter(options: FourzeHotRouterOptions): FourzeHotRoute
 
     const extraModuleMap = new Map<string, Fourze[]>()
 
-    const router = createRouter(async () => {
+    const router = createRouter(() => {
         const allModules = modules.concat(Array.from(extraModuleMap.values()).flat())
-        await Promise.all(allModules.map(m => m.setup()))
-        const routes = allModules.flatMap(r => r.routes)
-        const hooks = allModules.flatMap(r => r.hooks)
-
-        if (delay) {
-            hooks.unshift(delayHook(delay))
-        }
-
         return {
             base,
-            routes,
-            hooks
+            modules: allModules,
+            delay
         }
     }) as FourzeHotRouter
 

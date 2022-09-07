@@ -1,43 +1,12 @@
-import { Fourze } from "../app"
-import { delayHook } from "../hooks"
 import { Logger } from "../logger"
-import { createRouter } from "../router"
-import type { DelayMsType } from "../utils"
+import { createRouter, FourzeRouterOptions } from "../router"
 import { createProxyFetch } from "./fetch"
 import { createProxyXHR } from "./xhr"
 
-interface MockOptions {
-    base?: string
-    modules?: Fourze[]
-    delay?: DelayMsType
-}
-
-export async function setupMock({ base, modules = [], delay }: MockOptions) {
+export async function setupMock(options: FourzeRouterOptions) {
     const logger = new Logger("@fourze/mock")
 
-    const instance = createRouter(async () => {
-        const allModules = await Promise.all(
-            modules.map(async m => {
-                await m.setup()
-                return m
-            })
-        )
-
-        logger.info("Fourze Mock is setuped in", base)
-
-        const routes = allModules.flatMap(m => m.routes)
-        const hooks = allModules.flatMap(m => m.hooks)
-
-        if (delay) {
-            hooks.unshift(delayHook(delay))
-        }
-
-        return {
-            base,
-            routes,
-            hooks
-        }
-    })
+    const instance = createRouter(options)
 
     logger.info("Fourze Mock is starting...")
 

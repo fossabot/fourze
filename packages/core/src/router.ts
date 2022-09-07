@@ -1,7 +1,10 @@
+import { MaybeAsyncFunction, MaybePromise } from "maybe-types"
 import { parseUrl } from "query-string"
-import { defineFourze, FourzeSetup, isFourze } from "./app"
+import { Fourze, isFourze } from "./app"
+import { delayHook } from "./hooks"
 import { Logger } from "./logger"
-import type { FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute, FourzeSetupContext } from "./shared"
+import { defineRoute, FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute, FourzeSetupContext } from "./shared"
+import { DelayMsType } from "./utils"
 
 export interface FourzeRouter extends FourzeMiddleware {
     match(url: string, method?: string): FourzeRoute | undefined
@@ -12,16 +15,29 @@ export interface FourzeRouter extends FourzeMiddleware {
     readonly context: FourzeSetupContext
 }
 
-export function createRouter(params: FourzeInstance | FourzeSetup): FourzeRouter {
-    const instance = typeof params === "function" ? defineFourze(params) : params
+export interface FourzeRouterOptions {
+    base?: string
+    modules?: FourzeInstance[]
+    delay?: DelayMsType
+}
 
-    const modules: FourzeInstance[] = [instance]
+export function createRouter(options: FourzeRouterOptions): FourzeRouter
+
+export function createRouter(modules: Fourze[]): FourzeRouter
+
+export function createRouter(setup: () => MaybePromise<Fourze[] | FourzeRouterOptions>): FourzeRouter
+
+export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions>): FourzeRouter {
+    const isFunction = typeof params === "function"
+    const setup: MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions> = isFunction ? params : () => params
+    const modules = new Set<FourzeInstance>()
 
     const routes = new Set<FourzeRoute>()
 
     const hooks = new Set<FourzeHook>()
 
     const logger = new Logger("@fourze/core")
+
     let _context: FourzeSetupContext
 
     const router = (async (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) => {
@@ -57,10 +73,10 @@ export function createRouter(params: FourzeInstance | FourzeSetup): FourzeRouter
 
                     request.meta = route.meta ?? {}
 
-                    const hooks = instance.hooks.filter(e => !e.base || route.path.startsWith(e.base))
+                    const activeHooks = router.hooks.filter(e => !e.base || route.path.startsWith(e.base))
 
                     const handle = async function () {
-                        const hook = hooks.shift()
+                        const hook = activeHooks.shift()
                         if (hook) {
                             return (await hook.handle(request, response, handle)) ?? response.result
                         }
@@ -93,20 +109,35 @@ export function createRouter(params: FourzeInstance | FourzeSetup): FourzeRouter
     }
 
     router.use = function (module: FourzeInstance) {
-        modules.push(module)
+        modules.add(module)
         return this
     }
 
     router.setup = async function () {
+        routes.clear()
+        hooks.clear()
+        const rs = await setup()
+        const isArray = Array.isArray(rs)
+        const modules = isArray ? rs : rs.modules ?? []
+        const base = isArray ? "" : rs.base ?? ""
+        const delay = isArray ? 0 : rs.delay ?? 0
+        if (delay) {
+            hooks.add(delayHook(delay))
+        }
         await Promise.all(
-            modules.map(async e => {
+            Array.from(modules).map(async e => {
                 if (isFourze(e)) {
                     await e.setup()
                 }
                 const extraRoutes = e.routes
                 const extraHooks = e.hooks
                 for (const route of extraRoutes) {
-                    routes.add(route)
+                    routes.add(
+                        defineRoute({
+                            ...route,
+                            base: route.base ?? base
+                        })
+                    )
                 }
                 for (const hook of extraHooks) {
                     hooks.add(hook)
