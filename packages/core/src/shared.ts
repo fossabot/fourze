@@ -1,5 +1,6 @@
 import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
 import type { MaybePromise } from "maybe-types"
+import { parseFormdata } from "./utils/parse"
 
 import { version } from "../package.json"
 
@@ -256,9 +257,31 @@ export function createResponse(res?: FourzeBaseResponse) {
 
 const FOURZE_REQUEST_SYMBOL = Symbol("FourzeRequest")
 
+function handleHeader(headers: Record<string, string | string[] | undefined> = {}) {
+    const result: Record<string, string | undefined> = {}
+    for (let key in headers) {
+        const value = headers[key]
+        const k = key.toLowerCase()
+        if (Array.isArray(value)) {
+            result[k] = value.join(",")
+        } else if (value) {
+            result[k] = value
+        }
+    }
+    return result
+}
+
 export function createRequest(options: Partial<FourzeRequest>) {
-    if (typeof options.body === "string") {
-        options.body = JSON.parse(options.body)
+    const headers = handleHeader(options.headers)
+
+    const contentType = headers["content-type"]
+
+    if (typeof options.body === "string" && contentType) {
+        if (contentType.startsWith("application/json")) {
+            options.body = JSON.parse(options.body)
+        } else if (contentType.startsWith("multipart/form-data")) {
+            options.body = parseFormdata(options.body)
+        }
     }
 
     return {
@@ -267,8 +290,8 @@ export function createRequest(options: Partial<FourzeRequest>) {
         body: {},
         params: {},
         data: {},
-        headers: {},
         ...options,
+        headers,
         get [FOURZE_REQUEST_SYMBOL]() {
             return true
         }

@@ -48,7 +48,7 @@ export interface FouzeServerContext {
 
 export function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promise<FouzeServerContext> {
     return new Promise((resolve, reject) => {
-        let body = ""
+        let body: any = ""
 
         req.on("data", chunk => {
             body += chunk
@@ -58,7 +58,7 @@ export function createServerContext(req: IncomingMessage, res: OutgoingMessage):
             const request = createRequest({
                 ...(req as FourzeRequest),
                 headers: req.headers,
-                body: body ? JSON.parse(body) : {},
+                body,
                 query: {},
                 params: {},
                 data: {}
