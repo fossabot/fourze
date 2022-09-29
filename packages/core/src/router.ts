@@ -114,8 +114,6 @@ export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | Fourz
     }
 
     router.setup = async function () {
-        routes.clear()
-        hooks.clear()
         const rs = await setup()
         const isArray = Array.isArray(rs)
         const modules = isArray ? rs : rs.modules ?? []
@@ -124,26 +122,31 @@ export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | Fourz
         if (delay) {
             hooks.add(delayHook(delay))
         }
+
+        const newRoutes: FourzeRoute[] = []
+        const newHooks: FourzeHook[] = []
         await Promise.all(
             Array.from(modules).map(async e => {
                 if (isFourze(e)) {
                     await e.setup()
                 }
-                const extraRoutes = e.routes
-                const extraHooks = e.hooks
-                for (const route of extraRoutes) {
-                    routes.add(
-                        defineRoute({
-                            ...route,
-                            base: route.base ?? base
-                        })
-                    )
-                }
-                for (const hook of extraHooks) {
-                    hooks.add(hook)
-                }
+                newRoutes.push(...e.routes)
+                newHooks.push(...e.hooks)
             })
         )
+        routes.clear()
+        hooks.clear()
+        for (const route of newRoutes) {
+            routes.add(
+                defineRoute({
+                    ...route,
+                    base: route.base ?? base
+                })
+            )
+        }
+        for (const hook of newHooks) {
+            hooks.add(hook)
+        }
     }
 
     Object.defineProperties(router, {

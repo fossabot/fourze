@@ -4,12 +4,12 @@ import { normalizePath } from "@fourze/server"
 const TEMPORARY_FILE_SUFFIX = ".tmp.js"
 
 export function defaultMockCode(router: FourzeHotRouter) {
-    let code = `import {isRoute,setupMock} from "@fourze/core"`
+    let code = `import {setupMock} from "@fourze/core"`
 
     const names: string[] = []
     for (let i = 0; i < router.moduleNames.length; i++) {
         let modName = router.moduleNames[i]
-        names[i] = `fourze_route_${i}`
+        names[i] = `fourze_module_${i}`
         modName = modName.replace(TEMPORARY_FILE_SUFFIX, "")
         modName = normalizePath(modName)
 
