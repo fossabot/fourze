@@ -4,11 +4,11 @@ import { Fourze, isFourze } from "./app"
 import { delayHook } from "./hooks"
 import { Logger } from "./logger"
 import { defineRoute, FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute, FourzeSetupContext } from "./shared"
-import { DelayMsType } from "./utils"
+import { asyncLock, DelayMsType } from "./utils"
 
 export interface FourzeRouter extends FourzeMiddleware {
     match(url: string, method?: string): FourzeRoute | undefined
-    setup(): Promise<void>
+    release(): void
     use(module: FourzeInstance): this
     readonly routes: FourzeRoute[]
     readonly hooks: FourzeHook[]
@@ -41,7 +41,7 @@ export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | Fourz
     let _context: FourzeSetupContext
 
     const router = (async (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) => {
-        await router.setup()
+        await setupRouter()
         for (const route of router.routes) {
             if (!route.method || !request.method || request.method.toLowerCase() === route.method.toLowerCase()) {
                 const { url } = request
@@ -113,15 +113,12 @@ export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | Fourz
         return this
     }
 
-    router.setup = async function () {
+    const setupRouter = asyncLock(async function () {
         const rs = await setup()
         const isArray = Array.isArray(rs)
         const modules = isArray ? rs : rs.modules ?? []
         const base = isArray ? "" : rs.base ?? ""
         const delay = isArray ? 0 : rs.delay ?? 0
-        if (delay) {
-            hooks.add(delayHook(delay))
-        }
 
         const newRoutes: FourzeRoute[] = []
         const newHooks: FourzeHook[] = []
@@ -136,6 +133,11 @@ export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | Fourz
         )
         routes.clear()
         hooks.clear()
+
+        if (delay) {
+            hooks.add(delayHook(delay))
+        }
+
         for (const route of newRoutes) {
             routes.add(
                 defineRoute({
@@ -147,9 +149,14 @@ export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | Fourz
         for (const hook of newHooks) {
             hooks.add(hook)
         }
-    }
+    })
 
     Object.defineProperties(router, {
+        release: {
+            get() {
+                return setupRouter.release
+            }
+        },
         routes: {
             get() {
                 return Array.from(routes)

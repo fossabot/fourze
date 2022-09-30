@@ -215,6 +215,7 @@ export function createHotRouter(options: FourzeHotRouterOptions): FourzeHotRoute
                     logger.info(`remove module ${path}`)
                     break
             }
+            router.release()
         })
         return this
     }
