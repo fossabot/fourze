@@ -9,6 +9,7 @@ import { asyncLock, DelayMsType } from "./utils"
 export interface FourzeRouter extends FourzeMiddleware {
     match(url: string, method?: string): FourzeRoute | undefined
     release(): void
+    setup(): Promise<void>
     use(module: FourzeInstance): this
     readonly routes: FourzeRoute[]
     readonly hooks: FourzeHook[]
@@ -152,6 +153,11 @@ export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | Fourz
     })
 
     Object.defineProperties(router, {
+        setup: {
+            get() {
+                return setupRouter
+            }
+        },
         release: {
             get() {
                 return setupRouter.release
