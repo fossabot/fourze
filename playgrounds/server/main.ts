@@ -6,7 +6,7 @@ import { createFourzeServer, createHotRouter, createRenderer, FourzeRendererCont
 import fs from "fs"
 import path from "path"
 
-const router = createHotRouter(route => {
+const router0 = createHotRouter().use(route => {
     route("GET:/hello", () => {
         return {
             msg: "hello router 1"
@@ -14,8 +14,8 @@ const router = createHotRouter(route => {
     })
 })
 
-const router2 = createHotRouter(route => {
-    route("GET:/test/hello", () => {
+const router1 = createHotRouter().use(route => {
+    route("GET:/hello", () => {
         return {
             msg: "hello router 2"
         }
@@ -36,7 +36,7 @@ renderer.use(renderEjs)
 const app = createFourzeServer({})
 
 app.use("/test", comporession({ threshold: 0 }) as CommonMiddleware)
-app.use(router, router2)
+app.use(router0, router1)
 
 app.use(renderer)
 app.listen()

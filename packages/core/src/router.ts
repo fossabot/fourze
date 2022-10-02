@@ -1,6 +1,6 @@
 import { MaybeAsyncFunction, MaybePromise } from "maybe-types"
 import { parseUrl } from "query-string"
-import { Fourze, isFourze } from "./app"
+import { defineFourze, Fourze, FourzeSetup, isFourze } from "./app"
 import { delayHook } from "./hooks"
 import { Logger } from "./logger"
 import { defineRoute, FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute, FourzeSetupContext } from "./shared"
@@ -11,6 +11,8 @@ export interface FourzeRouter extends FourzeMiddleware {
     release(): void
     setup(): Promise<void>
     use(module: FourzeInstance): this
+    use(setup: FourzeSetup): this
+
     readonly routes: FourzeRoute[]
     readonly hooks: FourzeHook[]
     readonly context: FourzeSetupContext
@@ -22,13 +24,15 @@ export interface FourzeRouterOptions {
     delay?: DelayMsType
 }
 
+export function createRouter(): FourzeRouter
+
 export function createRouter(options: FourzeRouterOptions): FourzeRouter
 
 export function createRouter(modules: Fourze[]): FourzeRouter
 
 export function createRouter(setup: () => MaybePromise<Fourze[] | FourzeRouterOptions>): FourzeRouter
 
-export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions>): FourzeRouter {
+export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions> = {}): FourzeRouter {
     const isFunction = typeof params === "function"
     const setup: MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions> = isFunction ? params : () => params
     const modules = new Set<FourzeInstance>()
@@ -109,22 +113,30 @@ export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | Fourz
         return this.routes.find(e => e.match(url, method))
     }
 
-    router.use = function (module: FourzeInstance) {
+    router.use = function (module: FourzeInstance | FourzeSetup) {
+        if (typeof module === "function") {
+            module = defineFourze(module)
+        }
         modules.add(module)
+        this.release()
         return this
     }
 
     const setupRouter = asyncLock(async function () {
         const rs = await setup()
         const isArray = Array.isArray(rs)
-        const modules = isArray ? rs : rs.modules ?? []
         const base = isArray ? "" : rs.base ?? ""
         const delay = isArray ? 0 : rs.delay ?? 0
 
+        const newModules = isArray ? rs : rs.modules ?? []
+
         const newRoutes: FourzeRoute[] = []
         const newHooks: FourzeHook[] = []
+
+        newModules.push(...modules)
+
         await Promise.all(
-            Array.from(modules).map(async e => {
+            Array.from(newModules).map(async e => {
                 if (isFourze(e)) {
                     await e.setup()
                 }

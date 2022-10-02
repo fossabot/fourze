@@ -44,7 +44,7 @@ export interface FourzeProxyOption extends Omit<FourzeBaseRoute, "handle"> {
     target?: string
 }
 
-export function createHotRouter(options: FourzeHotRouterOptions): FourzeHotRouter {
+export function createHotRouter(options: FourzeHotRouterOptions = {}): FourzeHotRouter {
     const base = (options.base = options.base ?? "/")
     const delay = options.delay ?? 0
     const rootDir = resolve(process.cwd(), options.dir ?? "./routes")

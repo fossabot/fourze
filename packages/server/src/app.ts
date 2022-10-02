@@ -19,6 +19,8 @@ export interface FourzeServer extends EventEmitter {
     host: string
     port: number
 
+    readonly origin: string
+
     readonly server?: Server
     readonly serverMode: "http" | "https"
 
@@ -202,8 +204,9 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
         return _server
     }
 
-    app.listen = function (port: number = 7609, hostname: string = "localhost") {
-        _port = port ?? _port ?? 7609
+    app.listen = function (port: number, hostname: string = "localhost") {
+        _port = port ?? _port
+        _host = hostname ?? _host
         _server = _server ?? this.createServer()
 
         injectSeverEvents(app, _server)
@@ -213,9 +216,18 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
             const server = this.server
             if (server) {
                 if (!server.listening) {
-                    server.listen(_port, hostname, () => {
-                        let address = normalizeAddress(server.address())
-                        logger.info(`Server listening on ${_protocol}://${address}`)
+                    server.listen(_port, _host, () => {
+                        const address = server.address()
+                        let rawAddress = "unknown"
+                        if (address) {
+                            if (typeof address === "string") {
+                                rawAddress = address
+                            } else {
+                                rawAddress = `${address.address}:${address.port}`
+                                _port = address.port
+                            }
+                        }
+                        logger.info(`Server listening on ${_protocol}://${rawAddress}`)
                         logger.info(`Application ready for Fourze Server v${FOURZE_VERSION}`)
                         resolve(server)
                         app.emit("ready")
@@ -242,6 +254,12 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
                 _port = Number(port)
             }
         },
+        origin: {
+            get() {
+                return `${_protocol}://${_host}:${_port}`
+            }
+        },
+
         server: {
             get() {
                 return _server

@@ -1,5 +1,4 @@
-import { asyncLock, delay, DelayMsType } from "@fourze/core"
-import { randomInt } from "crypto"
+import { asyncLock, delay, DelayMsType, randomInt } from "@fourze/core"
 import { describe, expect, it } from "vitest"
 
 describe("promise", () => {
