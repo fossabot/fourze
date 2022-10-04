@@ -18,9 +18,13 @@ describe("server", async () => {
             count: randomInt(200)
         }
 
-        const router = createRouter().use(fourze => {
+        const router = createRouter({
+            delay: "200-500"
+        }).use(fourze => {
             fourze.get("/test", () => {
-                return testData
+                return {
+                    ...testData
+                }
             })
         })
 

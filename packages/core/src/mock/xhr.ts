@@ -122,7 +122,7 @@ interface MockXmlHttpRequest extends XMLHttpRequestEventTarget {
     removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void
 }
 
-export function createProxyXHR(router: FourzeRouter) {
+export function setProxyXHR(router: FourzeRouter) {
     const logger = new Logger("@fourze/mock")
     const MockXHR = function (this: MockXmlHttpRequest) {
         this.requestHeaders = {}
@@ -316,5 +316,7 @@ export function createProxyXHR(router: FourzeRouter) {
 
         return handles.length > 0
     }
-    return MockXHR as unknown as MockXmlHttpRequest
+    const XHR = MockXHR as unknown as typeof OriginalXmlHttpRequest
+    globalThis.XMLHttpRequest = XHR
+    return XHR
 }

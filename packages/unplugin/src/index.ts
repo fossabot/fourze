@@ -1,4 +1,4 @@
-import { DelayMsType, Logger } from "@fourze/core"
+import { DelayMsType, FourzeMockRouterOptions, Logger } from "@fourze/core"
 import { createUnplugin } from "unplugin"
 
 import { createFourzeServer, createHotRouter, FourzeHotRouter, FourzeProxyOption } from "@fourze/server"
@@ -33,6 +33,11 @@ export interface UnpluginFourzeOptions {
     mock?: boolean
 
     /**
+     *  mock mode
+     */
+    mode?: FourzeMockRouterOptions["mode"]
+
+    /**
      *  @default true
      *
      */
@@ -61,7 +66,7 @@ export interface UnpluginFourzeOptions {
 
     delay?: DelayMsType
 
-    transformCode?: (router: FourzeHotRouter) => string
+    transformCode?: (router: FourzeHotRouter, mode?: FourzeMockRouterOptions["mode"]) => string
 }
 
 export default createUnplugin((options: UnpluginFourzeOptions = {}) => {

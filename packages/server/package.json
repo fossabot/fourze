@@ -17,9 +17,7 @@
     "dependencies": {
         "@fourze/core": "workspace:*",
         "esbuild": "^0.14.54",
-        "mime": "^3.0.0"
-    },
-    "peerDependencies": {
+        "mime": "^3.0.0",
         "chokidar": "^3.5.3"
     },
     "devDependencies": {

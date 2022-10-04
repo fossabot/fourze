@@ -6,12 +6,41 @@ import { createRenderer } from "./renderer"
 import { normalizePath } from "./utils"
 
 export interface FourzeHotRouterOptions {
+    /**
+     * 根路径
+     * @default "/"
+     */
     base?: string
+
+    /**
+     * 路由模块目录
+     * @default "routes"
+     */
     dir?: string
+    /**
+     * 文件监听器
+     */
     watcher?: FSWatcher
+
+    /**
+     * 文件匹配规则
+     */
     pattern?: (string | RegExp)[]
+
+    /**
+     * 路由模块
+     */
     modules?: Fourze[]
+
+    /**
+     * 模块文件路径
+     */
     moduleNames?: string[]
+
+    /**
+     * 响应延迟时间
+     * @default 0
+     */
     delay?: DelayMsType
 }
 
@@ -47,7 +76,7 @@ export interface FourzeProxyOption extends Omit<FourzeBaseRoute, "handle"> {
 export function createHotRouter(options: FourzeHotRouterOptions = {}): FourzeHotRouter {
     const base = (options.base = options.base ?? "/")
     const delay = options.delay ?? 0
-    const rootDir = resolve(process.cwd(), options.dir ?? "./routes")
+    const rootDir = resolve(process.cwd(), options.dir ?? "routes")
     const pattern = transformPattern(options.pattern ?? [".ts", ".js"])
     const moduleNames = new Set(Array.from(options.moduleNames ?? []))
 
