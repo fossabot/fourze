@@ -4,7 +4,7 @@ import { normalizePath } from "@fourze/server"
 
 const TEMPORARY_FILE_SUFFIX = ".tmp.js"
 
-export function defaultMockCode(router: FourzeHotRouter, mode: FourzeMockRouterOptions["mode"] = "both") {
+export function defaultMockCode(router: FourzeHotRouter, mode: FourzeMockRouterOptions["mode"] = ["fetch", "xhr"]) {
     let code = `import {createMockRouter} from "@fourze/core"`
 
     const names: string[] = []
