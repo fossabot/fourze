@@ -3,7 +3,7 @@ import type { MaybePromise } from "maybe-types"
 import { parseFormdata } from "./utils/parse"
 
 import { version } from "../package.json"
-import { slash } from "./utils/common"
+import { relative } from "./utils/common"
 
 export const FOURZE_VERSION = version
 
@@ -61,7 +61,7 @@ export interface FourzeRoute extends FourzeBaseRoute {
     readonly pathParams: RegExpMatchArray
     readonly finalPath: string
     meta: Record<string, any>
-    match: (url: string, method?: string) => boolean
+    match: (url: string, method?: string, base?: string) => RegExpMatchArray | null
 }
 
 export type FourzeNext = () => MaybePromise<void>
@@ -76,43 +76,47 @@ export function isRoute(route: any): route is FourzeRoute {
     return !!route && !!route[FOURZE_ROUTE_SYMBOL]
 }
 
-const REQUEST_PATH_REGEX = new RegExp(`^(${FOURZE_METHODS.join("|")}):.*`, "i")
-
-const NOT_NEED_BASE = /^((https?|file):)?\/\//gi
+const REQUEST_PATH_REGEX = new RegExp(`^(${FOURZE_METHODS.join("|")}):`, "i")
 
 const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
 
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
-    let { handle, method, path, base, meta = {} } = route
+    let { handle, method, path, base = "/", meta = {} } = route
 
-    if (!method && REQUEST_PATH_REGEX.test(route.path)) {
+    if (REQUEST_PATH_REGEX.test(route.path)) {
         const index = route.path.indexOf(":")
-        method = route.path.slice(0, index) as RequestMethod
+        method = method ?? (route.path.slice(0, index) as RequestMethod)
         path = path.slice(index + 1).trim()
     }
 
-    function match(this: FourzeRoute, url: string, method?: string) {
-        return (!this.method || !method || this.method.toLowerCase() === method.toLowerCase()) && this.pathRegex.test(url)
+    function getPathRegex(_path: string, _base: string) {
+        const finalPath = relative(_path, _base)
+        return new RegExp(`^${finalPath.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"), "i")
     }
 
     return {
         method,
         path,
         base,
-        handle,
-        match,
         meta,
-        get finalPath() {
-            if (path.startsWith("//")) {
-                return slash(path)
+        handle,
+        match(this: FourzeRoute, url: string, method?: string, _base?: string) {
+            _base = _base ?? "/"
+            if (!this.method || !method || this.method.toLowerCase() === method.toLowerCase()) {
+                const regex = getPathRegex(relative(path, base), _base)
+                const match = url.match(regex)
+                return match
             }
-            return base && !NOT_NEED_BASE.test(path) ? slash(`${base}${path}`) : path
+            return null
+        },
+        get finalPath() {
+            return relative(path, base)
         },
         get pathParams() {
             return this.finalPath.match(PARAM_KEY_REGEX) ?? []
         },
         get pathRegex() {
-            return new RegExp(`^${this.finalPath.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"), "i")
+            return getPathRegex(path, base)
         },
         get [FOURZE_ROUTE_SYMBOL](): true {
             return true

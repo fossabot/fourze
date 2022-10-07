@@ -31,12 +31,16 @@ export function createRouter(options: FourzeRouterOptions): FourzeRouter
 
 export function createRouter(modules: Fourze[]): FourzeRouter
 
-export function createRouter(setup: () => MaybePromise<Fourze[] | FourzeRouterOptions>): FourzeRouter
+export function createRouter(setup: MaybeAsyncFunction<Fourze[] | FourzeRouterOptions>): FourzeRouter
 
-export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions> = {}): FourzeRouter {
+export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions> = {}): FourzeRouter {
     const isFunction = typeof params === "function"
+    const isArray = Array.isArray(params)
+    const isOptions = !isFunction && !isArray
     const setup: MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions> = isFunction ? params : () => params
     const modules = new Set<FourzeInstance>()
+
+    let base = (isOptions ? params.base : undefined) ?? "/"
 
     const routes = new Set<FourzeRoute>()
 
@@ -47,13 +51,11 @@ export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | Fourz
     let _context: FourzeSetupContext
 
     const router = (async (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) => {
-        await setupRouter()
-        for (const route of router.routes) {
-            if (!route.method || !request.method || request.method.toLowerCase() === route.method.toLowerCase()) {
-                const { url } = request
-
-                const matches = url.match(route.pathRegex)
-
+        const { url } = request
+        if (url.startsWith(base)) {
+            await setupRouter()
+            for (const route of router.routes) {
+                const matches = route.match(url, request.method, base)
                 if (matches) {
                     const params: Record<string, any> = {}
                     for (let i = 0; i < route.pathParams.length; i++) {
@@ -111,7 +113,7 @@ export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | Fourz
     }) as FourzeRouter
 
     router.match = function (url: string, method?: string): FourzeRoute | undefined {
-        return this.routes.find(e => e.match(url, method))
+        return this.routes.find(e => e.match(url, method, base))
     }
 
     router.use = function (module: FourzeInstance | FourzeSetup | string, setup?: FourzeSetup) {
@@ -133,7 +135,9 @@ export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | Fourz
     const setupRouter = asyncLock(async function () {
         const rs = await setup()
         const isArray = Array.isArray(rs)
-        const base = isArray ? "" : rs.base ?? ""
+
+        base = isArray ? base : rs.base ?? base
+
         const delay = isArray ? 0 : rs.delay ?? 0
 
         const newModules = isArray ? rs : rs.modules ?? []

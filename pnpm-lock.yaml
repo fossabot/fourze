@@ -12,7 +12,7 @@ importers:
       esno: ^0.16.3
       husky: ^8.0.1
       lint-staged: ^13.0.3
-      maybe-types: ^0.0.2
+      maybe-types: ^0.0.3
       prettier: ^2.7.1
       rimraf: ^3.0.2
       typescript: ^4.7.4
@@ -27,7 +27,7 @@ importers:
       esno: 0.16.3
       husky: 8.0.1
       lint-staged: 13.0.3
-      maybe-types: 0.0.2
+      maybe-types: 0.0.3
       prettier: 2.7.1
       rimraf: 3.0.2
       typescript: 4.7.4
@@ -6359,8 +6359,8 @@ packages:
       semver: 6.3.0
     dev: true
 
-  /maybe-types/0.0.2:
-    resolution: {integrity: sha512-1RDwWoChnRsnorIo3F+iYYYnTnGmKWbRjvkhiiZbyzpPGydQaOdfc3H6Qy9ImkDHueo0Zk+NT7aFynRc7mLxgg==}
+  /maybe-types/0.0.3:
+    resolution: {integrity: sha512-N2uxJ/KxCubqnxqVGi3s0EGB26J8X6xWLjEUZfLTNUBmlPRa2WcC8lWywpOsJZc6iLwG7ih8l6xFxr+jt9JnxQ==}
     dev: true
 
   /mdn-data/2.0.14:
