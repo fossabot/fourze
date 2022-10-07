@@ -1,3 +1,4 @@
+import { slash } from "@fourze/core"
 import os from "os"
 import path from "path"
 
@@ -9,8 +10,4 @@ export const isWindows = os.platform() === "win32"
 
 export function normalizePath(id: string) {
     return path.posix.normalize(isWindows ? slash(id) : id)
-}
-
-export function slash(p: string): string {
-    return p.replace(/\\/g, "/")
 }

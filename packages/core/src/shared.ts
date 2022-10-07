@@ -3,6 +3,7 @@ import type { MaybePromise } from "maybe-types"
 import { parseFormdata } from "./utils/parse"
 
 import { version } from "../package.json"
+import { slash } from "./utils/common"
 
 export const FOURZE_VERSION = version
 
@@ -58,6 +59,7 @@ export interface FourzeRoute extends FourzeBaseRoute {
     readonly [FOURZE_ROUTE_SYMBOL]: true
     readonly pathRegex: RegExp
     readonly pathParams: RegExpMatchArray
+    readonly finalPath: string
     meta: Record<string, any>
     match: (url: string, method?: string) => boolean
 }
@@ -75,6 +77,8 @@ export function isRoute(route: any): route is FourzeRoute {
 }
 
 const REQUEST_PATH_REGEX = new RegExp(`^(${FOURZE_METHODS.join("|")}):.*`, "i")
+
+const NOT_NEED_BASE = /^((https?|file):)?\/\//gi
 
 const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
 
@@ -100,13 +104,14 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         handle,
         match,
         meta,
+        get finalPath() {
+            return base && !NOT_NEED_BASE.test(path) ? slash(`${base}${path}`) : path
+        },
         get pathParams() {
-            const p = base ? `${base}${path}` : path
-            return p.match(PARAM_KEY_REGEX) ?? []
+            return this.finalPath.match(PARAM_KEY_REGEX) ?? []
         },
         get pathRegex() {
-            const p = base ? `${base}${path}` : path
-            return new RegExp(`^${p.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"), "i")
+            return new RegExp(`^${this.finalPath.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"), "i")
         },
         get [FOURZE_ROUTE_SYMBOL](): true {
             return true
