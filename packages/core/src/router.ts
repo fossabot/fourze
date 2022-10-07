@@ -40,7 +40,7 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
     const setup: MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions> = isFunction ? params : () => params
     const modules = new Set<FourzeInstance>()
 
-    let base = (isOptions ? params.base : undefined) ?? "/"
+    let base = (isOptions ? params.base : undefined) ?? undefined
 
     const routes = new Set<FourzeRoute>()
 
@@ -52,7 +52,7 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
 
     const router = (async (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) => {
         const { url } = request
-        if (url.startsWith(base)) {
+        if (!base || url.startsWith(base)) {
             await setupRouter()
             for (const route of router.routes) {
                 const matches = route.match(url, request.method, base)
