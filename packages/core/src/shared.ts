@@ -8,6 +8,8 @@ export const FOURZE_VERSION = version
 
 const FOURZE_ROUTE_SYMBOL = Symbol("FourzeRoute")
 const FOURZE_HOOK_SYMBOL = Symbol("FourzeInterceptor")
+const FOURZE_REQUEST_SYMBOL = Symbol("FourzeRequest")
+const FOURZE_RESPONSE_SYMBOL = Symbol("FourzeResponse")
 
 export interface FourzeRequest extends IncomingMessage {
     url: string
@@ -25,6 +27,8 @@ export interface FourzeRequest extends IncomingMessage {
     meta: Record<string, any>
 
     headers: Record<string, string | string[] | undefined>
+
+    readonly [FOURZE_REQUEST_SYMBOL]: true
 }
 
 export interface FourzeBaseResponse extends ServerResponse {
@@ -38,6 +42,8 @@ export interface FourzeResponse extends FourzeBaseResponse {
     text(data?: string): void
     binary(data?: any): void
     redirect(url: string): void
+
+    readonly [FOURZE_RESPONSE_SYMBOL]: true
 }
 
 export interface FourzeBaseRoute {
@@ -49,9 +55,9 @@ export interface FourzeBaseRoute {
 }
 
 export interface FourzeRoute extends FourzeBaseRoute {
-    [FOURZE_ROUTE_SYMBOL]: true
-    pathRegex: RegExp
-    pathParams: RegExpMatchArray
+    readonly [FOURZE_ROUTE_SYMBOL]: true
+    readonly pathRegex: RegExp
+    readonly pathParams: RegExpMatchArray
     meta: Record<string, any>
     match: (url: string, method?: string) => boolean
 }
@@ -72,8 +78,6 @@ const REQUEST_PATH_REGEX = new RegExp(`^(${FOURZE_METHODS.join("|")}):.*`, "i")
 
 const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
 
-const NOT_NEED_BASE = /^((https?|file):)?\/\//gi
-
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
     let { handle, method, path, base, meta = {} } = route
 
@@ -83,31 +87,27 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         path = path.slice(index + 1).trim()
     }
 
-    if (!NOT_NEED_BASE.test(path)) {
-        path = (base ?? "/").concat(path)
-    } else {
-        base = path.match(NOT_NEED_BASE)?.[0] ?? "//"
-    }
-
     path = path.replace(/^\/+/, "/")
 
-    const pathRegex = new RegExp(`^${path.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"), "i")
-
-    const pathParams = path.match(PARAM_KEY_REGEX) ?? []
-
     function match(this: FourzeRoute, url: string, method?: string) {
-        return (!route.method || !method || route.method.toLowerCase() === method.toLowerCase()) && this.pathRegex.test(url)
+        return (!route.method || !this.method || route.method.toLowerCase() === this.method.toLowerCase()) && this.pathRegex.test(url)
     }
 
     return {
         method,
         path,
         base,
-        pathRegex,
-        pathParams,
         handle,
         match,
         meta,
+        get pathParams() {
+            const p = base ? `${base}${path}` : path
+            return p.match(PARAM_KEY_REGEX) ?? []
+        },
+        get pathRegex() {
+            const p = base ? `${base}${path}` : path
+            return new RegExp(`^${p.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"), "i")
+        },
         get [FOURZE_ROUTE_SYMBOL](): true {
             return true
         }
@@ -121,7 +121,7 @@ export interface FourzeBaseHook extends FourzeMiddleware<any> {
 export interface FourzeHook {
     handle: FourzeMiddleware<any>
     base?: string
-    [FOURZE_HOOK_SYMBOL]: true
+    readonly [FOURZE_HOOK_SYMBOL]: true
 }
 
 export function defineFourzeHook(base: string, interceptor: FourzeBaseHook): FourzeHook
@@ -182,14 +182,13 @@ export interface CommonMiddleware {
 export interface FourzeMiddleware<T = void> {
     (req: FourzeRequest, res: FourzeResponse, next?: FourzeNext): MaybePromise<T>
     name?: string
+    setup?: () => MaybePromise<void>
 }
 
 export interface FourzeSetupContext {
     host: string
     origin: string
 }
-
-const FOURZE_RESPONSE_SYMBOL = Symbol("FourzeResponse")
 
 export function createResponse(res?: FourzeBaseResponse) {
     const response = (res ?? {
@@ -254,8 +253,6 @@ export function createResponse(res?: FourzeBaseResponse) {
 
     return response
 }
-
-const FOURZE_REQUEST_SYMBOL = Symbol("FourzeRequest")
 
 function handleHeader(headers: Record<string, string | string[] | undefined> = {}) {
     const result: Record<string, string | undefined> = {}

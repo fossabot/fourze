@@ -204,12 +204,16 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
         return _server
     }
 
-    app.listen = function (port: number, hostname: string = "localhost") {
+    app.listen = async function (port: number, hostname: string = "localhost") {
         _port = port ?? _port
         _host = hostname ?? _host
         _server = _server ?? this.createServer()
 
         injectSeverEvents(app, _server)
+
+        const middlewares = Array.from(middlewareMap.values()).flat()
+
+        await Promise.all(middlewares.flatMap(r => r.setup?.()))
 
         return new Promise((resolve, reject) => {
             logger.info(`Start server process [${process.pid}]`)

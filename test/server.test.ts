@@ -20,7 +20,7 @@ describe("server", async () => {
 
         const router = createRouter({
             delay: "200-500"
-        }).use(fourze => {
+        }).use("/api", fourze => {
             fourze.get("/test", () => {
                 return {
                     ...testData
@@ -31,7 +31,8 @@ describe("server", async () => {
         server.use(router)
 
         await server.listen()
-        const returnData = await axios.get<typeof testData>(`${server.origin}/test`).then(r => r.data)
+
+        const returnData = await axios.get<typeof testData>(`${server.origin}/api/test`).then(r => r.data)
 
         expect(returnData).toEqual(testData)
     })

@@ -14,6 +14,7 @@ export type FourzeRequestFunctions = {
     [K in RequestMethod]: (path: string, handle: FourzeHandle) => Fourze
 }
 
+const FOURZE_SYMBOL = Symbol("FourzeInstance")
 export interface Fourze extends FourzeRequestFunctions, FourzeInstance {
     (path: string, method: RequestMethod, handle: FourzeHandle): Fourze
     (path: string, method: RequestMethod, meta: Record<string, string>, handle: FourzeHandle): Fourze
@@ -26,25 +27,26 @@ export interface Fourze extends FourzeRequestFunctions, FourzeInstance {
     use(base: string, hook: FourzeBaseHook): Fourze
     apply(fourze: FourzeInstance): Fourze
     setup(): Promise<void>
+    readonly [FOURZE_SYMBOL]: true
 }
-
-const FOURZE_SYMBOL = Symbol("FourzeInstance")
 
 export function defineFourze(routes: FourzeBaseRoute[]): Fourze
 
 export function defineFourze(options: FourzeOptions): Fourze
 
 export function defineFourze(setup: FourzeSetup): Fourze
+export function defineFourze(base: string, setup: FourzeSetup): Fourze
 
 export function defineFourze(): Fourze
 
-export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | FourzeSetup = {}): Fourze {
+export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | FourzeSetup | string = {}, setupFn?: FourzeSetup): Fourze {
+    const isBase = typeof options === "string"
     const isRoutes = Array.isArray(options)
     const isSetup = typeof options === "function"
-    const isOption = !isRoutes && !isSetup
+    const isOption = !isRoutes && !isSetup && !isBase
 
-    let _base = isOption ? options.base : undefined
-    const setup = isOption ? options.setup : isSetup ? options : undefined
+    let _base = isBase ? options : isOption ? options.base : undefined
+    const setup = isBase ? setupFn : isOption ? options.setup : isSetup ? options : undefined
     const routes = Array.from((isOption ? options.routes : isRoutes ? options : []) ?? [])
     const hooks: FourzeHook[] = []
 
@@ -150,9 +152,6 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
             routes.push(...extra)
         } else if (extra) {
             fourze.apply(extra)
-            if (!!extra.base) {
-                _base = extra.base
-            }
         }
     })
 
