@@ -79,7 +79,7 @@ export function createRouter(params: MaybeAsyncFunction<FourzeInstance[] | Fourz
 
                     request.meta = route.meta ?? {}
 
-                    const activeHooks = router.hooks.filter(e => !e.base || route.path.startsWith(e.base))
+                    const activeHooks = router.hooks.filter(e => !e.base || route.finalPath.startsWith(e.base))
 
                     const handle = async function () {
                         const hook = activeHooks.shift()

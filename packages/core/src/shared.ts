@@ -91,10 +91,8 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         path = path.slice(index + 1).trim()
     }
 
-    path = path.replace(/^\/+/, "/")
-
     function match(this: FourzeRoute, url: string, method?: string) {
-        return (!route.method || !this.method || route.method.toLowerCase() === this.method.toLowerCase()) && this.pathRegex.test(url)
+        return (!this.method || !method || this.method.toLowerCase() === method.toLowerCase()) && this.pathRegex.test(url)
     }
 
     return {
@@ -105,6 +103,9 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         match,
         meta,
         get finalPath() {
+            if (path.startsWith("//")) {
+                return slash(path)
+            }
             return base && !NOT_NEED_BASE.test(path) ? slash(`${base}${path}`) : path
         },
         get pathParams() {
