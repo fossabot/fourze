@@ -1,6 +1,7 @@
 import { Logger } from "../logger"
 import { createRouter, FourzeRouter, FourzeRouterOptions } from "../router"
 import { setProxyFetch } from "./fetch"
+import { setProxyNodeRequest } from "./request"
 import { setProxyXHR } from "./xhr"
 
 export type FourzeMockRequestMode = "xhr" | "fetch" | "request"
@@ -24,7 +25,7 @@ export function createMockRouter(options: FourzeMockRouterOptions = {}): FourzeM
 
     logger.info("Fourze Mock is starting...")
 
-    const mode = options.mode ?? ["xhr", "fetch"]
+    const mode = options.mode ?? ["xhr", "fetch", "request"]
 
     if (mode) {
         if (mode.includes("fetch")) {
@@ -32,6 +33,9 @@ export function createMockRouter(options: FourzeMockRouterOptions = {}): FourzeM
         }
         if (mode.includes("xhr")) {
             setProxyXHR(instance)
+        }
+        if (mode.includes("request")) {
+            setProxyNodeRequest(instance)
         }
     }
     return instance

@@ -1,4 +1,5 @@
 import { createMockRouter, randomInt } from "@fourze/core"
+import axios from "axios"
 import { describe, expect, it } from "vitest"
 
 describe("fetch", async () => {
@@ -20,7 +21,10 @@ describe("fetch", async () => {
 
         await router.setup()
 
-        const res = await fetch("http://www.test.com/hello.json").then(r => r.json())
-        expect(res).toEqual(testData)
+        const fetchReturn = await fetch("http://www.test.com/hello.json").then(r => r.json())
+        const axiosReturn = await axios.get("http://www.test.com/hello.json").then(r => r.data)
+
+        expect(fetchReturn).toEqual(testData)
+        expect(axiosReturn).toEqual(testData)
     })
 })
