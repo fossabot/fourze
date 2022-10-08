@@ -76,6 +76,9 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
     const delay = options.delay ?? 0
 
+    const port = options.server?.port ?? 7609
+    const host = options.server?.host ?? "localhost"
+
     const pattern = Array.from(options.filePattern ?? [".ts$", ".js$"])
     const hmr = options.hmr ?? true
     const injectScript = options.injectScript ?? true
@@ -125,8 +128,6 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
             }
         },
         async webpack() {
-            const port = options.server?.port ?? 7609
-            const host = options.server?.host ?? "localhost"
             const app = createFourzeServer()
             app.use(base, router)
             await app.listen(port, host)
@@ -165,9 +166,9 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
                 }
                 const app = createFourzeServer()
 
-                if (options.server) {
+                if (options.server?.port) {
                     try {
-                        app.listen(options.server?.port, options.server?.host)
+                        app.listen(port, host)
                     } catch (error) {
                         logger.error("Server listen failed.", error)
                     }

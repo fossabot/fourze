@@ -3,7 +3,7 @@ import type { MaybePromise } from "maybe-types"
 import { parseFormdata } from "./utils/parse"
 
 import { version } from "../package.json"
-import { relative } from "./utils/common"
+import { relative } from "./utils/path"
 
 export const FOURZE_VERSION = version
 

@@ -1,4 +1,4 @@
-import { createRouter, randomInt, relative } from "@fourze/core"
+import { createRouter, isMatch, randomInt, relative } from "@fourze/core"
 import { describe, expect, it } from "vitest"
 
 describe("shared", async () => {
@@ -12,6 +12,10 @@ describe("shared", async () => {
         expect(relative("//api/hello")).toEqual("/api/hello")
     })
 
+    it("test-isMatch", () => {
+        expect(isMatch("/api/hello/test", "/api/*", "/api/hello")).toBe(true)
+    })
+
     it("test-route", async () => {
         const testData = {
             name: "test",
@@ -21,7 +25,9 @@ describe("shared", async () => {
         const router = createRouter(() => {
             return {
                 base: "/v1",
-                delay: "200-500"
+                delay: "200-500",
+                allow: ["/v1/api/**", "http://", "/v1/hello", "/v1/deny"],
+                deny: ["/v1/deny"]
             }
         }).use("/api/", route => {
             route.get("/test", () => {
@@ -34,13 +40,22 @@ describe("shared", async () => {
                     ...testData
                 }
             })
+
+            route.get("/noallow", () => {
+                return "not-allow"
+            })
+
             route.get("http://test.com/hello", () => {
                 return {
                     ...testData
                 }
             })
 
-            route("POST://add", () => {
+            route.get("//deny", () => {
+                return "deny"
+            })
+
+            route("POST:/add", () => {
                 return {
                     ...testData
                 }
@@ -56,6 +71,8 @@ describe("shared", async () => {
         expect(router.match("/api/hello")).toBeFalsy()
         expect(router.match("/hello")).toBeFalsy()
         expect(router.match("/v1/hello")).toBeTruthy()
-        expect(router.match("/v1/add", "post")).toBeTruthy()
+        expect(router.match("/v1/api/add", "post")).toBeTruthy()
+        expect(router.match("/v1/noallow")).toBeFalsy()
+        expect(router.match("/v1/deny")).toBeFalsy()
     })
 })

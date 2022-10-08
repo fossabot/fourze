@@ -1,10 +1,10 @@
-import { MaybeAsyncFunction, MaybePromise } from "maybe-types"
+import { MaybeAsyncFunction, MaybePromise, MaybeRegex } from "maybe-types"
 import { parseUrl } from "query-string"
 import { defineFourze, Fourze, FourzeSetup, isFourze } from "./app"
 import { delayHook } from "./hooks"
 import { Logger } from "./logger"
 import { defineRoute, FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute, FourzeSetupContext } from "./shared"
-import { asyncLock, DelayMsType } from "./utils"
+import { asyncLock, DelayMsType, isMatch, unique } from "./utils"
 
 export interface FourzeRouter extends FourzeMiddleware {
     match(url: string, method?: string): FourzeRoute | undefined
@@ -17,12 +17,24 @@ export interface FourzeRouter extends FourzeMiddleware {
     readonly routes: FourzeRoute[]
     readonly hooks: FourzeHook[]
     readonly context: FourzeSetupContext
+
+    readonly options: Required<FourzeRouterOptions>
 }
 
 export interface FourzeRouterOptions {
+    /**
+     * @example localhost
+     */
+    host?: string
+    port?: string
+
     base?: string
     modules?: FourzeInstance[]
     delay?: DelayMsType
+
+    allow?: MaybeRegex[]
+
+    deny?: MaybeRegex[]
 }
 
 export function createRouter(): FourzeRouter
@@ -40,7 +52,7 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
     const setup: MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions> = isFunction ? params : () => params
     const modules = new Set<FourzeInstance>()
 
-    let base = (isOptions ? params.base : undefined) ?? undefined
+    let options = isOptions ? params : {}
 
     const routes = new Set<FourzeRoute>()
 
@@ -50,12 +62,25 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
 
     let _context: FourzeSetupContext
 
-    const router = (async (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) => {
+    function isAllow(url: string) {
+        const { allow, deny } = options
+        let rs = true
+        if (allow?.length) {
+            rs = isMatch(url, ...allow)
+        }
+        if (deny?.length) {
+            rs &&= !isMatch(url, ...deny)
+        }
+        return rs
+    }
+
+    const router = async function (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) {
         const { url } = request
-        if (!base || url.startsWith(base)) {
+
+        if (isAllow(url)) {
             await setupRouter()
             for (const route of router.routes) {
-                const matches = route.match(url, request.method, base)
+                const matches = route.match(url, request.method, options.base)
                 if (matches) {
                     const params: Record<string, any> = {}
                     for (let i = 0; i < route.pathParams.length; i++) {
@@ -110,10 +135,12 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
         } else {
             await next?.()
         }
-    }) as FourzeRouter
+    } as FourzeRouter
 
     router.match = function (url: string, method?: string): FourzeRoute | undefined {
-        return this.routes.find(e => e.match(url, method, base))
+        if (isAllow(url)) {
+            return this.routes.find(e => e.match(url, method, options.base))
+        }
     }
 
     router.use = function (module: FourzeInstance | FourzeSetup | string, setup?: FourzeSetup) {
@@ -136,19 +163,23 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
         const rs = await setup()
         const isArray = Array.isArray(rs)
 
-        base = isArray ? base : rs.base ?? base
+        if (!isArray) {
+            options.base = rs.base ?? options.base
+            options.allow = rs.allow ?? options.allow
+            options.delay = rs.delay ?? options.delay
+            options.modules = rs.modules ?? options.modules
+            options.deny = rs.deny ?? options.deny
+        } else {
+            options.modules = rs
+        }
 
-        const delay = isArray ? 0 : rs.delay ?? 0
-
-        const newModules = isArray ? rs : rs.modules ?? []
+        const newModules = unique([...(options.modules ?? []), ...modules])
 
         const newRoutes: FourzeRoute[] = []
         const newHooks: FourzeHook[] = []
 
-        newModules.push(...modules)
-
         await Promise.all(
-            Array.from(newModules).map(async e => {
+            newModules.map(async e => {
                 if (isFourze(e)) {
                     await e.setup()
                 }
@@ -159,15 +190,15 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
         routes.clear()
         hooks.clear()
 
-        if (delay) {
-            hooks.add(delayHook(delay))
+        if (options.delay) {
+            hooks.add(delayHook(options.delay))
         }
 
         for (const route of newRoutes) {
             routes.add(
                 defineRoute({
                     ...route,
-                    base: route.base ?? base
+                    base: route.base ?? options.base
                 })
             )
         }
@@ -182,6 +213,21 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
                 return setupRouter
             }
         },
+        options: {
+            get() {
+                const opt = {} as Required<FourzeRouterOptions>
+                opt.base = options.base ?? ""
+                opt.delay = options.delay ?? 0
+                opt.allow = options.allow ?? []
+                if (opt.base) {
+                    opt.allow = unique([...(options.allow ?? []), opt.base])
+                }
+                opt.deny = options.deny ?? []
+                opt.modules = options.modules ?? []
+                return opt
+            }
+        },
+
         release: {
             get() {
                 return setupRouter.release

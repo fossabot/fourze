@@ -1,13 +1,24 @@
+import { MaybeRegex } from "maybe-types"
 import { Logger } from "../logger"
 import { createRouter, FourzeRouter, FourzeRouterOptions } from "../router"
 import { setProxyFetch } from "./fetch"
 import { setProxyXHR } from "./xhr"
 
+export type FourzeMockRequestMode = "xhr" | "fetch" | "request"
 export interface FourzeMockRouterOptions extends FourzeRouterOptions {
     /**
-     *
+     * @default ["xhr","fetch"]
      */
-    mode?: ("xhr" | "fetch")[] | false
+    mode?: FourzeMockRequestMode[] | false
+
+    port?: string
+
+    host?: string
+
+    /***
+     * @example ["https://api.github.com","/api",""]
+     */
+    allow?: MaybeRegex[]
 }
 
 export interface FourzeMockRouter extends FourzeRouter {}

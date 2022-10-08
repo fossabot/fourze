@@ -13,13 +13,18 @@ describe("utils", () => {
     })
 
     it("random", () => {
-        const array = randomArray(index => {
-            return {
-                name: `item-${index}`,
-                count: randomInt("200-500")
-            }
-        }, 30)
+        const array = randomArray(
+            index => {
+                return {
+                    name: `item-${index}`,
+                    count: randomInt("200-500")
+                }
+            },
+            12,
+            30
+        )
         const item = randomItem(array)
+        expect(array).length.greaterThanOrEqual(12).lessThanOrEqual(30)
         expect(array).include(item)
     })
 

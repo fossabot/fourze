@@ -9,7 +9,8 @@ describe("fetch", async () => {
         }
 
         const router = createMockRouter({
-            delay: "200-500"
+            delay: "200-500",
+            allow: ["**.json"]
         }).use(route => {
             route.get("http://www.test.com/hello", () => {
                 return {
@@ -20,9 +21,7 @@ describe("fetch", async () => {
 
         await router.setup()
 
-        console.log("ISMATCH=", router.match("http://www.test.com/hello"))
-
-        const res = await fetch("http://www.test.com/hello").then(r => r.json())
+        const res = await fetch("http://www.test.com/hello.json").then(r => r.json())
         expect(res).toEqual(testData)
     })
 })
