@@ -23,7 +23,7 @@
         "bump": "pnpm test run && bumpp package.json packages/*/package.json --commit --push --tag",
         "preinstall": "npx only-allow pnpm",
         "postinstall": "husky install",
-        "fetch": "git fetch --all && git reset --hard origin/main && git pull && git remote prune origin"
+        "regit": "git fetch --all && git reset --hard origin/main && git pull && git remote prune origin"
     },
     "author": "chizuki",
     "license": "MIT",
