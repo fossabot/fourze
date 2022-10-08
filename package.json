@@ -20,9 +20,10 @@
         "play:vue-cli": "pnpm stub &&  pnpm -r --filter=./playgrounds/vue-cli dev",
         "play:server": "pnpm -r --filter=./playgrounds/server dev",
         "test": "pnpm stub && vitest",
-        "bump": "bumpp package.json packages/*/package.json --commit --push --tag",
+        "bump": "pnpm test run && bumpp package.json packages/*/package.json --commit --push --tag",
         "preinstall": "npx only-allow pnpm",
-        "postinstall": "husky install"
+        "postinstall": "husky install",
+        "fetch": "git fetch --all && git reset --hard origin/main && git pull && git remote prune origin"
     },
     "author": "chizuki",
     "license": "MIT",
@@ -45,6 +46,6 @@
         "rimraf": "^3.0.2",
         "typescript": "^4.7.4",
         "unbuild": "^0.8.8",
-        "vitest": "^0.22.0"
+        "vitest": "^0.22.1"
     }
 }

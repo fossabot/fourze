@@ -1,9 +1,8 @@
 import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
 import type { MaybePromise } from "maybe-types"
-import { parseFormdata } from "./utils/parse"
 
 import { version } from "../package.json"
-import { relative } from "./utils/path"
+import { parseFormdata, resolvePath } from "./utils"
 
 export const FOURZE_VERSION = version
 
@@ -64,7 +63,7 @@ export interface FourzeRoute extends FourzeBaseRoute {
     match: (url: string, method?: string, base?: string) => RegExpMatchArray | null
 }
 
-export type FourzeNext = () => MaybePromise<void>
+export type FourzeNext = (rs?: boolean) => MaybePromise<void>
 
 export type FourzeHandle<R = any> = (request: FourzeRequest, response: FourzeResponse) => MaybePromise<R>
 
@@ -93,7 +92,7 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
     }
 
     function getPathRegex(_path: string, _base: string) {
-        const finalPath = relative(_path, _base)
+        const finalPath = resolvePath(_path, _base)
         return new RegExp(`^${finalPath.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"), "i")
     }
 
@@ -106,14 +105,14 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         match(this: FourzeRoute, url: string, method?: string, _base?: string) {
             _base = _base ?? "/"
             if (!this.method || !method || this.method.toLowerCase() === method.toLowerCase()) {
-                const regex = getPathRegex(relative(path, base), _base)
+                const regex = getPathRegex(resolvePath(path, base), _base)
                 const match = url.match(regex)
                 return match
             }
             return null
         },
         get finalPath() {
-            return relative(path, base)
+            return resolvePath(path, base)
         },
         get pathParams() {
             return this.finalPath.match(PARAM_KEY_REGEX) ?? []

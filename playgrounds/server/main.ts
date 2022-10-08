@@ -7,7 +7,7 @@ import fs from "fs"
 import path from "path"
 
 const router0 = createHotRouter().use(route => {
-    route("GET:/hello", () => {
+    route("GET /hello", () => {
         return {
             msg: "hello router 1"
         }
@@ -15,7 +15,7 @@ const router0 = createHotRouter().use(route => {
 })
 
 const router1 = createHotRouter().use(route => {
-    route("GET:/hello", () => {
+    route("GET /hello", () => {
         return {
             msg: "hello router 2"
         }

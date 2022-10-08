@@ -4,7 +4,7 @@ import { defineFourze, Fourze, FourzeSetup, isFourze } from "./app"
 import { delayHook } from "./hooks"
 import { Logger } from "./logger"
 import { defineRoute, FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute, FourzeSetupContext } from "./shared"
-import { asyncLock, DelayMsType, isMatch, unique } from "./utils"
+import { asyncLock, DelayMsType, isMatch, relativePath, unique } from "./utils"
 
 export interface FourzeRouter extends FourzeMiddleware {
     /**
@@ -40,13 +40,36 @@ export interface FourzeRouterOptions {
     host?: string
     port?: string
 
+    /**
+     *  根路径
+     */
     base?: string
+    /**
+     *  路由模块
+     */
     modules?: FourzeInstance[]
+
+    /**
+     *  延时
+     */
     delay?: DelayMsType
 
+    /**
+     * 允许的路径规则,默认为所有
+     * @default []
+     */
     allow?: MaybeRegex[]
 
+    /**
+     *  不允许的路径规则
+     */
     deny?: MaybeRegex[]
+
+    /**
+     *  不在base域下的外部路径
+     *  @example ["https://www.example.com"]
+     */
+    external?: MaybeRegex[]
 }
 
 export function createRouter(): FourzeRouter
@@ -108,12 +131,34 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
 
                     const activeHooks = router.hooks.filter(e => !e.base || route.finalPath.startsWith(e.base))
 
-                    const handle = async function () {
-                        const hook = activeHooks.shift()
-                        if (hook) {
-                            return (await hook.handle(request, response, handle)) ?? response.result
+                    console.log(
+                        "activeHooks",
+                        activeHooks.map(r => r.base)
+                    )
+
+                    const handle = async function (): Promise<any> {
+                        let nexted = false
+                        const next = async (res = true) => {
+                            nexted = true
+                            if (res) {
+                                response.result = handle() ?? response.result
+                            }
+                            return response.result
                         }
-                        response.result = (await route.handle(request, response)) ?? response.result
+
+                        const hook = activeHooks.shift()
+
+                        if (hook) {
+                            const hookReturn = await hook.handle(request, response, next)
+
+                            if (!nexted && (!hookReturn || hookReturn === false)) {
+                                response.result = await next()
+                            } else {
+                                response.result = hookReturn ?? response.result
+                            }
+                        } else {
+                            response.result = (await route.handle(request, response)) ?? response.result
+                        }
                         return response.result
                     }
 
@@ -138,13 +183,22 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
     } as FourzeRouter
 
     router.isAllow = function (url: string) {
-        const { allow, deny, base = "" } = options
+        const { allow, deny, external, base = "" } = options
+        // 是否在base域下
         let rs = url.startsWith(base)
+        const relativeUrl = relativePath(url, base)
+
         if (allow?.length) {
-            rs = isMatch(url, ...allow)
+            // 有允许规则,必须在base域下
+            rs &&= isMatch(relativeUrl, ...allow)
+        }
+        if (external?.length) {
+            // 有外部规则,允许不在base域下
+            rs ||= isMatch(url, ...external)
         }
         if (deny?.length) {
-            rs &&= !isMatch(url, ...deny)
+            // 有拒绝规则,优先级最高
+            rs &&= !isMatch(relativeUrl, ...deny)
         }
         return rs
     }
@@ -181,6 +235,7 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
             options.delay = rs.delay ?? options.delay
             options.modules = rs.modules ?? options.modules
             options.deny = rs.deny ?? options.deny
+            options.external = rs.external ?? options.external
         } else {
             options.modules = rs
         }

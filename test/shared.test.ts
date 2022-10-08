@@ -1,19 +1,20 @@
-import { createRouter, isMatch, randomInt, relative } from "@fourze/core"
+import { createRouter, isMatch, randomInt, resolvePath } from "@fourze/core"
 import { describe, expect, it } from "vitest"
 
 describe("shared", async () => {
-    it("test-relative", () => {
+    it("test-reslovePath", () => {
         const path = "https://test.com"
         const base = "/api"
-        const final0 = relative(path, base)
+        const final0 = resolvePath(path, base)
         expect(final0).toBe(path)
-        const finalPath = relative(final0, base)
+        const finalPath = resolvePath(final0, base)
         expect(finalPath).toEqual(path)
-        expect(relative("//api/hello")).toEqual("/api/hello")
+        expect(resolvePath("//api/hello")).toEqual("/api/hello")
     })
 
     it("test-isMatch", () => {
         expect(isMatch("/api/hello/test", "/api/*", "/api/hello")).toBe(true)
+        expect(isMatch("http://www.test.com", "http://**.test.com")).toBe(true)
     })
 
     it("test-route", async () => {
@@ -26,8 +27,9 @@ describe("shared", async () => {
             return {
                 base: "/v1",
                 delay: "200-500",
-                allow: ["/v1/api/**", "http://", "/v1/hello", "/*/add", "/v1/deny"],
-                deny: ["/v1/deny"]
+                allow: ["/api/**", "/hello", "/add", "/deny"],
+                deny: ["/deny"],
+                external: ["http://www.test.com"]
             }
         }).use("/api/", route => {
             route.get("/test", () => {
@@ -35,6 +37,7 @@ describe("shared", async () => {
                     ...testData
                 }
             })
+
             route.get("//hello", () => {
                 return {
                     ...testData
@@ -45,7 +48,13 @@ describe("shared", async () => {
                 return "not-allow"
             })
 
-            route.get("http://test.com/hello", () => {
+            route("get http://test.com/hello", () => {
+                return {
+                    ...testData
+                }
+            })
+
+            route("GET http://www.test.com/hello", () => {
                 return {
                     ...testData
                 }
@@ -64,15 +73,27 @@ describe("shared", async () => {
 
         await router.setup()
 
+        // has not base
         expect(router.match("/api/test")).toBeFalsy()
+        // has base
         expect(router.match("/v1/api/test")).toBeTruthy()
-        expect(router.match("http://test.com/hello")).toBeTruthy()
+
+        // in external
+        expect(router.match("http://www.test.com/hello")).toBeTruthy()
+        // not in external
+        expect(router.match("http://test.com/hello")).toBeFalsy()
+
+        // not in allow
         expect(router.match("/v1/api/hello")).toBeFalsy()
         expect(router.match("/api/hello")).toBeFalsy()
         expect(router.match("/hello")).toBeFalsy()
+        expect(router.match("/v1/noallow")).toBeFalsy()
+
+        // in allow
         expect(router.match("/v1/hello")).toBeTruthy()
         expect(router.match("/v1/add", "post")).toBeTruthy()
-        expect(router.match("/v1/noallow")).toBeFalsy()
+
+        // in deny
         expect(router.match("/v1/deny")).toBeFalsy()
     })
 })

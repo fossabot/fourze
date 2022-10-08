@@ -26,11 +26,11 @@ export default defineFourze(fourze => {
         return rs
     }
 
-    fourze("POST:http://test.com/Search/:name", handleSearch)
+    fourze("POST http://test.com/Search/:name", handleSearch)
 
-    fourze("POST:/search/:name", handleSearch)
+    fourze("POST /search/:name", handleSearch)
 
-    fourze("post:/upload", async (req, res) => {})
+    fourze("post /upload", async (req, res) => {})
 
     return []
 })

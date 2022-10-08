@@ -21,10 +21,10 @@ export interface Fourze extends FourzeRequestFunctions, FourzeInstance {
     (path: string, handle: FourzeHandle): Fourze
     (route: FourzeBaseRoute): Fourze
     (routes: FourzeBaseRoute[]): Fourze
-    use(hook: FourzeHook): Fourze
-    use(hook: FourzeBaseHook): Fourze
-    use(hook: DefineFourzeHook): Fourze
-    use(base: string, hook: FourzeBaseHook): Fourze
+    hook(hook: FourzeHook): Fourze
+    hook(hook: FourzeBaseHook): Fourze
+    hook(hook: DefineFourzeHook): Fourze
+    hook(base: string, hook: FourzeBaseHook): Fourze
     apply(fourze: FourzeInstance): Fourze
     setup(): Promise<void>
     readonly [FOURZE_SYMBOL]: true
@@ -84,7 +84,7 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
         return this
     } as Fourze
 
-    fourze.use = function (...args: [string, FourzeBaseHook] | [FourzeBaseHook] | [DefineFourzeHook] | [FourzeHook]) {
+    fourze.hook = function (...args: [string, FourzeBaseHook] | [FourzeBaseHook] | [DefineFourzeHook] | [FourzeHook]) {
         if (args.length === 1 && isFourzeHook(args[0])) {
             hooks.push(args[0])
         } else {

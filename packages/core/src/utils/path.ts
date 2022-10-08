@@ -6,15 +6,25 @@ export function slash(p: string): string {
 
 export const NOT_NEED_BASE = /^((https?|file):)\/\//i
 
-export function relative(_path: string, _base?: string): string {
+export function resolvePath(_path: string, _base?: string): string {
     if (isRelative(_path)) {
         if (!_path.startsWith("//") && _base) {
             return slash(_base + "/" + _path)
         }
         return slash(_path)
     }
-
     return _path
+}
+
+export function relativePath(path: string, base?: string): string {
+    if (base) {
+        path = path.replace(new RegExp(`^${slash(base.concat("/"))}`), "/")
+    }
+    return path
+}
+
+export function isAbsolute(path: string) {
+    return NOT_NEED_BASE.test(path)
 }
 
 export function isRelative(path: string) {
