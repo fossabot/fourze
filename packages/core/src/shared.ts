@@ -76,17 +76,20 @@ export function isRoute(route: any): route is FourzeRoute {
     return !!route && !!route[FOURZE_ROUTE_SYMBOL]
 }
 
-const REQUEST_PATH_REGEX = new RegExp(`^(${FOURZE_METHODS.join("|")}):`, "i")
+const REQUEST_PATH_REGEX = new RegExp(`^(${FOURZE_METHODS.join("|")})\\s+`, "i")
 
 const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
 
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
     let { handle, method, path, base = "/", meta = {} } = route
 
-    if (REQUEST_PATH_REGEX.test(route.path)) {
-        const index = route.path.indexOf(":")
-        method = method ?? (route.path.slice(0, index) as RequestMethod)
-        path = path.slice(index + 1).trim()
+    if (REQUEST_PATH_REGEX.test(path)) {
+        const arr = path.split(/\s+/)
+        const m = arr[0].toLowerCase() as RequestMethod
+        if (FOURZE_METHODS.includes(m)) {
+            method = m
+            path = arr[1].trim()
+        }
     }
 
     function getPathRegex(_path: string, _base: string) {

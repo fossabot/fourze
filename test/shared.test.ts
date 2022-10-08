@@ -26,7 +26,7 @@ describe("shared", async () => {
             return {
                 base: "/v1",
                 delay: "200-500",
-                allow: ["/v1/api/**", "http://", "/v1/hello", "/v1/deny"],
+                allow: ["/v1/api/**", "http://", "/v1/hello", "/*/add", "/v1/deny"],
                 deny: ["/v1/deny"]
             }
         }).use("/api/", route => {
@@ -55,7 +55,7 @@ describe("shared", async () => {
                 return "deny"
             })
 
-            route("POST:/add", () => {
+            route("POST //add", () => {
                 return {
                     ...testData
                 }
@@ -71,7 +71,7 @@ describe("shared", async () => {
         expect(router.match("/api/hello")).toBeFalsy()
         expect(router.match("/hello")).toBeFalsy()
         expect(router.match("/v1/hello")).toBeTruthy()
-        expect(router.match("/v1/api/add", "post")).toBeTruthy()
+        expect(router.match("/v1/add", "post")).toBeTruthy()
         expect(router.match("/v1/noallow")).toBeFalsy()
         expect(router.match("/v1/deny")).toBeFalsy()
     })

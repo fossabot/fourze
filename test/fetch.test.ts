@@ -9,8 +9,7 @@ describe("fetch", async () => {
         }
 
         const router = createMockRouter({
-            delay: "200-500",
-            allow: ["**.json"]
+            delay: "200-500"
         }).use(route => {
             route.get("http://www.test.com/hello", () => {
                 return {

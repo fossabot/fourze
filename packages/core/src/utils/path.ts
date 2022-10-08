@@ -26,6 +26,6 @@ export function isMatch(path: string, ...pattern: MaybeRegex[]) {
         if (r instanceof RegExp) {
             return r.test(path)
         }
-        return path.startsWith(r) || minimatch(path, r, { partial: true, matchBase: true })
+        return path.startsWith(r) || minimatch(path, r, { partial: true })
     })
 }

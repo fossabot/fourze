@@ -7,7 +7,19 @@ import { defineRoute, FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, 
 import { asyncLock, DelayMsType, isMatch, unique } from "./utils"
 
 export interface FourzeRouter extends FourzeMiddleware {
+    /**
+     * 根据url匹配路由
+     * @param url
+     * @param method
+     */
     match(url: string, method?: string): FourzeRoute | undefined
+
+    /**
+     *  是否允许,但不一定匹配
+     * @param url
+     */
+    isAllow(url: string): boolean
+
     release(): void
     setup(): MaybePromise<void>
     use(module: FourzeInstance): this
@@ -62,23 +74,11 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
 
     let _context: FourzeSetupContext
 
-    function isAllow(url: string) {
-        const { allow, deny } = options
-        let rs = true
-        if (allow?.length) {
-            rs = isMatch(url, ...allow)
-        }
-        if (deny?.length) {
-            rs &&= !isMatch(url, ...deny)
-        }
-        return rs
-    }
-
     const router = async function (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) {
         const { url } = request
 
-        if (isAllow(url)) {
-            await setupRouter()
+        if (router.isAllow(url)) {
+            await router.setup()
             for (const route of router.routes) {
                 const matches = route.match(url, request.method, options.base)
                 if (matches) {
@@ -137,8 +137,20 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
         }
     } as FourzeRouter
 
-    router.match = function (url: string, method?: string): FourzeRoute | undefined {
-        if (isAllow(url)) {
+    router.isAllow = function (url: string) {
+        const { allow, deny, base = "" } = options
+        let rs = url.startsWith(base)
+        if (allow?.length) {
+            rs = isMatch(url, ...allow)
+        }
+        if (deny?.length) {
+            rs &&= !isMatch(url, ...deny)
+        }
+        return rs
+    }
+
+    router.match = function (this: FourzeRouter, url: string, method?: string): FourzeRoute | undefined {
+        if (this.isAllow(url)) {
             return this.routes.find(e => e.match(url, method, options.base))
         }
     }
