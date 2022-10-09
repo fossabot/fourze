@@ -97,10 +97,6 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
 
     let _context: FourzeSetupContext
 
-    async function handleRoute(request: FourzeRequest, response: FourzeResponse) {
-        const { url } = request
-    }
-
     const router = async function (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) {
         const { url } = request
 
