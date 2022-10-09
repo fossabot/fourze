@@ -30,7 +30,7 @@ describe("hooks", async () => {
                     if (req.headers["token"]) {
                         req.meta.token = req.headers["token"].toString().toUpperCase()
                     }
-                    res.headers["token"] = data.token
+                    res.setHeader("token", data.token)
                 })
 
                 route.hook("/api/test", (req, res, next) => {

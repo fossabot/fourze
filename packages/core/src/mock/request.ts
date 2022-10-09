@@ -3,8 +3,7 @@ import http from "http"
 import https from "https"
 import { createLogger, FourzeLogger } from "../logger"
 import type { FourzeRouter } from "../router"
-import type { FourzeResponse } from "../shared"
-import { createRequestContext } from "../shared"
+import { createRequestContext, flatHeaders, FourzeResponse } from "../shared"
 import { isBuffer, isFunction, isString } from "../utils"
 
 type RequestCallback = (res: IncomingMessage) => void
@@ -50,7 +49,7 @@ export function setProxyNodeRequest(router: FourzeRouter) {
 
         constructor(res: FourzeResponse) {
             super()
-            this.headers = res.headers
+            this.headers = flatHeaders(res.getHeaders())
             this.method = res.method
             this.statusCode = res.statusCode
             this.data = res.result

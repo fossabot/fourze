@@ -1,7 +1,6 @@
 import { createLogger } from "../logger"
 import type { FourzeRouter } from "../router"
-import type { FourzeRequest, FourzeResponse } from "../shared"
-import { createRequestContext } from "../shared"
+import { createRequestContext, flatHeaders, FourzeRequest, FourzeResponse } from "../shared"
 export class PolyfillHeaders {
     #headers: Record<string, string> = {}
     constructor(init?: HeadersInit) {
@@ -19,25 +18,47 @@ export class PolyfillHeaders {
             }
         }
     }
+
     append(name: string, value: string): void {
         this.#headers[name] = value
     }
+
     delete(name: string): void {
         delete this.#headers[name]
     }
+
     get(name: string): string | null {
         return this.#headers[name] ?? null
     }
+
     has(name: string): boolean {
         return name in this.#headers
     }
+
     set(name: string, value: string): void {
         this.#headers[name] = value
     }
+
     forEach(callbackfn: (value: string, key: string, parent: Headers) => void, thisArg?: any): void {
         for (const key in this.#headers) {
             callbackfn(this.#headers[key], key, this)
         }
+    }
+
+    [Symbol.iterator](): IterableIterator<[string, string]> {
+        return Object.entries(this.#headers)[Symbol.iterator]()
+    }
+
+    entries(): IterableIterator<[string, string]> {
+        return Object.entries(this.#headers)[Symbol.iterator]()
+    }
+
+    keys(): IterableIterator<string> {
+        return Object.keys(this.#headers)[Symbol.iterator]()
+    }
+
+    values(): IterableIterator<string> {
+        return Object.values(this.#headers)[Symbol.iterator]()
     }
 }
 
@@ -68,7 +89,10 @@ class ProxyFetchResponse implements Response {
     constructor(request: FourzeRequest, response: FourzeResponse) {
         this.url = request.url!
         this.data = response.result
-        for (let [key, value] of Object.entries(response.headers)) {
+
+        const _headers = Object.entries(flatHeaders(response.getHeaders()))
+
+        for (let [key, value] of _headers) {
             if (Array.isArray(value)) {
                 value = value.join(",")
             }
@@ -142,17 +166,17 @@ export function setProxyFetch(router: FourzeRouter) {
 
         if (route) {
             logger.debug(`Found route by [${route.method ?? "GET"}] ${route.path}`)
-            const headers: Record<string, string[]> = {}
+            const headers: Record<string, string> = {}
             new PolyfillHeaders(init?.headers ?? {}).forEach((value, key) => {
                 if (headers[key]) {
-                    headers[key].push(value)
+                    headers[key] += `,${value}`
                 } else {
-                    headers[key] = [value]
+                    headers[key] = value
                 }
             })
 
-            if (headers["Use-Mock"]?.[0] !== "off") {
-                headers["X-Request-With"] = ["Fourze Fetch Proxy"]
+            if (headers["Use-Mock"] !== "off") {
+                headers["X-Request-With"] = "Fourze Fetch Proxy"
                 const { request, response } = createRequestContext({
                     url,
                     method,

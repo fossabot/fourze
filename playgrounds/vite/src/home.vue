@@ -14,6 +14,8 @@ export default defineComponent(() => {
 
     const now = useNow()
 
+    const serverDelay = ref(0)
+
     const time = computed(() => {
         if (endTime.value === 0) {
             if (startTime.value == 0) {
@@ -37,7 +39,10 @@ export default defineComponent(() => {
     async function fetchClick() {
         start()
         await fetch(`/api/search/${Math.floor(Math.random() * 9)}`, { method: "post", body: JSON.stringify({ phone: 2 }) })
-            .then(r => r.json())
+            .then(r => {
+                serverDelay.value = Number(r.headers.get("Fourze-Delay"))
+                return r.json()
+            })
             .then(r => r.data)
             .then(r => {
                 list.value = Array.isArray(r) ? r : Object.entries(r)
@@ -50,6 +55,7 @@ export default defineComponent(() => {
         await axios
             .post<ResponseData>(`/api/search/${Math.floor(Math.random() * 9)}`, { phone: 2 })
             .then(r => {
+                serverDelay.value = Number(r.headers["fourze-delay"])
                 return r.data.data
             })
             .then(r => (list.value = Array.isArray(r) ? r : Object.entries(r)))
@@ -64,10 +70,14 @@ export default defineComponent(() => {
             data: JSON.stringify({ phone: 2 }),
             dataType: "json",
             contentType: "application/json",
+
             success(r) {
                 r = r.data
                 list.value = Array.isArray(r) ? r : Object.entries(r)
                 end()
+            },
+            complete(r) {
+                serverDelay.value = Number(r.getResponseHeader("Fourze-Delay"))
             },
             error(r) {
                 console.error(r)
@@ -85,6 +95,10 @@ export default defineComponent(() => {
             </div>
 
             <div v-show={time.value > 0} class="text-lg text-light-blue-400">loading time:{time.value}ms</div>
+            <div v-show={serverDelay.value > 0} class="text-lg text-light-blue-400">server delay:{serverDelay.value}ms</div>
+            <div v-show={time.value - serverDelay.value > 0} class="text-lg text-light-blue-400">response time:{time.value - serverDelay.value}ms</div>
+
+
             <div v-show={endTime.value > 0}>
                 {list.value.map(item => (
                     <div key={item}>{item}</div>

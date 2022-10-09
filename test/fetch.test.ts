@@ -14,6 +14,11 @@ describe("fetch", async () => {
         const router = createMockRouter({
             delay: "200-500"
         }).use(route => {
+            route.hook((req, res) => {
+                res.setHeader("x-test", "abcd")
+                res.appendHeader("x-test", "test")
+            })
+
             route.get("http://www.test.com/hello", () => {
                 return {
                     ...testData
@@ -28,6 +33,11 @@ describe("fetch", async () => {
 
         server.use(
             createRouter().use(route => {
+                route.hook((req, res) => {
+                    res.setHeader("x-test", "abcd")
+                    res.appendHeader("x-test", "test")
+                })
+
                 route.get("/hello", () => {
                     return {
                         ...testData
@@ -40,12 +50,34 @@ describe("fetch", async () => {
 
         await router.setup()
 
-        const fetchReturn = await fetch("http://www.test.com/hello.json").then(r => r.json())
-        const axiosReturn = await axios.get("http://www.test.com/hello.json").then(r => r.data)
-        const originalReturn = await axios.get("http://localhost:7609/hello.json").then(r => r.data)
+        const fetchReturn = await fetch("http://www.test.com/hello.json")
 
-        expect(fetchReturn).toEqual(testData)
-        expect(axiosReturn).toEqual(testData)
-        expect(originalReturn).toEqual(testData)
+        const fetchReturnHeaders = fetchReturn.headers.get("x-test")
+
+        expect(fetchReturnHeaders).include("test")
+
+        const fetchReturnData = await fetchReturn.json()
+
+        expect(fetchReturnData).toEqual(testData)
+
+        const axiosReturn = await axios.get("http://www.test.com/hello.json")
+
+        const axiosReturnHeaders = axiosReturn.headers["x-test"]
+
+        expect(axiosReturnHeaders).include("test")
+
+        const axiosReturnData = axiosReturn.data
+
+        expect(axiosReturnData).toEqual(testData)
+
+        const originalReturn = await axios.get("http://localhost:7609/hello.json")
+
+        const originalReturnHeaders = originalReturn.headers["x-test"]
+
+        expect(originalReturnHeaders).include("test")
+
+        const originalReturnData = originalReturn.data
+
+        expect(originalReturnData).toEqual(testData)
     })
 })

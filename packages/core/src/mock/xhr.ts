@@ -1,6 +1,6 @@
 import { createLogger } from "../logger"
 import { FourzeRouter } from "../router"
-import { createRequestContext, FourzeRequest, FourzeResponse, FourzeRoute } from "../shared"
+import { createRequestContext, flatHeaders, FourzeRequest, FourzeResponse, FourzeRoute } from "../shared"
 import { HTTP_STATUS_CODES } from "./code"
 
 const XHR_EVENTS = "readystatechange loadstart progress abort error load timeout loadend".split(" ")
@@ -90,7 +90,7 @@ export function setProxyXHR(router: FourzeRouter) {
             if (!!this.$base) {
                 return this.$base.getAllResponseHeaders()
             }
-            // 拦截 XHR
+
             return Object.entries(this.responseHeaders)
                 .map(([key, value]) => `${key}: ${value}`)
                 .join("\r\n")
@@ -204,6 +204,12 @@ export function setProxyXHR(router: FourzeRouter) {
 
             this.responseText = this.$response.result
 
+            const headers = flatHeaders(this.$response.getHeaders())
+
+            for (let [key, value] of Object.entries(headers)) {
+                this.responseHeaders[key] = value
+            }
+
             this.readyState = this.DONE
 
             this.dispatchEvent(new Event("readystatechange"))
@@ -227,6 +233,7 @@ export function setProxyXHR(router: FourzeRouter) {
             if (!!this.$base) {
                 return this.$base.getResponseHeader(name)
             }
+
             return this.responseHeaders[name]
         }
 
