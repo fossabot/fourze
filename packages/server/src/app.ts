@@ -1,4 +1,4 @@
-import { CommonMiddleware, createLogger, createRequest, createResponse, FourzeLogger, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FOURZE_VERSION } from "@fourze/core"
+import { CommonMiddleware, createLogger, createRequestContext, FourzeLogger, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FOURZE_VERSION } from "@fourze/core"
 import EventEmitter from "events"
 import type { IncomingMessage, OutgoingMessage, Server } from "http"
 import http from "http"
@@ -57,18 +57,16 @@ export function createServerContext(req: IncomingMessage, res: OutgoingMessage):
         })
 
         req.on("end", () => {
-            const request = createRequest({
-                ...(req as FourzeRequest),
+            const context = createRequestContext({
+                url: req.url!,
+                method: req.method ?? "GET",
                 headers: req.headers,
                 body,
-                query: {},
-                params: {},
-                data: {}
+                request: req,
+                response: res
             })
 
-            const response = createResponse(res as FourzeResponse)
-
-            resolve({ request, response })
+            resolve(context)
         })
 
         req.on("error", reject)

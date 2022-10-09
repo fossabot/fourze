@@ -157,7 +157,6 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
                         return response.result
                     }
 
-                    response.method = request.method
                     response.result = await handle()
                     response.matched = true
                     break

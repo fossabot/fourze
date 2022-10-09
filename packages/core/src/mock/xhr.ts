@@ -1,7 +1,6 @@
 import { createLogger } from "../logger"
 import { FourzeRouter } from "../router"
-import type { FourzeRequest, FourzeRoute } from "../shared"
-import { createRequest, createResponse } from "../shared"
+import { createRequestContext, FourzeRequest, FourzeResponse, FourzeRoute } from "../shared"
 import { HTTP_STATUS_CODES } from "./code"
 
 type XHR_RESPONSE_PROPERTY = "readyState" | "responseURL" | "status" | "statusText" | "responseType" | "response" | "responseText" | "responseXML"
@@ -40,7 +39,8 @@ export function setProxyXHR(router: FourzeRouter) {
             return router.routes
         }
 
-        request!: FourzeRequest
+        $request!: FourzeRequest
+        $response!: FourzeResponse
 
         constructor() {
             this.requestHeaders = {}
@@ -163,11 +163,15 @@ export function setProxyXHR(router: FourzeRouter) {
             this.$base.open(method, url, async, username, password)
 
             logger.info("mock url ->", url)
-            this.request = createRequest({
+
+            const { request, response } = createRequestContext({
                 url: url.toString(),
-                method,
+                method: method,
                 headers: this.requestHeaders
             })
+
+            this.$request = request
+            this.$response = response
 
             this.readyState = READY_STATES.OPENED
 
@@ -175,14 +179,12 @@ export function setProxyXHR(router: FourzeRouter) {
         }
 
         async send(data?: Document | XMLHttpRequestBodyInit | null | undefined) {
-            this.request.body = (typeof data === "string" ? JSON.parse(data) : data) ?? this.request.body ?? {}
-
-            const response = createResponse()
+            this.$request.body = (typeof data === "string" ? JSON.parse(data) : data) ?? this.$request.body ?? {}
 
             await router.setup()
 
-            const url = this.request.url
-            const method = this.request.method
+            const url = this.$request.url
+            const method = this.$request.method
 
             const route = router.match(url, method)
 
@@ -213,11 +215,11 @@ export function setProxyXHR(router: FourzeRouter) {
             this.status = 200
             this.statusText = HTTP_STATUS_CODES[200]
 
-            await router(this.request, response)
+            await router(this.$request, this.$response)
 
-            this.response = response.result
+            this.response = this.$response.result
 
-            this.responseText = response.result
+            this.responseText = this.$response.result
 
             this.readyState = READY_STATES.DONE
 

@@ -82,14 +82,15 @@ export default defineComponent(() => {
                 <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60" onClick={fetchClick}>Fetch</button>
                 <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60" onClick={axiosClick}>Axios</button>
                 <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60" onClick={jqueryClick}>JQuery</button>
-                <div v-show={time.value > 0}>time:{time.value}ms</div>
             </div>
 
+            <div v-show={time.value > 0} class="text-lg text-light-blue-400">loading time:{time.value}ms</div>
             <div v-show={endTime.value > 0}>
                 {list.value.map(item => (
                     <div key={item}>{item}</div>
                 ))}
             </div>
+
         </div>
     )
 })

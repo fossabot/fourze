@@ -21,3 +21,15 @@ export function isBuffer(value: unknown): value is Buffer {
 export function isURL(value: unknown): value is URL {
     return globalThis.URL && value instanceof URL
 }
+
+export function isUndefined(value: unknown): value is undefined {
+    return typeof value === "undefined"
+}
+
+export function isNull(value: unknown): value is null {
+    return isUndefined(value) || value === null
+}
+
+export function isFalsy(value: unknown): value is false {
+    return !value
+}

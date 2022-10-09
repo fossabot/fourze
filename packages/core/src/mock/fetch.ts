@@ -1,7 +1,7 @@
 import { createLogger } from "../logger"
-import { FourzeRouter } from "../router"
-import { createRequest, createResponse, FourzeRequest, FourzeResponse } from "../shared"
-
+import type { FourzeRouter } from "../router"
+import type { FourzeRequest, FourzeResponse } from "../shared"
+import { createRequestContext } from "../shared"
 export class PolyfillHeaders {
     #headers: Record<string, string> = {}
     constructor(init?: HeadersInit) {
@@ -153,8 +153,12 @@ export function setProxyFetch(router: FourzeRouter) {
 
             if (headers["Use-Mock"]?.[0] !== "off") {
                 headers["X-Request-With"] = ["Fourze Fetch Proxy"]
-                const request = createRequest({ url, method, body, headers })
-                const response = createResponse()
+                const { request, response } = createRequestContext({
+                    url,
+                    method,
+                    body,
+                    headers
+                })
                 await router(request, response)
                 return new ProxyFetchResponse(request, response)
             }

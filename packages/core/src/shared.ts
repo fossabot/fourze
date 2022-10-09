@@ -2,7 +2,7 @@ import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
 import type { MaybePromise } from "maybe-types"
 
 import { version } from "../package.json"
-import { parseFormdata, resolvePath } from "./utils"
+import { isNull, parseFormdata, resolvePath } from "./utils"
 
 export const FOURZE_VERSION = version
 
@@ -32,17 +32,29 @@ export interface FourzeRequest extends IncomingMessage {
 }
 
 export interface FourzeBaseResponse extends ServerResponse {
-    result: any
+    result?: any
     method?: string
-    headers: Record<string, string | string[] | undefined>
+    headers: Record<string, string>
     matched?: boolean
 }
 export interface FourzeResponse extends FourzeBaseResponse {
     json(data?: any): void
+
     image(data?: any): void
+
     text(data?: string): void
+
     binary(data?: any): void
+
     redirect(url: string): void
+
+    appendHeader(key: string, value: string | string[]): void
+
+    removeHeader(key: string): void
+
+    removeHeader(key: string, value: string | number): void
+
+    headers: Record<string, string>
 
     readonly [FOURZE_RESPONSE_SYMBOL]: true
 }
@@ -203,33 +215,72 @@ export interface FourzeSetupContext {
     origin: string
 }
 
-export function createResponse(res?: FourzeBaseResponse) {
-    const response = (res ?? {
+export interface FourzeResponseOptions {
+    url: string
+    method: string
+    response?: OutgoingMessage
+}
+
+export function createResponse(options: FourzeResponseOptions) {
+    const response = (options?.response ?? {
         headers: {},
         writableEnded: false,
         matched: false,
         statusCode: 200,
-        setHeader(name: string, value: string) {
-            if (this.hasHeader(name)) {
-                this.headers[name] += `,${value}`
-            } else {
-                this.headers[name] = value
+        setHeader(name: string, value: string | string[] | number) {
+            if (Array.isArray(value)) {
+                value = value.join(",")
             }
+            this.headers[name] = String(value)
         },
         getHeader(name: string) {
-            return this.headers[name]
+            const value = this.headers[name]
+            return Array.isArray(value) ? value.join(",") : String(value)
         },
         getHeaderNames() {
             return Object.keys(this.headers)
         },
-        hasHeader(name) {
+        hasHeader(name: string, value?: string | number) {
+            if (value) {
+                const v = this.headers[name]
+                const arr = Array.isArray(v) ? v : v?.split(",") ?? []
+                return arr.includes(String(value))
+            }
             return !!this.headers[name]
         },
+        getHeaders() {
+            return this.headers
+        },
+
         end(data: any) {
             this.result = data
             this.statusCode = 200
         }
     }) as FourzeResponse
+
+    response.headers = handleHeader(response.getHeaders())
+
+    response.removeHeader = function (name: string, value?: string | number) {
+        if (isNull(value)) {
+            delete this.headers[name]
+        } else {
+            const values = this.headers[name]
+            const arr = Array.isArray(values) ? values : values?.split(",") ?? []
+            const index = arr.indexOf(String(value))
+            if (index > -1) {
+                arr.splice(index, 1)
+            }
+            this.setHeader(name, arr)
+        }
+    }
+
+    response.appendHeader = function (name: string, value: string) {
+        if (this.hasHeader(name)) {
+            this.headers[name] += `,${value}`
+        } else {
+            this.headers[name] = value
+        }
+    }
 
     response.json = function (data: any) {
         data = typeof data == "string" ? data : JSON.stringify(data)
@@ -260,27 +311,68 @@ export function createResponse(res?: FourzeBaseResponse) {
 
     response.setHeader("X-Powered-By", `Fourze Server/v${FOURZE_VERSION}`)
 
-    Object.defineProperty(response, FOURZE_RESPONSE_SYMBOL, {
-        get() {
-            return true
+    Object.defineProperties(response, {
+        [FOURZE_RESPONSE_SYMBOL]: {
+            get() {
+                return true
+            }
+        },
+        url: {
+            get() {
+                return options.url
+            }
+        },
+        method: {
+            get() {
+                return options.method
+            }
         }
     })
 
     return response
 }
 
-function handleHeader(headers: Record<string, string | string[] | undefined> = {}) {
-    const result: Record<string, string | undefined> = {}
+function handleHeader(headers: Record<string, string | string[] | number | undefined> = {}) {
+    const result: Record<string, string> = {}
     for (let key in headers) {
         const value = headers[key]
         const k = key.toLowerCase()
         if (Array.isArray(value)) {
             result[k] = value.join(",")
         } else if (value) {
-            result[k] = value
+            result[k] = String(value)
         }
     }
     return result
+}
+
+export interface FourzeRequestContextOptions {
+    url: string
+    method?: string
+    headers?: Record<string, string | string[] | number | undefined>
+    body?: any
+    request?: IncomingMessage
+    response?: OutgoingMessage
+}
+
+export function createRequestContext(options: FourzeRequestContextOptions) {
+    const { url, method = "GET", headers = {}, body } = options
+    const request = createRequest({
+        ...(options.request as Partial<FourzeRequest>),
+        url,
+        method,
+        headers: handleHeader(headers),
+        body
+    })
+    const response = createResponse({
+        url,
+        method,
+        response: options.response
+    })
+    return {
+        request,
+        response
+    }
 }
 
 export function createRequest(options: Partial<FourzeRequest>) {
