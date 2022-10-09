@@ -3,20 +3,7 @@ import { FourzeRouter } from "../router"
 import { createRequestContext, FourzeRequest, FourzeResponse, FourzeRoute } from "../shared"
 import { HTTP_STATUS_CODES } from "./code"
 
-type XHR_RESPONSE_PROPERTY = "readyState" | "responseURL" | "status" | "statusText" | "responseType" | "response" | "responseText" | "responseXML"
-type XHR_REQUEST_PROPERTY = "timeout" | "withCredentitals"
-
 const XHR_EVENTS = "readystatechange loadstart progress abort error load timeout loadend".split(" ")
-const XHR_REQUEST_PROPERTIES: XHR_REQUEST_PROPERTY[] = ["timeout", "withCredentitals"]
-const XHR_RESPONSE_PROPERTIES: XHR_RESPONSE_PROPERTY[] = ["readyState", "response", "responseText", "responseType", "responseURL", "responseXML", "status", "statusText"]
-
-const READY_STATES = {
-    UNSENT: 0,
-    OPENED: 1,
-    HEADERS_RECEIVED: 2,
-    LOADING: 3,
-    DONE: 4
-}
 
 export function setProxyXHR(router: FourzeRouter) {
     const OriginalXmlHttpRequest = globalThis.XMLHttpRequest
@@ -29,11 +16,11 @@ export function setProxyXHR(router: FourzeRouter) {
         $base: XMLHttpRequest | null = null
         $route: FourzeRoute | undefined
 
-        readonly DONE: number = 4
+        readonly UNSENT: number = 0
+        readonly OPENED: number = 1
         readonly HEADERS_RECEIVED: number = 2
         readonly LOADING: number = 3
-        readonly OPENED: number = 1
-        readonly UNSENT: number = 0
+        readonly DONE: number = 4
 
         get $routes() {
             return router.routes
@@ -54,7 +41,7 @@ export function setProxyXHR(router: FourzeRouter) {
 
             this.upload = null
 
-            this.readyState = READY_STATES.UNSENT
+            this.readyState = this.UNSENT
 
             this.async = true
 
@@ -139,18 +126,14 @@ export function setProxyXHR(router: FourzeRouter) {
         open(method: string, url: URL | string, async: boolean = true, username?: string, password?: string) {
             const handle = (event: Event) => {
                 if (this.$base) {
-                    this.onload = this.$base.onload
-                    this.onerror = this.$base.onerror
-                    this.onabort = this.$base.onabort
-                    this.ontimeout = this.$base.ontimeout
-                    this.onprogress = this.$base.onprogress
-                    this.onloadstart = this.$base.onloadstart
-                    this.onloadend = this.$base.onloadend
-                    this.onreadystatechange = this.$base.onreadystatechange
-                    this.withCredentials = this.$base.withCredentials
-                    this.timeout = this.$base.timeout
                     this.responseType = this.$base.responseType
-                    this.upload = this.$base.upload
+                    this.response = this.$base.response
+                    this.responseText = this.$base.responseText
+                    this.responseXML = this.$base.responseXML
+                    this.responseURL = this.$base.responseURL
+                    this.status = this.$base.status
+                    this.statusText = this.$base.statusText
+                    this.readyState = this.$base.readyState
                 }
 
                 this.dispatchEvent(new Event(event.type))
@@ -173,7 +156,7 @@ export function setProxyXHR(router: FourzeRouter) {
             this.$request = request
             this.$response = response
 
-            this.readyState = READY_STATES.OPENED
+            this.readyState = this.OPENED
 
             this.dispatchEvent(new Event("readystatechange"))
         }
@@ -208,9 +191,9 @@ export function setProxyXHR(router: FourzeRouter) {
             this.setRequestHeader("Host", location.host)
             this.dispatchEvent(new Event("loadstart"))
 
-            this.readyState = READY_STATES.HEADERS_RECEIVED
+            this.readyState = this.HEADERS_RECEIVED
             this.dispatchEvent(new Event("readystatechange"))
-            this.readyState = READY_STATES.LOADING
+            this.readyState = this.LOADING
             this.dispatchEvent(new ProgressEvent("readystatechange"))
             this.status = 200
             this.statusText = HTTP_STATUS_CODES[200]
@@ -221,7 +204,7 @@ export function setProxyXHR(router: FourzeRouter) {
 
             this.responseText = this.$response.result
 
-            this.readyState = READY_STATES.DONE
+            this.readyState = this.DONE
 
             this.dispatchEvent(new Event("readystatechange"))
 
@@ -235,7 +218,7 @@ export function setProxyXHR(router: FourzeRouter) {
                 return
             }
 
-            this.readyState = READY_STATES.UNSENT
+            this.readyState = this.UNSENT
             this.dispatchEvent(new Event("abort"))
             this.dispatchEvent(new Event("error"))
         }
