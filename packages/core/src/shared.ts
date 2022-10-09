@@ -394,6 +394,7 @@ export function createRequest(options: Partial<FourzeRequest>) {
         body: {},
         params: {},
         data: {},
+        meta: {},
         ...options,
         headers,
         get [FOURZE_REQUEST_SYMBOL]() {

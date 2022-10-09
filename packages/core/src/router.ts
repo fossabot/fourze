@@ -97,12 +97,11 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
 
     let _context: FourzeSetupContext
 
-    const router = async function (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) {
+    async function handleRoute(request: FourzeRequest, response: FourzeResponse) {
         const { url } = request
-
-        if (router.isAllow(url)) {
-            await router.setup()
-            for (const route of router.routes) {
+        const route = router.match(url, request.method)
+        if (route) {
+            {
                 const matches = route.match(url, request.method, options.base)
                 if (matches) {
                     const params: Record<string, any> = {}
@@ -127,41 +126,51 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
                         ...request.params
                     }
 
-                    request.meta = route.meta ?? {}
-
-                    const activeHooks = router.hooks.filter(e => !e.base || route.finalPath.startsWith(e.base))
-
-                    const handle = async function (): Promise<any> {
-                        let nexted = false
-                        const next = async (res = true) => {
-                            nexted = true
-                            if (res) {
-                                response.result = handle() ?? response.result
-                            }
-                            return response.result
-                        }
-
-                        const hook = activeHooks.shift()
-
-                        if (hook) {
-                            const hookReturn = await hook.handle(request, response, next)
-
-                            if (!nexted && (!hookReturn || hookReturn === false)) {
-                                response.result = await next()
-                            } else {
-                                response.result = hookReturn ?? response.result
-                            }
-                        } else {
-                            response.result = (await route.handle(request, response)) ?? response.result
-                        }
-                        return response.result
+                    request.meta = {
+                        ...request.meta,
+                        ...route.meta
                     }
 
-                    response.result = await handle()
+                    response.result = (await route.handle(request, response)) ?? response.result
                     response.matched = true
-                    break
                 }
             }
+        }
+    }
+
+    const router = async function (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) {
+        const { url } = request
+
+        if (router.isAllow(url)) {
+            await router.setup()
+            const activeHooks = router.hooks.filter(e => !e.base || url.startsWith(e.base))
+
+            async function handle(): Promise<any> {
+                let nexted = false
+                const next = async (res = true) => {
+                    nexted = true
+                    if (res) {
+                        response.result = handle() ?? response.result
+                    }
+                    return response.result
+                }
+
+                const hook = activeHooks.shift()
+
+                if (hook) {
+                    const hookReturn = await hook.handle(request, response, next)
+
+                    if (!nexted && (!hookReturn || hookReturn === false)) {
+                        response.result = await next()
+                    } else {
+                        response.result = hookReturn ?? response.result
+                    }
+                } else {
+                    await handleRoute(request, response)
+                }
+            }
+
+            await handle()
         }
 
         if (response.matched) {
