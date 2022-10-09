@@ -9,7 +9,7 @@ const keymap = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 export default defineFourze(fourze => {
     const cache: Record<string, any> = {}
 
-    fourze.use(async (req, res, next) => {
+    fourze.hook(async (req, res, next) => {
         if (cache[req.url]) {
             res.result = cache[req.url]
             console.log("hit cache", req.url)
@@ -18,7 +18,7 @@ export default defineFourze(fourze => {
             cache[req.url] = res.result
             req.meta.cache = cache
         }
-        res.result = successResponseWrap(res.result, req.route.path)
+        return successResponseWrap(res.result, req.route.path)
     })
 
     const handleSearch: FourzeHandle = async (req, res) => {

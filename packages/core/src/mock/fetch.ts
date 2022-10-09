@@ -1,8 +1,6 @@
-import { Logger } from "../logger"
+import { createLogger } from "../logger"
 import { FourzeRouter } from "../router"
 import { createRequest, createResponse, FourzeRequest, FourzeResponse } from "../shared"
-
-const originalFetch = globalThis.fetch
 
 export class PolyfillHeaders {
     #headers: Record<string, string> = {}
@@ -114,7 +112,13 @@ class ProxyFetchResponse implements Response {
 }
 
 export function setProxyFetch(router: FourzeRouter) {
-    const logger = new Logger("@fourze/mock")
+    const logger = createLogger("@fourze/mock")
+    const originalFetch = globalThis.fetch
+
+    if (!originalFetch) {
+        logger.warn("globalThis.fetch is not defined")
+    }
+
     if (!globalThis.Headers) {
         globalThis.Headers = PolyfillHeaders
     }
@@ -137,7 +141,7 @@ export function setProxyFetch(router: FourzeRouter) {
         const route = router.match(url, method)
 
         if (route) {
-            logger.info(`Found route by [${route.method ?? "ALL"}] ${route.path}`)
+            logger.debug(`Found route by [${route.method ?? "GET"}] ${route.path}`)
             const headers: Record<string, string[]> = {}
             new PolyfillHeaders(init?.headers ?? {}).forEach((value, key) => {
                 if (headers[key]) {
@@ -155,7 +159,7 @@ export function setProxyFetch(router: FourzeRouter) {
                 return new ProxyFetchResponse(request, response)
             }
         }
-        logger.info("Not found route, fallback to original fetch", method, url)
+        logger.warn(`Not found route, fallback to original -> [${method ?? "GET"}] ${url}`)
         return originalFetch(input, init)
     }
     return globalThis.fetch

@@ -2,7 +2,7 @@ import { MaybeAsyncFunction, MaybePromise, MaybeRegex } from "maybe-types"
 import { parseUrl } from "query-string"
 import { defineFourze, Fourze, FourzeSetup, isFourze } from "./app"
 import { delayHook } from "./hooks"
-import { Logger } from "./logger"
+import { createLogger } from "./logger"
 import { defineRoute, FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute, FourzeSetupContext } from "./shared"
 import { asyncLock, DelayMsType, isMatch, relativePath, unique } from "./utils"
 
@@ -93,7 +93,7 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
 
     const hooks = new Set<FourzeHook>()
 
-    const logger = new Logger("@fourze/core")
+    const logger = createLogger("@fourze/core")
 
     let _context: FourzeSetupContext
 
@@ -131,11 +131,6 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
 
                     const activeHooks = router.hooks.filter(e => !e.base || route.finalPath.startsWith(e.base))
 
-                    console.log(
-                        "activeHooks",
-                        activeHooks.map(r => r.base)
-                    )
-
                     const handle = async function (): Promise<any> {
                         let nexted = false
                         const next = async (res = true) => {
@@ -162,6 +157,7 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
                         return response.result
                     }
 
+                    response.method = request.method
                     response.result = await handle()
                     response.matched = true
                     break

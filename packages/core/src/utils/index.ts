@@ -1,6 +1,7 @@
 export * from "./array"
 export * from "./common"
 export * from "./faker"
+export * from "./is-type"
 export * from "./overload"
 export * from "./parse"
 export * from "./path"

@@ -33,6 +33,7 @@ export interface FourzeRequest extends IncomingMessage {
 
 export interface FourzeBaseResponse extends ServerResponse {
     result: any
+    method?: string
     headers: Record<string, string | string[] | undefined>
     matched?: boolean
 }
@@ -207,6 +208,7 @@ export function createResponse(res?: FourzeBaseResponse) {
         headers: {},
         writableEnded: false,
         matched: false,
+        statusCode: 200,
         setHeader(name: string, value: string) {
             if (this.hasHeader(name)) {
                 this.headers[name] += `,${value}`
@@ -225,6 +227,7 @@ export function createResponse(res?: FourzeBaseResponse) {
         },
         end(data: any) {
             this.result = data
+            this.statusCode = 200
         }
     }) as FourzeResponse
 

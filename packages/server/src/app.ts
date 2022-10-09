@@ -1,4 +1,4 @@
-import { CommonMiddleware, createRequest, createResponse, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FOURZE_VERSION, Logger } from "@fourze/core"
+import { CommonMiddleware, createLogger, createRequest, createResponse, FourzeLogger, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FOURZE_VERSION } from "@fourze/core"
 import EventEmitter from "events"
 import type { IncomingMessage, OutgoingMessage, Server } from "http"
 import http from "http"
@@ -10,7 +10,7 @@ export interface FourzeServerOptions {
     port?: number
     server?: Server
     protocol?: "http" | "https"
-    logger?: Logger
+    logger?: FourzeLogger
 }
 
 export interface FourzeServer extends EventEmitter {
@@ -130,7 +130,7 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
 
     let _protocol = options.protocol ?? "http"
 
-    const logger = options.logger ?? new Logger("@fourze/server")
+    const logger = options.logger ?? createLogger("@fourze/server")
 
     const middlewareMap = new Map<string, FourzeMiddleware[]>()
 

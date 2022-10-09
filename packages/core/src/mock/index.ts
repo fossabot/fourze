@@ -1,4 +1,4 @@
-import { Logger } from "../logger"
+import { createLogger } from "../logger"
 import { createRouter, FourzeRouter, FourzeRouterOptions } from "../router"
 import { setProxyFetch } from "./fetch"
 import { setProxyNodeRequest } from "./request"
@@ -19,7 +19,7 @@ export interface FourzeMockRouterOptions extends FourzeRouterOptions {
 export interface FourzeMockRouter extends FourzeRouter {}
 
 export function createMockRouter(options: FourzeMockRouterOptions = {}): FourzeMockRouter {
-    const logger = new Logger("@fourze/mock")
+    const logger = createLogger("@fourze/mock")
 
     const instance = createRouter(options) as FourzeMockRouter
 

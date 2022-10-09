@@ -1,6 +1,7 @@
 import fourze from "@fourze/vite"
 import vue from "@vitejs/plugin-vue"
 import jsx from "@vitejs/plugin-vue-jsx"
+import visualizer from "rollup-plugin-visualizer"
 import { defineConfig } from "vite"
 import windicss from "vite-plugin-windicss"
 
@@ -22,6 +23,11 @@ export default defineConfig({
             hmr: true,
             delay: "200-500",
             logLevel: "info"
+        }),
+        visualizer({
+            open: false,
+            gzipSize: true,
+            brotliSize: true
         })
     ]
 })

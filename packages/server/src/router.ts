@@ -1,4 +1,4 @@
-import { createRouter, defineFourze, DelayMsType, Fourze, FourzeBaseHook, FourzeBaseRoute, FourzeRoute, FourzeRouter, isFourze, isRoute, Logger } from "@fourze/core"
+import { createLogger, createRouter, defineFourze, DelayMsType, Fourze, FourzeBaseHook, FourzeBaseRoute, FourzeRoute, FourzeRouter, isFourze, isRoute } from "@fourze/core"
 import type { FSWatcher } from "chokidar"
 import fs from "fs"
 import { join, resolve } from "path"
@@ -82,7 +82,7 @@ export function createHotRouter(options: FourzeHotRouterOptions = {}): FourzeHot
 
     const modules: Fourze[] = Array.from(options.modules ?? [])
 
-    const logger = new Logger("@fourze/router")
+    const logger = createLogger("@fourze/server")
 
     const extraModuleMap = new Map<string, Fourze[]>()
 

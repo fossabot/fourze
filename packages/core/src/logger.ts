@@ -11,22 +11,6 @@ export const LOGGER_LEVELS = {
     OFF: Number.MAX_VALUE
 }
 
-export interface Logger {
-    setLevel(level: number | string): void
-    // info
-    info(...args: any[]): void
-    // debug
-    debug(...args: any[]): void
-    // warn
-    warn(...args: any[]): void
-    // error
-    error(...args: any[]): void
-    // fatal
-    fatal(...args: any[]): void
-    // trace
-    trace(...args: any[]): void
-}
-
 export interface FourzeLogger extends Logger {
     level: number
 }
@@ -35,7 +19,30 @@ function now() {
     return dayjs().format("YYYY-MM-DD HH:mm:ss")
 }
 
-export class Logger {
+const loggerStore = new Map<string, FourzeLogger>()
+
+export function createLogger(scope: string) {
+    if (!loggerStore.has(scope)) {
+        const logger = new Logger(scope)
+        loggerStore.set(scope, logger)
+    }
+    return loggerStore.get(scope)!
+}
+
+export function setLoggerLevel(level: number | string, scope?: string) {
+    if (!scope) {
+        loggerStore.forEach(logger => {
+            logger.setLevel(level)
+        })
+    } else {
+        const logger = loggerStore.get(scope)
+        if (logger) {
+            logger.setLevel(level)
+        }
+    }
+}
+
+class Logger {
     level: number = LOGGER_LEVELS.INFO
 
     readonly scope: string

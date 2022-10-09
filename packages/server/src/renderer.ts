@@ -1,4 +1,4 @@
-import { defineFourzeComponent, FourzeComponent, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, isFourzeComponent, Logger } from "@fourze/core"
+import { createLogger, defineFourzeComponent, FourzeComponent, FourzeLogger, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, isFourzeComponent } from "@fourze/core"
 import { createHash } from "crypto"
 import { build } from "esbuild"
 import fs from "fs"
@@ -42,7 +42,7 @@ export interface FourzeRendererContext {
      */
     dir: string
 
-    logger: Logger
+    logger: FourzeLogger
 }
 
 export function renderFile(request: FourzeRequest, response: FourzeResponse, context: FourzeRendererContext) {
@@ -112,7 +112,7 @@ export function createRenderer(options: FourzeRendererOptions | string = {}): Fo
     const _fallbacks = (options && typeof options == "object" ? options.fallbacks : []) ?? []
     const fallbacks = Array.isArray(_fallbacks) ? _fallbacks.map(f => [f, f]) : Object.entries(_fallbacks)
 
-    const logger = new Logger("@fourze/renderer")
+    const logger = createLogger("@fourze/renderer")
 
     async function render(request: FourzeRequest, response: FourzeResponse, context: FourzeRendererContext) {
         for (let template of templates) {

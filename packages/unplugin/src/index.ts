@@ -1,4 +1,4 @@
-import { DelayMsType, FourzeMockRouterOptions, Logger } from "@fourze/core"
+import { createLogger, DelayMsType, FourzeMockRouterOptions } from "@fourze/core"
 import { createUnplugin } from "unplugin"
 
 import { createFourzeServer, createHotRouter, FourzeHotRouter, FourzeProxyOption } from "@fourze/server"
@@ -83,7 +83,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
     const hmr = options.hmr ?? true
     const injectScript = options.injectScript ?? true
 
-    const logger = new Logger("@fourze/vite")
+    const logger = createLogger("@fourze/vite")
 
     logger.setLevel(options.logLevel ?? "off")
 
