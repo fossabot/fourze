@@ -43,6 +43,7 @@
         "husky": "^8.0.1",
         "lint-staged": "^13.0.3",
         "maybe-types": "^0.0.3",
+        "node-fetch": "^3.2.10",
         "prettier": "^2.7.1",
         "rimraf": "^3.0.2",
         "typescript": "^4.8.4",

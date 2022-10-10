@@ -1,5 +1,5 @@
 import { createLogger } from "../logger"
-import { flatHeaders, PolyfillHeaders } from "../polyfill/header"
+import { flatHeaders, getHeaderValue, PolyfillHeaders } from "../polyfill/header"
 import type { FourzeRouter } from "../router"
 import { createRequestContext, FourzeResponse } from "../shared"
 import { isString, isURL } from "../utils"
@@ -78,7 +78,6 @@ export function setProxyFetch(router: FourzeRouter) {
     }
 
     globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-        await router.setup()
         let url: string
         let method: string = "GET"
         let body: any
@@ -92,13 +91,16 @@ export function setProxyFetch(router: FourzeRouter) {
             body = input.body ?? init?.body ?? {}
         }
 
-        const route = router.match(url, method)
+        const headers = flatHeaders(init?.headers)
+        const useMock = getHeaderValue(headers, "X-Fourze-Mock")
 
-        if (route) {
-            logger.debug(`Found route by [${route.method ?? "GET"}] ${route.path}`)
-            const headers: Record<string, string> = flatHeaders(init?.headers)
+        async function mockRequest() {
+            await router.setup()
 
-            if (headers["Use-Mock"] !== "off") {
+            const route = router.match(url, method)
+
+            if (route) {
+                logger.debug(`Found route by [${method}] ${url}`)
                 headers["X-Request-With"] = "Fourze Fetch Proxy"
                 const { request, response } = createRequestContext({
                     url,
@@ -109,9 +111,16 @@ export function setProxyFetch(router: FourzeRouter) {
                 await router(request, response)
                 return new ProxyFetchResponse(response)
             }
+            logger.warn(`Not found route, fallback to original -> [${method}] ${url}`)
+            return originalFetch(input, init)
         }
-        logger.warn(`Not found route, fallback to original -> [${method ?? "GET"}] ${url}`)
-        return originalFetch(input, init)
+
+        if (useMock === "off") {
+            logger.warn(`X-Fourze-Mock is off, fallback to original -> [${method}] ${url}`)
+            return originalFetch(input, init)
+        } else {
+            return mockRequest()
+        }
     }
     return globalThis.fetch
 }

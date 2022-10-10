@@ -1,10 +1,12 @@
 import { createMockRouter, createRouter, randomInt, setLoggerLevel } from "@fourze/core"
 import { createFourzeServer } from "@fourze/server"
 import axios from "axios"
+import nodeFetch from "node-fetch"
 import { describe, expect, it } from "vitest"
 
 describe("fetch", async () => {
     it("run-fetch", async () => {
+        globalThis.fetch = nodeFetch as typeof globalThis.fetch
         const testData = {
             name: "test",
             count: randomInt(200)
@@ -25,6 +27,12 @@ describe("fetch", async () => {
                 }
             })
 
+            route.get("http://localhost:7609/hello", () => {
+                return {
+                    ...testData
+                }
+            })
+
             route.post("http://www.test.com/api/return", req => {
                 return {
                     ...req.data
@@ -37,6 +45,11 @@ describe("fetch", async () => {
             host: "localhost"
         })
 
+        const originalData = {
+            name: "originalData",
+            count: randomInt(200)
+        }
+
         server.use(
             createRouter().use(route => {
                 route.hook((req, res) => {
@@ -46,7 +59,7 @@ describe("fetch", async () => {
 
                 route.get("/hello", () => {
                     return {
-                        ...testData
+                        ...originalData
                     }
                 })
             })
@@ -56,7 +69,7 @@ describe("fetch", async () => {
 
         await router.setup()
 
-        const fetchReturn = await fetch("http://www.test.com/hello.json")
+        const fetchReturn = await fetch("http://localhost:7609/hello")
 
         const fetchReturnHeaders = fetchReturn.headers.get("x-test")
 
@@ -70,6 +83,16 @@ describe("fetch", async () => {
             name: "test",
             count: 100
         }
+
+        const originalFetchReturn = await fetch("http://localhost:7609/hello.json", {
+            headers: {
+                "x-fourze-mock": "off"
+            }
+        })
+
+        const originalFetchReturnData = await originalFetchReturn.json()
+
+        expect(originalFetchReturnData).toEqual(originalData)
 
         const axiosReturn = await axios.post("http://www.test.com/api/return", postData)
 

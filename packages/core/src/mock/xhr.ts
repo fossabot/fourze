@@ -1,5 +1,5 @@
 import { createLogger } from "../logger"
-import { flatHeaders } from "../polyfill/header"
+import { appendHeader, flatHeaders, getHeader, getHeaderValue, toRawHeaders } from "../polyfill/header"
 import { FourzeRouter } from "../router"
 import { createRequestContext, FourzeRequest, FourzeResponse, FourzeRoute } from "../shared"
 import { HTTP_STATUS_CODES } from "./code"
@@ -106,10 +106,7 @@ export function setProxyXHR(router: FourzeRouter) {
             if (!!this.$base) {
                 return this.$base.getAllResponseHeaders()
             }
-
-            return Object.entries(this.responseHeaders)
-                .map(([key, value]) => `${key}: ${value}`)
-                .join("\r\n")
+            return toRawHeaders(this.responseHeaders)
         }
 
         setRequestHeader(name: string, value: string) {
@@ -117,12 +114,7 @@ export function setProxyXHR(router: FourzeRouter) {
                 this.$base.setRequestHeader(name, value)
                 return
             }
-
-            let existValue = this.requestHeaders[name]
-            if (existValue) {
-                value = existValue.concat(",").concat(value)
-            }
-            this.requestHeaders[name] = value
+            appendHeader(this.requestHeaders, name, value)
         }
 
         overrideMimeType(mime: string) {
@@ -177,57 +169,70 @@ export function setProxyXHR(router: FourzeRouter) {
             this.dispatchEvent(new Event("readystatechange"))
         }
 
-        async send(data?: Document | XMLHttpRequestBodyInit | null | undefined) {
+        async originalSend(data: any) {
+            if (!!this.$base) {
+                this.$base.timeout = this.timeout
+                this.$base.responseType = this.responseType
+                this.$base.withCredentials = this.withCredentials
+                this.$base.send(data)
+            }
+        }
+
+        async mockSend(data: any) {
+            const { url, method } = this.$request
             this.$request.body = (typeof data === "string" ? JSON.parse(data) : data) ?? this.$request.body ?? {}
 
             await router.setup()
 
-            const url = this.$request.url
-            const method = this.$request.method
-
             const route = router.match(url, method)
 
-            if (!route || this.requestHeaders["Use-Mock"] === "off") {
-                logger.warn(`Not found route, fallback to original -> [${method ?? "GET"}] ${url}`)
-                if (!!this.$base) {
-                    this.$base.timeout = this.timeout
-                    this.$base.responseType = this.responseType
-                    this.$base.withCredentials = this.withCredentials
-                    this.$base.send(data)
-                }
-                return
+            if (route) {
+                logger.info(`Found route by [${method ?? "GET"}] ${url}`)
+
+                this.$base?.abort()
+
+                this.setRequestHeader("X-Requested-With", "Fourze XHR Proxy")
+                this.setRequestHeader("Origin", location.origin)
+                this.setRequestHeader("Host", location.host)
+                this.dispatchEvent(new Event("loadstart"))
+
+                this.readyState = this.HEADERS_RECEIVED
+                this.dispatchEvent(new Event("readystatechange"))
+                this.readyState = this.LOADING
+                this.dispatchEvent(new ProgressEvent("readystatechange"))
+                this.status = 200
+                this.statusText = HTTP_STATUS_CODES[200]
+
+                await router(this.$request, this.$response)
+
+                this.response = this.$response.result
+
+                this.responseText = this.$response.result
+
+                this.responseHeaders = flatHeaders(this.$response.getHeaders())
+
+                this.readyState = this.DONE
+
+                this.dispatchEvent(new Event("readystatechange"))
+
+                this.dispatchEvent(new Event("load"))
+                this.dispatchEvent(new Event("loadend"))
+            } else {
+                logger.warn(`Not found route by [${method ?? "GET"}] ${url}`)
+                this.originalSend(data)
             }
+        }
 
-            logger.debug(`Found route by [${method ?? "GET"}] ${url}`)
+        async send(data?: Document | XMLHttpRequestBodyInit | null | undefined) {
+            const useMock = getHeaderValue(this.requestHeaders, "X-Fourze-Mock")
+            const { url, method } = this.$request
 
-            this.$base?.abort()
-
-            this.setRequestHeader("X-Requested-With", "Fourze XHR Proxy")
-            this.setRequestHeader("Origin", location.origin)
-            this.setRequestHeader("Host", location.host)
-            this.dispatchEvent(new Event("loadstart"))
-
-            this.readyState = this.HEADERS_RECEIVED
-            this.dispatchEvent(new Event("readystatechange"))
-            this.readyState = this.LOADING
-            this.dispatchEvent(new ProgressEvent("readystatechange"))
-            this.status = 200
-            this.statusText = HTTP_STATUS_CODES[200]
-
-            await router(this.$request, this.$response)
-
-            this.response = this.$response.result
-
-            this.responseText = this.$response.result
-
-            this.responseHeaders = flatHeaders(this.$response.getHeaders())
-
-            this.readyState = this.DONE
-
-            this.dispatchEvent(new Event("readystatechange"))
-
-            this.dispatchEvent(new Event("load"))
-            this.dispatchEvent(new Event("loadend"))
+            if (useMock === "off") {
+                logger.warn(`X-Fourze-Mock is off, fallback to original -> [${method}] ${url}`)
+                this.originalSend(data)
+            } else {
+                await this.mockSend(data)
+            }
         }
 
         abort() {
@@ -245,8 +250,7 @@ export function setProxyXHR(router: FourzeRouter) {
             if (!!this.$base) {
                 return this.$base.getResponseHeader(name)
             }
-
-            return this.responseHeaders[name]
+            return getHeader(this.responseHeaders, name)
         }
 
         addEventListener(type: string, listener: EventListener) {

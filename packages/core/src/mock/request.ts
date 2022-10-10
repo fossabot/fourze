@@ -2,7 +2,7 @@ import type { ClientRequest, ClientRequestArgs, IncomingMessage, RequestOptions 
 import http from "http"
 import https from "https"
 import { createLogger, FourzeLogger } from "../logger"
-import { flatHeaders } from "../polyfill/header"
+import { flatHeaders, getHeaderValue } from "../polyfill/header"
 import type { FourzeRouter } from "../router"
 import { createRequestContext, FourzeResponse } from "../shared"
 import { isBuffer, isFunction, isString } from "../utils"
@@ -82,6 +82,10 @@ export function setProxyNodeRequest(router: FourzeRouter) {
         _ended: boolean
         _options: ProxyRequestOptions
 
+        _requestHeaders: Record<string, string>
+
+        readonly method: string
+
         _url: string
 
         logger: FourzeLogger
@@ -94,6 +98,8 @@ export function setProxyNodeRequest(router: FourzeRouter) {
             this._ended = false
             this._options = options
             this.logger = options.logger ?? createLogger("@fourze/mock")
+            this._requestHeaders = flatHeaders(options.headers)
+            this.method = options.method ?? "GET"
             this._url = optionsToURL(options).toString()
             this.buffer = Buffer.alloc(0)
 
@@ -102,35 +108,51 @@ export function setProxyNodeRequest(router: FourzeRouter) {
             }
         }
 
-        async _performRequest() {
-            const protocol = this._options.protocol ?? "http:"
-            const method = this._options.method
-            await router.setup()
+        setTimeout(timeout: number) {}
 
-            const route = router.match(this._url, method)
+        async _mockRequest() {
+            await router.setup()
+            const route = router.match(this._url, this.method)
             if (route) {
-                this.logger.debug(`Found route by [${method ?? "GET"}] ${route.path}`)
+                this.logger.debug(`Found route by [${this.method}] ${route.path}`)
 
                 const { request, response } = createRequestContext({
                     url: this._url,
-                    method: method,
-                    headers: this._options.headers,
+                    method: this.method,
+                    headers: this._requestHeaders,
                     body: this.buffer.toString("utf-8")
                 })
                 await router(request, response)
                 const res = new ProxyClientResponse(response)
                 this.emit("response", res)
             } else {
-                this.logger.warn(`Not found route, fallback to original -> [${method ?? "GET"}] ${this._url}`)
-                const nativeRequest = this._options.nativeRequest
-                if (nativeRequest) {
-                    const req = nativeRequest(this._options, res => {
-                        this.emit("response", res)
-                    })
-                    req.end()
-                } else {
-                    throw new Error(`Unsupported protocol: ${protocol}`)
-                }
+                this.logger.warn(`Not found route, fallback to original -> [${this.method}] ${this._url}`)
+                this._nativeRequest()
+            }
+        }
+
+        async _nativeRequest() {
+            const protocol = this._options.protocol ?? "http:"
+            const nativeRequest = this._options.nativeRequest
+            if (nativeRequest) {
+                const req = nativeRequest(this._options, res => {
+                    this.emit("response", res)
+                })
+                req.end()
+            } else {
+                throw new Error(`Unsupported protocol: ${protocol}`)
+            }
+        }
+
+        async _performRequest() {
+            const method = this._options.method
+            const headers = flatHeaders(this._options.headers)
+            const useMock = getHeaderValue(headers, "X-Fourze-Mock")
+            if (useMock === "off") {
+                this.logger.warn(`X-Fourze-Mock is off, fallback to original -> [${method}] ${this._url}`)
+                this._nativeRequest()
+            } else {
+                this._mockRequest()
             }
         }
 

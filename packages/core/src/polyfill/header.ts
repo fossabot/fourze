@@ -2,7 +2,9 @@ function isHeader(headers: unknown): headers is Headers {
     return (!!globalThis.Headers && headers instanceof globalThis.Headers) || headers instanceof PolyfillHeaders
 }
 
-export type PolyfillHeaderInit = Record<string, string | string[] | number | undefined> | string[][] | Headers
+export type PolyfillHeaderValue = string | string[] | number | undefined
+
+export type PolyfillHeaderInit = Record<string, PolyfillHeaderValue> | string[][] | Headers
 
 export class PolyfillHeaders {
     readonly #headers: Record<string, string> = {}
@@ -11,7 +13,7 @@ export class PolyfillHeaders {
     }
 
     append(name: string, value: string): void {
-        appendHeader(this.#headers, name, value)
+        appendHeader(this.#headers, name.toLowerCase(), value)
     }
 
     delete(name: string): void {
@@ -53,28 +55,85 @@ export class PolyfillHeaders {
     }
 }
 
-function appendHeader(headers: Record<string, string>, key: string, value: string | string[] | number | undefined) {
-    const oldValue = headers[key.toLowerCase()]
+export interface TransformHeaderOptions {
+    /**
+     *  @default ", "
+     */
+    separator?: string
 
-    const newValue = Array.isArray(value) ? value.join(", ") : String(value)
-
-    headers[key.toLowerCase()] = oldValue ? `${oldValue}, ${newValue}` : newValue
+    /**
+     * @default "lower"
+     */
+    caseInsensitive?: "lower" | "upper" | "none"
 }
 
-export function flatHeaders(init: PolyfillHeaderInit = {}) {
-    const headers: Record<string, string> = {}
-    if (Array.isArray(init)) {
-        for (const [key, value] of init) {
-            appendHeader(headers, key, value)
+export function getHeader(headers: Record<string, string>, key: string) {
+    if (!(key in headers)) {
+        if (key.toLowerCase() in headers) {
+            key = key.toLowerCase()
+        } else if (key.toUpperCase() in headers) {
+            key = key.toUpperCase()
         }
-    } else if (isHeader(init)) {
+    }
+    return [key, headers[key]]
+}
+
+export function getHeaderKey(headers: Record<string, string>, key: string) {
+    return getHeader(headers, key)[0]
+}
+
+export function getHeaderValue(headers: Record<string, string>, key: string) {
+    return getHeader(headers, key)[1]
+}
+
+export function appendHeader(headers: Record<string, string>, _key: string, value: PolyfillHeaderValue, options: TransformHeaderOptions = {}) {
+    const [key, oldValue] = getHeader(headers, _key)
+
+    delete headers[key]
+
+    const { separator = ", ", caseInsensitive = "lower" } = options
+
+    const appendValue = Array.isArray(value) ? value.join(separator) : String(value)
+    value = oldValue ? `${oldValue}, ${appendValue}` : appendValue
+
+    headers[transformCase(key, caseInsensitive)] = value
+}
+
+export interface FlatHeadersOptions {
+    /**
+     * @default "lower"
+     */
+    caseInsensitive?: "lower" | "upper" | "none"
+}
+
+function transformCase(key: string, caseInsensitive: "lower" | "upper" | "none" = "none") {
+    if (caseInsensitive === "lower") {
+        return key.toLowerCase()
+    } else if (caseInsensitive === "upper") {
+        return key.toUpperCase()
+    }
+    return key
+}
+
+export function flatHeaders(init: PolyfillHeaderInit = {}, options: TransformHeaderOptions = {}): Record<string, string> {
+    const headers: Record<string, string> = {}
+
+    if (isHeader(init)) {
         init.forEach((value, key) => {
-            appendHeader(headers, key, value)
+            appendHeader(headers, key, value, options)
         })
-    } else if (init) {
-        for (const [key, value] of Object.entries(init)) {
-            appendHeader(headers, key, value)
+    } else {
+        const entries = Array.isArray(init) ? init : Object.entries(init)
+        for (const [key, value] of entries) {
+            appendHeader(headers, key, value, options)
         }
     }
     return headers
+}
+
+export function toRawHeaders(init: PolyfillHeaderInit = {}): string {
+    const headers = flatHeaders(init)
+    return Object.entries(headers)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join("\r\n")
 }

@@ -88,7 +88,7 @@ export function isRoute(route: any): route is FourzeRoute {
 
 const REQUEST_PATH_REGEX = new RegExp(`^(${FOURZE_METHODS.join("|")})\\s+`, "i")
 
-const PARAM_KEY_REGEX = /(\:[\w_-]+)|(\{[\w_-]+\})/g
+const PARAM_KEY_REGEX = /\{[\w_-]+\}/g
 
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
     let { handle, method, path, base = "/", meta = {} } = route
