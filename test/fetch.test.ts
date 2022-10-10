@@ -24,6 +24,12 @@ describe("fetch", async () => {
                     ...testData
                 }
             })
+
+            route.post("http://www.test.com/api/return", req => {
+                return {
+                    ...req.data
+                }
+            })
         })
 
         const server = createFourzeServer({
@@ -60,7 +66,12 @@ describe("fetch", async () => {
 
         expect(fetchReturnData).toEqual(testData)
 
-        const axiosReturn = await axios.get("http://www.test.com/hello.json")
+        const postData = {
+            name: "test",
+            count: 100
+        }
+
+        const axiosReturn = await axios.post("http://www.test.com/api/return", postData)
 
         const axiosReturnHeaders = axiosReturn.headers["x-test"]
 
@@ -68,7 +79,7 @@ describe("fetch", async () => {
 
         const axiosReturnData = axiosReturn.data
 
-        expect(axiosReturnData).toEqual(testData)
+        expect(axiosReturnData).toEqual(postData)
 
         const originalReturn = await axios.get("http://localhost:7609/hello.json")
 

@@ -1,6 +1,7 @@
 import { createLogger } from "../logger"
+import { flatHeaders } from "../polyfill/header"
 import { FourzeRouter } from "../router"
-import { createRequestContext, flatHeaders, FourzeRequest, FourzeResponse, FourzeRoute } from "../shared"
+import { createRequestContext, FourzeRequest, FourzeResponse, FourzeRoute } from "../shared"
 import { HTTP_STATUS_CODES } from "./code"
 
 const XHR_EVENTS = "readystatechange loadstart progress abort error load timeout loadend".split(" ")
@@ -70,20 +71,35 @@ export function setProxyXHR(router: FourzeRouter) {
         upload: XMLHttpRequestUpload | null
 
         readyState: number
+
         status: number
+
         statusText: string
+
         response: any
+
         headers: Record<string, string>
+
         body: any
+
         async: boolean
+
         requestHeaders: Record<string, string>
+
         responseHeaders: Record<string, string>
+
         events: Record<string, EventListener[]>
+
         responseText: string
+
         responseType: XMLHttpRequestResponseType
+
         responseURL: string
+
         responseXML: Document | null
+
         timeout: number
+
         withCredentials: boolean
 
         getAllResponseHeaders() {
@@ -204,11 +220,7 @@ export function setProxyXHR(router: FourzeRouter) {
 
             this.responseText = this.$response.result
 
-            const headers = flatHeaders(this.$response.getHeaders())
-
-            for (let [key, value] of Object.entries(headers)) {
-                this.responseHeaders[key] = value
-            }
+            this.responseHeaders = flatHeaders(this.$response.getHeaders())
 
             this.readyState = this.DONE
 

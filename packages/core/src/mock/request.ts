@@ -2,8 +2,9 @@ import type { ClientRequest, ClientRequestArgs, IncomingMessage, RequestOptions 
 import http from "http"
 import https from "https"
 import { createLogger, FourzeLogger } from "../logger"
+import { flatHeaders } from "../polyfill/header"
 import type { FourzeRouter } from "../router"
-import { createRequestContext, flatHeaders, FourzeResponse } from "../shared"
+import { createRequestContext, FourzeResponse } from "../shared"
 import { isBuffer, isFunction, isString } from "../utils"
 
 type RequestCallback = (res: IncomingMessage) => void
@@ -37,7 +38,8 @@ export function setProxyNodeRequest(router: FourzeRouter) {
         logger.warn("request is not defined")
         return
     }
-    const { Readable, Writable } = require("stream")
+    const { Writable, Readable } = require("stream") as typeof import("stream")
+
     class ProxyClientResponse extends Readable {
         headers: IncomingMessage["headers"]
         method?: string
@@ -84,18 +86,20 @@ export function setProxyNodeRequest(router: FourzeRouter) {
 
         logger: FourzeLogger
 
+        buffer: Buffer
+
         constructor(options: ProxyRequestOptions, callback?: RequestCallback) {
-            super()
+            super({})
             this._ending = false
             this._ended = false
             this._options = options
             this.logger = options.logger ?? createLogger("@fourze/mock")
             this._url = optionsToURL(options).toString()
+            this.buffer = Buffer.alloc(0)
 
             if (callback) {
                 this.on("response", callback)
             }
-            this._performRequest()
         }
 
         async _performRequest() {
@@ -106,10 +110,12 @@ export function setProxyNodeRequest(router: FourzeRouter) {
             const route = router.match(this._url, method)
             if (route) {
                 this.logger.debug(`Found route by [${method ?? "GET"}] ${route.path}`)
+
                 const { request, response } = createRequestContext({
                     url: this._url,
                     method: method,
-                    headers: this._options.headers
+                    headers: this._options.headers,
+                    body: this.buffer.toString("utf-8")
                 })
                 await router(request, response)
                 const res = new ProxyClientResponse(response)
@@ -128,20 +134,26 @@ export function setProxyNodeRequest(router: FourzeRouter) {
             }
         }
 
-        write(chunk: any, encoding?: BufferEncoding, callback?: WriteCallback): boolean
+        write(chunk: string, encoding?: BufferEncoding, callback?: WriteCallback): boolean
 
-        write(chunk: any, callback?: (error?: Error | null) => void): boolean
+        write(chunk: Uint8Array | string, callback?: (error?: Error | null) => void): boolean
 
-        write(chunk: any, enc?: BufferEncoding | WriteCallback, cb?: WriteCallback): boolean {
+        write(chunk: Uint8Array | string, enc?: BufferEncoding | WriteCallback, cb?: WriteCallback): boolean {
             const isCallback = isFunction(enc)
             const callback = isCallback ? enc : cb
             const encoding = (isCallback ? undefined : enc) ?? "utf-8"
             if (this._ending) {
                 throw new Error("write after end")
             }
-            if (!isString(chunk) && !isBuffer(chunk)) {
+
+            if (isString(chunk)) {
+                this.buffer.write(chunk, encoding)
+            } else if (isBuffer(chunk)) {
+                this.buffer = Buffer.concat([this.buffer, chunk])
+            } else {
                 throw new TypeError("CHUNK should be a string, Buffer or Uint8Array")
             }
+
             if (chunk.length == 0) {
                 if (callback) {
                     callback()
@@ -149,7 +161,8 @@ export function setProxyNodeRequest(router: FourzeRouter) {
                 return false
             }
 
-            return true
+            callback?.(null)
+            return false
         }
 
         end(callback: WriteCallback): this
@@ -168,8 +181,10 @@ export function setProxyNodeRequest(router: FourzeRouter) {
             }
             if (!chunk) {
                 this._ended = this._ending = true
+                this._performRequest()
             } else {
                 this.write(chunk, encoding, err => {
+                    this._performRequest()
                     this._ended = true
                     callback?.(err)
                 })
@@ -200,7 +215,6 @@ export function setProxyNodeRequest(router: FourzeRouter) {
         options.port = u.port
         options.path = u.pathname + u.search
         options.nativeRequest = u.protocol == "https:" ? originHttpsRequest : originHttpRequest
-
         const callback = isFunction ? param1 : param2!
 
         return new ProxyClientRequest(options, callback) as unknown as ClientRequest

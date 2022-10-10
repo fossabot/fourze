@@ -2,7 +2,8 @@ import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
 import type { MaybePromise } from "maybe-types"
 
 import { version } from "../package.json"
-import { parseFormdata, resolvePath } from "./utils"
+import { flatHeaders } from "./polyfill/header"
+import { parseFormdata as parseFormData, resolvePath } from "./utils"
 
 export const FOURZE_VERSION = version
 
@@ -50,6 +51,8 @@ export interface FourzeResponse extends FourzeBaseResponse {
     appendHeader(key: string, value: string | string[]): void
 
     removeHeader(key: string): void
+
+    readonly url: string
 
     readonly [FOURZE_RESPONSE_SYMBOL]: true
 }
@@ -330,20 +333,6 @@ export function createResponse(options: FourzeResponseOptions) {
     return response
 }
 
-export function flatHeaders(headers: Record<string, string | string[] | number | undefined> = {}) {
-    const result: Record<string, string> = {}
-    for (let key in headers) {
-        const value = headers[key]
-        const k = key.toLowerCase()
-        if (Array.isArray(value)) {
-            result[k] = value.join(",")
-        } else if (value) {
-            result[k] = String(value)
-        }
-    }
-    return result
-}
-
 export interface FourzeRequestContextOptions {
     url: string
     method?: string
@@ -382,7 +371,7 @@ export function createRequest(options: Partial<FourzeRequest>) {
         if (contentType.startsWith("application/json")) {
             options.body = JSON.parse(options.body)
         } else if (contentType.startsWith("multipart/form-data")) {
-            options.body = parseFormdata(options.body)
+            options.body = parseFormData(options.body)
         }
     }
 
