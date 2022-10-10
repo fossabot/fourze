@@ -5,27 +5,13 @@ function isHeader(headers: unknown): headers is Headers {
 export type PolyfillHeaderInit = Record<string, string | string[] | number | undefined> | string[][] | Headers
 
 export class PolyfillHeaders {
-    #headers: Record<string, string> = {}
+    readonly #headers: Record<string, string> = {}
     constructor(init: PolyfillHeaderInit = {}) {
-        if (Array.isArray(init)) {
-            for (const [key, value] of init) {
-                this.append(key, value)
-            }
-        } else if (isHeader(init)) {
-            init.forEach((value, key) => {
-                this.append(key, value)
-            })
-        } else if (init) {
-            for (const key in init) {
-                const values = init[key]
-                const value = Array.isArray(values) ? values.join(", ") : values
-                this.append(key, String(value))
-            }
-        }
+        this.#headers = flatHeaders(init)
     }
 
     append(name: string, value: string): void {
-        this.#headers[name.toLowerCase()] = value
+        appendHeader(this.#headers, name, value)
     }
 
     delete(name: string): void {
@@ -67,7 +53,28 @@ export class PolyfillHeaders {
     }
 }
 
+function appendHeader(headers: Record<string, string>, key: string, value: string | string[] | number | undefined) {
+    const oldValue = headers[key.toLowerCase()]
+
+    const newValue = Array.isArray(value) ? value.join(", ") : String(value)
+
+    headers[key.toLowerCase()] = oldValue ? `${oldValue}, ${newValue}` : newValue
+}
+
 export function flatHeaders(init: PolyfillHeaderInit = {}) {
-    const headers = new PolyfillHeaders(init)
-    return Object.fromEntries(headers)
+    const headers: Record<string, string> = {}
+    if (Array.isArray(init)) {
+        for (const [key, value] of init) {
+            appendHeader(headers, key, value)
+        }
+    } else if (isHeader(init)) {
+        init.forEach((value, key) => {
+            appendHeader(headers, key, value)
+        })
+    } else if (init) {
+        for (const [key, value] of Object.entries(init)) {
+            appendHeader(headers, key, value)
+        }
+    }
+    return headers
 }
