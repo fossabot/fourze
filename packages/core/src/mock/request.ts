@@ -4,7 +4,7 @@ import https from "https"
 import { createLogger, FourzeLogger } from "../logger"
 import { flatHeaders, getHeaderValue } from "../polyfill/header"
 import type { FourzeRouter } from "../router"
-import { createRequestContext, FourzeResponse } from "../shared"
+import { FourzeResponse } from "../shared"
 import { isBuffer, isFunction, isString } from "../utils"
 
 type RequestCallback = (res: IncomingMessage) => void
@@ -111,18 +111,15 @@ export function setProxyNodeRequest(router: FourzeRouter) {
         setTimeout(timeout: number) {}
 
         async _mockRequest() {
-            await router.setup()
-            const route = router.match(this._url, this.method)
-            if (route) {
-                this.logger.debug(`Found route by [${this.method}] ${route.path}`)
+            const { response } = await router.request({
+                url: this._url,
+                method: this.method,
+                headers: this._requestHeaders,
+                body: this.buffer.toString("utf-8")
+            })
+            if (response.matched) {
+                this.logger.debug(`Found route by [${this.method}] ${this._url}`)
 
-                const { request, response } = createRequestContext({
-                    url: this._url,
-                    method: this.method,
-                    headers: this._requestHeaders,
-                    body: this.buffer.toString("utf-8")
-                })
-                await router(request, response)
                 const res = new ProxyClientResponse(response)
                 this.emit("response", res)
             } else {

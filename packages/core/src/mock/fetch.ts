@@ -1,7 +1,7 @@
 import { createLogger } from "../logger"
 import { flatHeaders, getHeaderValue, PolyfillHeaders } from "../polyfill/header"
 import type { FourzeRouter } from "../router"
-import { createRequestContext, FourzeResponse } from "../shared"
+import { FourzeResponse } from "../shared"
 import { isString, isURL } from "../utils"
 
 class ProxyFetchResponse implements Response {
@@ -95,20 +95,15 @@ export function setProxyFetch(router: FourzeRouter) {
         const useMock = getHeaderValue(headers, "X-Fourze-Mock")
 
         async function mockRequest() {
-            await router.setup()
-
-            const route = router.match(url, method)
-
-            if (route) {
+            headers["X-Request-With"] = "Fourze Fetch Proxy"
+            const { response } = await router.request({
+                url,
+                method,
+                body,
+                headers
+            })
+            if (response.matched) {
                 logger.debug(`Found route by [${method}] ${url}`)
-                headers["X-Request-With"] = "Fourze Fetch Proxy"
-                const { request, response } = createRequestContext({
-                    url,
-                    method,
-                    body,
-                    headers
-                })
-                await router(request, response)
                 return new ProxyFetchResponse(response)
             }
             logger.warn(`Not found route, fallback to original -> [${method}] ${url}`)

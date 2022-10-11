@@ -1,4 +1,4 @@
-import { CommonMiddleware, createLogger, createRequestContext, FourzeLogger, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FOURZE_VERSION } from "@fourze/core"
+import { CommonMiddleware, createLogger, createRequestContext, FourzeContext, FourzeLogger, FourzeMiddleware, FourzeNext, FOURZE_VERSION } from "@fourze/core"
 import EventEmitter from "events"
 import type { IncomingMessage, OutgoingMessage, Server } from "http"
 import http from "http"
@@ -43,12 +43,7 @@ export interface FourzeServer extends EventEmitter {
     close(): void
 }
 
-export interface FouzeServerContext {
-    request: FourzeRequest
-    response: FourzeResponse
-}
-
-export function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promise<FouzeServerContext> {
+export function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promise<FourzeContext> {
     return new Promise((resolve, reject) => {
         let body: any = ""
 

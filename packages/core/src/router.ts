@@ -3,7 +3,20 @@ import { parseUrl } from "query-string"
 import { defineFourze, Fourze, FourzeSetup, isFourze } from "./app"
 import { delayHook } from "./hooks"
 import { createLogger } from "./logger"
-import { defineRoute, FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute, FourzeSetupContext } from "./shared"
+import {
+    createRequestContext,
+    defineRoute,
+    FourzeContext,
+    FourzeHook,
+    FourzeInstance,
+    FourzeMiddleware,
+    FourzeNext,
+    FourzeRequest,
+    FourzeRequestContextOptions,
+    FourzeResponse,
+    FourzeRoute,
+    FourzeSetupContext
+} from "./shared"
 import { asyncLock, DelayMsType, isMatch, relativePath, unique } from "./utils"
 
 export interface FourzeRouter extends FourzeMiddleware {
@@ -11,8 +24,9 @@ export interface FourzeRouter extends FourzeMiddleware {
      * 根据url匹配路由
      * @param url
      * @param method
+     * @allowed 是否验证路由在允许规则内
      */
-    match(url: string, method?: string): FourzeRoute | undefined
+    match(url: string, method?: string, allowed?: boolean): [FourzeRoute, RegExpMatchArray] | []
 
     /**
      *  是否允许,但不一定匹配
@@ -25,6 +39,8 @@ export interface FourzeRouter extends FourzeMiddleware {
     use(module: FourzeInstance): this
     use(setup: FourzeSetup): this
     use(path: string, setup: FourzeSetup): this
+
+    request(context: FourzeRequestContextOptions): Promise<FourzeContext>
 
     readonly routes: FourzeRoute[]
     readonly hooks: FourzeHook[]
@@ -98,70 +114,70 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
     let _context: FourzeSetupContext
 
     const router = async function (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) {
-        const { url } = request
+        const { url, method } = request
 
         if (router.isAllow(url)) {
             await router.setup()
 
-            const route = router.match(url, request.method)
-            if (route) {
-                const matches = route.match(url, request.method, options.base)
-                if (matches) {
-                    const activeHooks = router.hooks.filter(e => !e.base || url.startsWith(e.base))
-                    const params: Record<string, any> = {}
-                    for (let i = 0; i < route.pathParams.length; i++) {
-                        const key = route.pathParams[i].replace(/^[\:\{]/g, "").replace(/\}$/g, "")
-                        const value = matches[i + 1]
-                        params[key] = value
-                    }
-                    request.route = route
-                    request.query = parseUrl(url, {
-                        parseNumbers: true,
-                        parseBooleans: true
-                    }).query
+            const [route, matches] = router.match(url, method, true)
 
-                    if (matches.length > route.pathParams.length) {
-                        request.relativePath = matches[matches.length - 2]
-                    }
-                    request.params = params
-                    request.data = {
-                        ...request.body,
-                        ...request.query,
-                        ...request.params
-                    }
+            if (route && matches) {
+                const activeHooks = router.hooks.filter(e => !e.base || url.startsWith(e.base))
+                const params: Record<string, any> = {}
 
-                    request.meta = {
-                        ...request.meta,
-                        ...route.meta
-                    }
-
-                    const handle = async () => {
-                        let nexted = false
-                        const next = async (res = true) => {
-                            nexted = true
-                            if (res) {
-                                await handle()
-                            }
-                        }
-
-                        const hook = activeHooks.shift()
-
-                        if (hook) {
-                            const hookReturn = await hook.handle(request, response, next)
-
-                            if (hookReturn) {
-                                response.result = hookReturn ?? response.result
-                            } else if (!nexted) {
-                                await next()
-                            }
-                        } else {
-                            response.result = (await route.handle(request, response)) ?? response.result
-                        }
-                    }
-
-                    await handle()
-                    response.matched = true
+                for (let i = 0; i < route.pathParams.length; i++) {
+                    const key = route.pathParams[i].slice(1, -1)
+                    const value = matches[i + 1]
+                    params[key] = value
                 }
+
+                request.route = route
+                request.query = parseUrl(url, {
+                    parseNumbers: true,
+                    parseBooleans: true
+                }).query
+
+                if (matches.length > route.pathParams.length) {
+                    request.relativePath = matches[matches.length - 2]
+                }
+                request.params = params
+                request.data = {
+                    ...request.body,
+                    ...request.query,
+                    ...request.params
+                }
+
+                request.meta = {
+                    ...request.meta,
+                    ...route.meta
+                }
+
+                const handle = async () => {
+                    let nexted = false
+                    const next = async (res = true) => {
+                        nexted = true
+                        if (res) {
+                            await handle()
+                        }
+                    }
+
+                    const hook = activeHooks.shift()
+
+                    if (hook) {
+                        const hookReturn = await hook.handle(request, response, next)
+
+                        if (hookReturn) {
+                            response.result = hookReturn ?? response.result
+                        } else if (!nexted) {
+                            await next()
+                        }
+                    } else {
+                        response.result = (await route.handle(request, response)) ?? response.result
+                    }
+                }
+
+                await handle()
+                response.matched = true
             }
         }
 
@@ -199,10 +215,22 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
         return rs
     }
 
-    router.match = function (this: FourzeRouter, url: string, method?: string): FourzeRoute | undefined {
-        if (this.isAllow(url)) {
-            return this.routes.find(e => e.match(url, method, options.base))
+    router.match = function (this: FourzeRouter, url: string, method?: string, allowed = false): [FourzeRoute, RegExpMatchArray] | [] {
+        if (allowed || this.isAllow(url)) {
+            for (const route of this.routes) {
+                const matches = route.match(url, method, options.base)
+                if (matches) {
+                    return [route, matches]
+                }
+            }
         }
+        return []
+    }
+
+    router.request = async function (this: FourzeRouter, options: FourzeRequestContextOptions) {
+        const { request, response } = createRequestContext(options)
+        await this(request, response)
+        return { request, response }
     }
 
     router.use = function (module: FourzeInstance | FourzeSetup | string, setup?: FourzeSetup) {

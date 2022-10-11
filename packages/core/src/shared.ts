@@ -342,6 +342,11 @@ export interface FourzeRequestContextOptions {
     response?: OutgoingMessage
 }
 
+export interface FourzeContext {
+    request: FourzeRequest
+    response: FourzeResponse
+}
+
 export function createRequestContext(options: FourzeRequestContextOptions) {
     const { url, method = "GET", headers = {}, body } = options
     const request = createRequest({

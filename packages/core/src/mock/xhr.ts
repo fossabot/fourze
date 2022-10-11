@@ -181,29 +181,24 @@ export function setProxyXHR(router: FourzeRouter) {
         async mockSend(data: any) {
             const { url, method } = this.$request
             this.$request.body = (typeof data === "string" ? JSON.parse(data) : data) ?? this.$request.body ?? {}
+            this.setRequestHeader("X-Requested-With", "Fourze XHR Proxy")
+            this.setRequestHeader("Origin", location.origin)
+            this.setRequestHeader("Host", location.host)
+            this.dispatchEvent(new Event("loadstart"))
 
-            await router.setup()
+            this.readyState = this.HEADERS_RECEIVED
+            this.dispatchEvent(new Event("readystatechange"))
+            this.readyState = this.LOADING
+            await router(this.$request, this.$response)
 
-            const route = router.match(url, method)
-
-            if (route) {
+            if (this.$response.matched) {
                 logger.info(`Found route by [${method ?? "GET"}] ${url}`)
 
                 this.$base?.abort()
 
-                this.setRequestHeader("X-Requested-With", "Fourze XHR Proxy")
-                this.setRequestHeader("Origin", location.origin)
-                this.setRequestHeader("Host", location.host)
-                this.dispatchEvent(new Event("loadstart"))
-
-                this.readyState = this.HEADERS_RECEIVED
-                this.dispatchEvent(new Event("readystatechange"))
-                this.readyState = this.LOADING
                 this.dispatchEvent(new ProgressEvent("readystatechange"))
                 this.status = 200
                 this.statusText = HTTP_STATUS_CODES[200]
-
-                await router(this.$request, this.$response)
 
                 this.response = this.$response.result
 

@@ -74,26 +74,26 @@ describe("shared", async () => {
         await router.setup()
 
         // has not base
-        expect(router.match("/api/test")).toBeFalsy()
+        expect(router.match("/api/test")).length(0)
         // has base
-        expect(router.match("/v1/api/test")).toBeTruthy()
+        expect(router.match("/v1/api/test")).not.length(0)
 
         // in external
-        expect(router.match("http://www.test.com/hello")).toBeTruthy()
+        expect(router.match("http://www.test.com/hello")).not.length(0)
         // not in external
-        expect(router.match("http://test.com/hello")).toBeFalsy()
+        expect(router.match("http://test.com/hello")).length(0)
 
         // not in allow
-        expect(router.match("/v1/api/hello")).toBeFalsy()
-        expect(router.match("/api/hello")).toBeFalsy()
-        expect(router.match("/hello")).toBeFalsy()
-        expect(router.match("/v1/noallow")).toBeFalsy()
+        expect(router.match("/v1/api/hello")).length(0)
+        expect(router.match("/api/hello")).length(0)
+        expect(router.match("/hello")).length(0)
+        expect(router.match("/v1/noallow")).length(0)
 
         // in allow
-        expect(router.match("/v1/hello")).toBeTruthy()
-        expect(router.match("/v1/add", "post")).toBeTruthy()
+        expect(router.match("/v1/hello")).not.length(0)
+        expect(router.match("/v1/add", "post")).not.length(0)
 
         // in deny
-        expect(router.match("/v1/deny")).toBeFalsy()
+        expect(router.match("/v1/deny")).length(0)
     })
 })
