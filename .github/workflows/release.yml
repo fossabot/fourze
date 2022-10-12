@@ -21,7 +21,7 @@ jobs:
             - name: Set up pnpm
               uses: pnpm/action-setup@v2.2.2
               with:
-                  version: 7.5.2
+                  version: 7.12.2
 
             - run: npx changelogithub
               continue-on-error: true

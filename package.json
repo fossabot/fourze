@@ -23,7 +23,7 @@
         "play:nuxt-mock": "pnpm build &&  pnpm -r --filter=./playgrounds/nuxt-app preview",
         "build:vite-mock": "pnpm build &&  pnpm -r --filter=./playgrounds/vite build --mode mock",
         "test": "pnpm stub && vitest",
-        "bump": "pnpm test run && bumpp package.json packages/*/package.json --commit --push --tag",
+        "bump": "pnpm build && vitest run && bumpp package.json packages/*/package.json --commit --push --tag",
         "preinstall": "npx only-allow pnpm",
         "postinstall": "husky install",
         "regit": "git fetch --all && git reset --hard origin/main && git pull && git remote prune origin"
