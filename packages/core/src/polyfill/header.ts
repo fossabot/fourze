@@ -86,6 +86,16 @@ export function getHeaderValue(headers: Record<string, string>, key: string) {
     return getHeader(headers, key)[1]
 }
 
+export function getHeaderRawValue(value: PolyfillHeaderValue, options: TransformHeaderOptions = {}): string | undefined {
+    if (Array.isArray(value)) {
+        return value
+            .map(v => getHeaderRawValue(v, options))
+            .filter(r => !!r)
+            .join(options.separator ?? ", ")
+    }
+    return value ? String(value) : undefined
+}
+
 export function appendHeader(headers: Record<string, string>, _key: string, value: PolyfillHeaderValue, options: TransformHeaderOptions = {}) {
     const [key, oldValue] = getHeader(headers, _key)
 
@@ -93,7 +103,7 @@ export function appendHeader(headers: Record<string, string>, _key: string, valu
 
     const { separator = ", ", caseInsensitive = "lower" } = options
 
-    const appendValue = Array.isArray(value) ? value.join(separator) : String(value)
+    const appendValue = value ? (Array.isArray(value) ? value.join(separator) : String(value)) : ""
     value = oldValue ? `${oldValue}, ${appendValue}` : appendValue
 
     headers[transformCase(key, caseInsensitive)] = value

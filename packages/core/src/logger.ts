@@ -1,39 +1,81 @@
-import consola, { Consola } from "consola"
+import consola, { Consola, LogLevel } from "consola"
 
-export const LOGGER_LEVELS = {
-    TRACE: 0,
-    DEBUG: 1,
-    INFO: 2,
-    WARN: 3,
-    ERROR: 4,
-    FATAL: 5,
-    ALL: Number.MIN_VALUE,
-    OFF: Number.MAX_VALUE
+export enum FourzeLogLevel {
+    Fatal = 0,
+    Error = 0,
+    Warn = 1,
+    Log = 2,
+    Info = 3,
+    Success = 3,
+    Debug = 4,
+    Trace = 5,
+    Silent = -Infinity,
+    Verbose = Infinity
 }
+
+export type FourzeLogLevelKey = Lowercase<keyof typeof LogLevel>
 
 export interface FourzeLogger extends Consola {}
 
 const loggerStore = new Map<string, FourzeLogger>()
 
 export function createLogger(scope: string) {
-    if (!loggerStore.has(scope)) {
-        const logger = consola.withScope(scope)
+    let logger = loggerStore.get(scope)
+    if (!logger) {
+        logger = consola.withScope(scope)
         loggerStore.set(scope, logger)
     }
-    return loggerStore.get(scope)!
+    return logger
 }
 
-export function setLoggerLevel(level: number | string, scope?: string) {
+export function setLoggerLevel(level: number | FourzeLogLevelKey, scope?: string) {
+    const fn = (logger: FourzeLogger) => {
+        switch (level) {
+            case "fatal":
+            case "error":
+            case LogLevel.Fatal:
+            case LogLevel.Error:
+                logger.level = 0
+                break
+            case "warn":
+            case LogLevel.Warn:
+                logger.level = 1
+                break
+            case "log":
+            case LogLevel.Log:
+                logger.level = 2
+                break
+            case "info":
+            case "success":
+            case LogLevel.Info:
+            case LogLevel.Success:
+                logger.level = 3
+                break
+            case "debug":
+            case LogLevel.Debug:
+                logger.level = 4
+                break
+            case "trace":
+            case LogLevel.Trace:
+                logger.level = 5
+                break
+            case "silent":
+            case LogLevel.Silent:
+                logger.level = -Infinity
+                break
+            case "verbose":
+            case LogLevel.Verbose:
+                logger.level = Infinity
+                break
+        }
+    }
+
     if (!scope) {
-        loggerStore.forEach(logger => {
-            // logger.level = level
-            // logger.setLevel(level)
-        })
+        loggerStore.forEach(fn)
     } else {
         const logger = loggerStore.get(scope)
         if (logger) {
-            // logger.level =
-            //   logger.setLevel(level)
+            fn(logger)
         }
     }
 }

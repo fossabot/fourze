@@ -2,7 +2,7 @@ import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
 import type { MaybePromise } from "maybe-types"
 
 import { version } from "../package.json"
-import { flatHeaders } from "./polyfill/header"
+import { flatHeaders, getHeaderRawValue } from "./polyfill/header"
 import { parseFormdata as parseFormData, resolvePath } from "./utils"
 
 export const FOURZE_VERSION = version
@@ -38,19 +38,19 @@ export interface FourzeBaseResponse extends ServerResponse {
     matched?: boolean
 }
 export interface FourzeResponse extends FourzeBaseResponse {
-    json(data?: any): void
+    json(data?: any): this
 
-    image(data?: any): void
+    image(data?: any): this
 
-    text(data?: string): void
+    text(data?: string): this
 
-    binary(data?: any): void
+    binary(data?: any): this
 
-    redirect(url: string): void
+    redirect(url: string): this
 
-    appendHeader(key: string, value: string | string[]): void
+    appendHeader(key: string, value: string | string[]): this
 
-    removeHeader(key: string): void
+    removeHeader(key: string): this
 
     readonly url: string
 
@@ -222,51 +222,79 @@ export interface FourzeResponseOptions {
 export function createResponse(options: FourzeResponseOptions) {
     const _headers: Record<string, string> = flatHeaders(options.response?.getHeaders() ?? {})
 
-    const response = (options?.response ?? {
-        headers: {},
-        writableEnded: false,
-        matched: false,
-        statusCode: 200,
+    function createPolyfillResponse() {
+        return {
+            headers: {},
+            get writableEnded() {
+                return this._ended
+            },
+            _ended: false,
+            matched: false,
+            statusCode: 200,
 
-        end(data: any) {
-            this.result = data
-            this.statusCode = 200
-        },
+            end() {
+                this.statusCode = 200
+                this._ended = true
+            },
 
-        getHeaders() {
-            return _headers
-        },
+            getHeaders() {
+                return _headers
+            },
 
-        getHeaderNames() {
-            return Object.keys(_headers)
-        },
+            getHeaderNames() {
+                return Object.keys(_headers)
+            },
 
-        hasHeader(name: string, value?: string | number) {
-            if (value) {
-                const v = _headers[name]
-                const arr = Array.isArray(v) ? v : v?.split(",") ?? []
-                return arr.includes(String(value))
+            hasHeader(name: string, value?: string | number) {
+                if (value) {
+                    const v = _headers[name]
+                    const arr = Array.isArray(v) ? v : v?.split(",") ?? []
+                    return arr.includes(String(value))
+                }
+                return !!_headers[name]
+            },
+
+            getHeader(name: string) {
+                const value = _headers[name]
+                return getHeaderRawValue(value)
+            },
+
+            setHeader(name: string, value: string | ReadonlyArray<string> | number) {
+                if (Array.isArray(value)) {
+                    value = value.join(",")
+                }
+                _headers[name] = value ? String(value) : ""
+                return this
+            },
+            removeHeader(name: string) {
+                delete _headers[name]
+                return this
             }
-            return !!_headers[name]
-        },
-
-        getHeader(name: string) {
-            const value = _headers[name]
-            return Array.isArray(value) ? value.join(",") : String(value)
-        },
-
-        setHeader(name: string, value: string | ReadonlyArray<string> | number) {
-            if (Array.isArray(value)) {
-                value = value.join(",")
-            }
-            _headers[name] = String(value)
-            return this
-        },
-        removeHeader(name: string) {
-            delete _headers[name]
-            return this
         }
-    }) as FourzeResponse
+    }
+
+    const response = (options?.response ?? createPolyfillResponse()) as FourzeResponse
+
+    const _end = response.end.bind(response)
+
+    response.end = (data: any) => {
+        response.result = data ?? response.result
+
+        if (!!response.result) {
+            let contentType = getHeaderRawValue(response.getHeader("content-type"))
+
+            if (!contentType) {
+                contentType = "application/json"
+                response.setHeader("content-type", contentType)
+            }
+            if (contentType.startsWith("application/json")) {
+                response.json(response.result)
+            }
+        }
+
+        _end(response.result)
+        return response
+    }
 
     response.appendHeader = function (name: string, value: string | ReadonlyArray<string> | number) {
         if (this.hasHeader(name)) {
@@ -281,39 +309,42 @@ export function createResponse(options: FourzeResponseOptions) {
         } else {
             this.setHeader(name, value)
         }
+        return this
     }
 
     response.json = function (data: any) {
-        data = typeof data == "string" ? data : JSON.stringify(data)
-        this.result = data
+        this.result = JSON.stringify(data)
         this.setHeader("Content-Type", "application/json")
-        this.end(data)
+        return this
     }
 
     response.binary = function (data: any) {
         this.result = data
         this.setHeader("Content-Type", "application/octet-stream")
-        this.end(data)
+        return this
     }
 
     response.image = function (data: any) {
         this.result = data
         this.setHeader("Content-Type", "image/jpeg")
-        this.end(data)
+        return this
     }
 
     response.text = function (data: string) {
         this.result = data
         this.setHeader("Content-Type", "text/plain")
-        this.end(data)
+        return this
     }
 
     response.redirect = function (url: string) {
         this.statusCode = 302
         this.setHeader("Location", url)
+        return this
     }
 
     response.setHeader("X-Powered-By", `Fourze Server/v${FOURZE_VERSION}`)
+
+    let _result: any
 
     Object.defineProperties(response, {
         [FOURZE_RESPONSE_SYMBOL]: {
@@ -326,6 +357,15 @@ export function createResponse(options: FourzeResponseOptions) {
                 return options.url
             }
         },
+        result: {
+            set(val) {
+                _result = val
+            },
+            get() {
+                return _result
+            }
+        },
+
         method: {
             get() {
                 return options.method

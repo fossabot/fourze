@@ -31,12 +31,14 @@ describe("hooks", async () => {
                         req.meta.token = req.headers["token"].toString().toUpperCase()
                     }
                     res.setHeader("token", data.token)
+                    await next?.()
                 })
 
-                route.hook("/api/test", (req, res, next) => {
+                route.hook("/api/test", async (req, res, next) => {
                     if (req.method == "post") {
                         res.result = "otherthing"
                     }
+                    return next?.()
                 })
 
                 route.hook("/api/test", (req, res, next) => {
@@ -44,6 +46,7 @@ describe("hooks", async () => {
                         console.log("do somethings")
                         return "something"
                     }
+                    return next?.()
                 })
 
                 route.hook("/api/test", (req, res, next) => {
@@ -51,6 +54,7 @@ describe("hooks", async () => {
                         console.log("after somethings")
                         return "unknown"
                     }
+                    return next?.()
                 })
             })
 

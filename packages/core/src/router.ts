@@ -116,14 +116,14 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
     const router = async function (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) {
         const { url, method } = request
 
-        if (router.isAllow(url)) {
+        const isAllowed = router.isAllow(url)
+
+        if (isAllowed) {
             await router.setup()
 
             const [route, matches] = router.match(url, method, true)
-            logger.info("request allow ->", method, url)
 
             if (route && matches) {
-                const activeHooks = router.hooks.filter(e => !e.base || url.startsWith(e.base))
                 const params: Record<string, any> = {}
 
                 for (let i = 0; i < route.pathParams.length; i++) {
@@ -153,28 +153,18 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
                     ...route.meta
                 }
 
-                const handle = async () => {
-                    let nexted = false
-                    const next = async (res = true) => {
-                        nexted = true
-                        if (res) {
-                            await handle()
-                        }
-                    }
+                const activeHooks = router.hooks.filter(e => !e.base || url.startsWith(e.base))
 
+                const handle = async () => {
                     const hook = activeHooks.shift()
 
                     if (hook) {
-                        const hookReturn = await hook.handle(request, response, next)
-
-                        if (hookReturn) {
-                            response.result = hookReturn ?? response.result
-                        } else if (!nexted) {
-                            await next()
-                        }
+                        const hookReturn = await hook.handle(request, response, handle)
+                        response.result = hookReturn ?? response.result
                     } else {
                         response.result = (await route.handle(request, response)) ?? response.result
                     }
+                    return response.result
                 }
 
                 await handle()
@@ -183,15 +173,14 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
         }
 
         if (response.matched) {
-            logger.info("request match ->", method, url)
+            logger.info(`Request matched [${method}] -> "${url}".`)
             if (!response.writableEnded) {
-                if (!!response.result && !response.hasHeader("Content-Type")) {
-                    response.json(response.result)
-                } else {
-                    response.end(response.result)
-                }
+                response.end()
             }
         } else {
+            if (isAllowed) {
+                logger.warn(`Request is allowed but not matched [${method}] -> "${url}".`)
+            }
             await next?.()
         }
     } as FourzeRouter

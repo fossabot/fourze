@@ -16,9 +16,10 @@ describe("fetch", async () => {
         const router = createMockRouter({
             delay: "200-500"
         }).use(route => {
-            route.hook((req, res) => {
+            route.hook(async (req, res, next) => {
                 res.setHeader("x-test", "abcd")
                 res.appendHeader("x-test", "test")
+                await next?.()
             })
 
             route.get("http://www.test.com/hello", () => {
@@ -52,9 +53,10 @@ describe("fetch", async () => {
 
         server.use(
             createRouter().use(route => {
-                route.hook((req, res) => {
+                route.hook(async (req, res, next) => {
                     res.setHeader("x-test", "abcd")
                     res.appendHeader("x-test", "test")
+                    await next?.()
                 })
 
                 route.get("/hello", () => {
@@ -104,7 +106,7 @@ describe("fetch", async () => {
 
         expect(axiosReturnData).toEqual(postData)
 
-        const originalReturn = await axios.get("http://localhost:7609/hello.json")
+        const originalReturn = await axios.get("http://localhost:7609/hello.json", {})
 
         const originalReturnHeaders = originalReturn.headers["x-test"]
 

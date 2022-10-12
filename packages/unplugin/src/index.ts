@@ -1,4 +1,4 @@
-import { createLogger, DelayMsType, FourzeMockRouterOptions, setLoggerLevel } from "@fourze/core"
+import { createLogger, DelayMsType, FourzeLogLevelKey, FourzeMockRouterOptions, setLoggerLevel } from "@fourze/core"
 import { createUnplugin } from "unplugin"
 
 import { createFourzeServer, createHotRouter, FourzeHotRouter, FourzeProxyOption } from "@fourze/server"
@@ -44,9 +44,9 @@ export interface UnpluginFourzeOptions {
     hmr?: boolean
 
     /**
-     * @default "off"
+     * @default "info"
      */
-    logLevel?: "off" | "info" | "warn" | "error"
+    logLevel?: FourzeLogLevelKey | number
 
     server?: {
         /**
@@ -88,7 +88,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
     const logger = createLogger("@fourze/vite")
 
-    setLoggerLevel(options.logLevel ?? "off")
+    setLoggerLevel(options.logLevel ?? "info")
 
     const proxy = Array.isArray(options.proxy)
         ? options.proxy
@@ -117,7 +117,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
         name: PLUGIN_NAME,
 
         async buildStart() {
-            await router.load()
+            await router.setup()
         },
 
         resolveId(id) {

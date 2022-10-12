@@ -54,7 +54,7 @@ export function setProxyNodeRequest(router: FourzeRouter) {
             this.headers = flatHeaders(res.getHeaders())
             this.method = res.method
             this.statusCode = res.statusCode
-            this.data = res.result
+            this.data = res.result ?? []
             this._maxLength = this.data.length
         }
 
@@ -88,8 +88,6 @@ export function setProxyNodeRequest(router: FourzeRouter) {
 
         _url: string
 
-        logger: FourzeLogger
-
         buffer: Buffer
 
         constructor(options: ProxyRequestOptions, callback?: RequestCallback) {
@@ -97,7 +95,6 @@ export function setProxyNodeRequest(router: FourzeRouter) {
             this._ending = false
             this._ended = false
             this._options = options
-            this.logger = options.logger ?? createLogger("@fourze/mock")
             this._requestHeaders = flatHeaders(options.headers)
             this.method = options.method ?? "GET"
             this._url = optionsToURL(options).toString()
@@ -118,12 +115,12 @@ export function setProxyNodeRequest(router: FourzeRouter) {
                 body: this.buffer.toString("utf-8")
             })
             if (response.matched) {
-                this.logger.debug(`Found route by [${this.method}] ${this._url}`)
+                logger.info(`Found route by [${this.method}] -> "${this._url}"`)
 
                 const res = new ProxyClientResponse(response)
                 this.emit("response", res)
             } else {
-                this.logger.warn(`Not found route, fallback to original -> [${this.method}] ${this._url}`)
+                logger.warn(`Not found route, fallback to original [${this.method}] -> "${this._url}"`)
                 this._nativeRequest()
             }
         }
@@ -146,7 +143,7 @@ export function setProxyNodeRequest(router: FourzeRouter) {
             const headers = flatHeaders(this._options.headers)
             const useMock = getHeaderValue(headers, "X-Fourze-Mock")
             if (useMock === "off") {
-                this.logger.warn(`X-Fourze-Mock is off, fallback to original -> [${method}] ${this._url}`)
+                logger.warn(`X-Fourze-Mock is off, fallback to original [${method}] -> "${this._url}"`)
                 this._nativeRequest()
             } else {
                 this._mockRequest()

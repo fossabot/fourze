@@ -179,7 +179,7 @@ export function setProxyXHR(router: FourzeRouter) {
         }
 
         async mockSend(data: any) {
-            const { url, method } = this.$request
+            const { url, method = "GET" } = this.$request
 
             this.$request.body = data
             this.setRequestHeader("X-Requested-With", "Fourze XHR Proxy")
@@ -193,7 +193,7 @@ export function setProxyXHR(router: FourzeRouter) {
             await router(this.$request, this.$response)
 
             if (this.$response.matched) {
-                logger.info(`Found route by [${method ?? "GET"}] ${url}`)
+                logger.info(`Found route by [${method}] -> "${url}"`)
 
                 this.$base?.abort()
 
@@ -214,7 +214,7 @@ export function setProxyXHR(router: FourzeRouter) {
                 this.dispatchEvent(new Event("load"))
                 this.dispatchEvent(new Event("loadend"))
             } else {
-                logger.warn(`Not found route by [${method ?? "GET"}] ${url}`)
+                logger.warn(`Not found route by [${method}] -> "${url}"`)
                 this.originalSend(data)
             }
         }

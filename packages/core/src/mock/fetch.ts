@@ -106,12 +106,12 @@ export function setProxyFetch(router: FourzeRouter) {
                 logger.debug(`Found route by [${method}] ${url}`)
                 return new ProxyFetchResponse(response)
             }
-            logger.warn(`Not found route, fallback to original -> [${method}] ${url}`)
+            logger.warn(`Not found route, fallback to original [${method}] -> "${url}"`)
             return originalFetch(input, init)
         }
 
         if (useMock === "off") {
-            logger.warn(`X-Fourze-Mock is off, fallback to original -> [${method}] ${url}`)
+            logger.warn(`X-Fourze-Mock is off, fallback to original [${method}] -> "${url}"`)
             return originalFetch(input, init)
         } else {
             return mockRequest()

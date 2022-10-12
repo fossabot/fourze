@@ -13,11 +13,11 @@ createApp(RouterView)
                 },
                 {
                     path: "/home",
-                    component: () => import("./home.vue")
+                    component: () => import("./app.vue")
                 },
                 {
                     path: "/fallback",
-                    component: () => import("./home.vue")
+                    component: () => import("./app.vue")
                 }
             ]
         })

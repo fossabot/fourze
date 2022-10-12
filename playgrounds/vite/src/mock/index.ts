@@ -1,4 +1,4 @@
-import { defineFourze, FourzeHandle, randomDate, randomInt } from "@fourze/core"
+import { defineFourze, FourzeHandle, jsonWrapperHook, randomDate, randomInt } from "@fourze/core"
 import dayjs from "dayjs"
 import fs from "fs"
 import path from "path"
@@ -9,17 +9,7 @@ const keymap = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 export default defineFourze(fourze => {
     const cache: Record<string, any> = {}
 
-    fourze.hook(async (req, res, next) => {
-        if (cache[req.url]) {
-            res.result = cache[req.url]
-            console.log("hit cache", req.url)
-        } else {
-            await next?.()
-            cache[req.url] = res.result
-            req.meta.cache = cache
-        }
-        return successResponseWrap(res.result, req.route.path)
-    })
+    fourze.hook(jsonWrapperHook((data, req, res) => successResponseWrap(data, req.url)))
 
     const handleSearch: FourzeHandle = async (req, res) => {
         const num = Number(req.params.name ?? 0)
@@ -41,7 +31,7 @@ export default defineFourze(fourze => {
     fourze("POST /search/{name}", handleSearch)
 
     fourze("/img/a.jpg", async (req, res) => {
-        const f = await fs.promises.readFile(path.resolve(__dirname, "./test.jpg"))
+        const f = await fs.promises.readFile(path.resolve(__dirname, "./test.webp"))
         res.image(f)
     })
 
