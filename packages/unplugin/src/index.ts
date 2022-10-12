@@ -66,7 +66,9 @@ export interface UnpluginFourzeOptions {
 
     delay?: DelayMsType
 
-    transformCode?: (router: FourzeHotRouter, mode?: FourzeMockRouterOptions["mode"]) => string
+    allow?: string[]
+
+    transformCode?: (router: FourzeHotRouter, options?: FourzeMockRouterOptions) => string
 }
 
 export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
@@ -75,6 +77,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
     const base = options.base ?? "/api"
 
     const delay = options.delay ?? 0
+    const allow = options.allow ?? []
 
     const port = options.server?.port ?? 7609
     const host = options.server?.host ?? "localhost"
@@ -100,7 +103,8 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
         base,
         dir,
         pattern,
-        delay
+        delay,
+        allow
     })
 
     proxy.forEach(router.proxy)
@@ -111,6 +115,11 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
     return {
         name: PLUGIN_NAME,
+
+        async buildStart() {
+            await router.load()
+        },
+
         resolveId(id) {
             if (isClientID(id)) {
                 return id
@@ -119,7 +128,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
         async load(id) {
             if (isClientID(id)) {
-                return transformCode(router)
+                return transformCode(router, options)
             }
         },
         async webpack() {

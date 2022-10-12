@@ -180,7 +180,8 @@ export function setProxyXHR(router: FourzeRouter) {
 
         async mockSend(data: any) {
             const { url, method } = this.$request
-            this.$request.body = (typeof data === "string" ? JSON.parse(data) : data) ?? this.$request.body ?? {}
+
+            this.$request.body = data
             this.setRequestHeader("X-Requested-With", "Fourze XHR Proxy")
             this.setRequestHeader("Origin", location.origin)
             this.setRequestHeader("Host", location.host)

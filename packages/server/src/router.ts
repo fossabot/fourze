@@ -1,11 +1,11 @@
-import { createLogger, createRouter, defineFourze, DelayMsType, Fourze, FourzeBaseHook, FourzeBaseRoute, FourzeRoute, FourzeRouter, isFourze, isRoute } from "@fourze/core"
+import { createLogger, createRouter, defineFourze, DelayMsType, Fourze, FourzeBaseHook, FourzeBaseRoute, FourzeRoute, FourzeRouter, FourzeRouterOptions, isFourze, isRoute } from "@fourze/core"
 import type { FSWatcher } from "chokidar"
 import fs from "fs"
 import { join, resolve } from "path"
 import { createRenderer } from "./renderer"
 import { normalizePath } from "./utils"
 
-export interface FourzeHotRouterOptions {
+export interface FourzeHotRouterOptions extends FourzeRouterOptions {
     /**
      * 根路径
      * @default "/"
@@ -92,6 +92,7 @@ export function createHotRouter(options: FourzeHotRouterOptions = {}): FourzeHot
         const allModules = modules.concat(Array.from(extraModuleMap.values()).flat())
 
         return {
+            ...options,
             base,
             modules: allModules,
             delay
