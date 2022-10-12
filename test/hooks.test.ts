@@ -36,14 +36,13 @@ describe("hooks", async () => {
 
                 route.hook("/api/test", async (req, res, next) => {
                     if (req.method == "post") {
-                        res.result = "otherthing"
+                        res.result = "others"
                     }
                     return next?.()
                 })
 
                 route.hook("/api/test", (req, res, next) => {
                     if (req.method == "post") {
-                        console.log("do somethings")
                         return "something"
                     }
                     return next?.()
@@ -74,7 +73,7 @@ describe("hooks", async () => {
 
         expect(resToken).toEqual(data.token)
 
-        const text = await res2.text()
+        const text = await res2.json()
 
         expect(text).toEqual("something")
     })
