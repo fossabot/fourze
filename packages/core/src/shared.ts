@@ -1,5 +1,6 @@
 import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
 import type { MaybePromise } from "maybe-types"
+import { parseUrl } from "query-string"
 
 import { version } from "../package.json"
 import { flatHeaders, getHeaderRawValue } from "./polyfill/header"
@@ -14,7 +15,6 @@ const FOURZE_RESPONSE_SYMBOL = Symbol("FourzeResponse")
 
 export interface FourzeRequest extends IncomingMessage {
     url: string
-    method?: string
     route: FourzeRoute
     relativePath: string
     query: Record<string, any>
@@ -28,6 +28,10 @@ export interface FourzeRequest extends IncomingMessage {
     meta: Record<string, any>
 
     headers: Record<string, string | string[] | undefined>
+
+    readonly method: string
+
+    readonly path: string
 
     readonly [FOURZE_REQUEST_SYMBOL]: true
 }
@@ -104,7 +108,7 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
 
     function getPathRegex(_path: string, _base: string) {
         const finalPath = resolvePath(_path, _base)
-        return new RegExp(`^${finalPath.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}`.concat("(.*)([?&#].*)?$"), "i")
+        return new RegExp(`^${finalPath.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}$`, "i")
     }
 
     return {
@@ -413,6 +417,11 @@ export function createRequestContext(options: FourzeRequestContextOptions) {
 export function createRequest(options: Partial<FourzeRequest>) {
     const headers = flatHeaders(options.headers)
 
+    const { query, url: path } = parseUrl(options.url!, {
+        parseBooleans: true,
+        parseNumbers: true
+    })
+
     const contentType = headers["content-type"]
 
     if (typeof options.body === "string" && contentType) {
@@ -425,13 +434,17 @@ export function createRequest(options: Partial<FourzeRequest>) {
 
     return {
         relativePath: options.url,
-        query: {},
+
+        query: query,
         body: {},
         params: {},
         data: {},
         meta: {},
         ...options,
         headers,
+        get path() {
+            return path
+        },
         get [FOURZE_REQUEST_SYMBOL]() {
             return true
         }

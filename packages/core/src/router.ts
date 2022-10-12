@@ -1,5 +1,4 @@
 import { MaybeAsyncFunction, MaybePromise, MaybeRegex } from "maybe-types"
-import { parseUrl } from "query-string"
 import { defineFourze, Fourze, FourzeSetup, isFourze } from "./app"
 import { delayHook } from "./hooks"
 import { createLogger } from "./logger"
@@ -114,14 +113,14 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
     let _context: FourzeSetupContext
 
     const router = async function (request: FourzeRequest, response: FourzeResponse, next?: FourzeNext) {
-        const { url, method } = request
+        const { path, method } = request
 
-        const isAllowed = router.isAllow(url)
+        const isAllowed = router.isAllow(path)
 
         if (isAllowed) {
             await router.setup()
 
-            const [route, matches] = router.match(url, method, true)
+            const [route, matches] = router.match(path, method, true)
 
             if (route && matches) {
                 const params: Record<string, any> = {}
@@ -133,10 +132,6 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
                 }
 
                 request.route = route
-                request.query = parseUrl(url, {
-                    parseNumbers: true,
-                    parseBooleans: true
-                }).query
 
                 if (matches.length > route.pathParams.length) {
                     request.relativePath = matches[matches.length - 2]
@@ -153,7 +148,7 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
                     ...route.meta
                 }
 
-                const activeHooks = router.hooks.filter(e => !e.base || url.startsWith(e.base))
+                const activeHooks = router.hooks.filter(e => !e.base || path.startsWith(e.base))
 
                 const handle = async () => {
                     const hook = activeHooks.shift()
@@ -173,13 +168,13 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
         }
 
         if (response.matched) {
-            logger.info(`Request matched [${method}] -> "${url}".`)
+            logger.info(`Request matched [${method}] -> "${path}".`)
             if (!response.writableEnded) {
                 response.end()
             }
         } else {
             if (isAllowed) {
-                logger.warn(`Request is allowed but not matched [${method}] -> "${url}".`)
+                logger.warn(`Request is allowed but not matched [${method}] -> "${path}".`)
             }
             await next?.()
         }

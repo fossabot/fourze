@@ -86,7 +86,7 @@ describe("fetch", async () => {
             count: 100
         }
 
-        const originalFetchReturn = await fetch("http://localhost:7609/hello.json", {
+        const originalFetchReturn = await fetch("http://localhost:7609/hello", {
             headers: {
                 "x-fourze-mock": "off"
             }
@@ -106,7 +106,7 @@ describe("fetch", async () => {
 
         expect(axiosReturnData).toEqual(postData)
 
-        const originalReturn = await axios.get("http://localhost:7609/hello.json", {})
+        const originalReturn = await axios.get("http://localhost:7609/hello", {})
 
         const originalReturnHeaders = originalReturn.headers["x-test"]
 
