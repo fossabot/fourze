@@ -6,8 +6,7 @@
         "build": "nuxt build",
         "dev": "nuxt dev",
         "generate": "nuxt generate",
-        "preview": "nuxt generate && nuxt preview",
-        "prepare": "nuxt prepare"
+        "preview": "nuxt generate && nuxt preview"
     },
     "dependencies": {
         "@vueuse/core": "^9.1.1",
