@@ -187,8 +187,9 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
             if (!response.writableEnded) {
                 if (!!response.result && !response.hasHeader("Content-Type")) {
                     response.json(response.result)
+                } else {
+                    response.end(response.result)
                 }
-                response.end(response.result)
             }
         } else {
             await next?.()
