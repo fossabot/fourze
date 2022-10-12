@@ -1,5 +1,4 @@
-import { FourzeRequest, FourzeResponse } from "@fourze/core"
-import { defineFourzeHook } from "../shared"
+import { defineFourzeHook, FourzeRequest, FourzeResponse } from "../shared"
 import { delay, DelayMsType } from "../utils"
 
 export function delayHook(ms: DelayMsType) {
