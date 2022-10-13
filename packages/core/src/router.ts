@@ -4,6 +4,7 @@ import { delayHook } from "./hooks"
 import { createLogger } from "./logger"
 import {
     createRequestContext,
+    defineFourzeHook,
     defineRoute,
     FourzeContext,
     FourzeHook,
@@ -16,7 +17,7 @@ import {
     FourzeRoute,
     FourzeSetupContext
 } from "./shared"
-import { asyncLock, DelayMsType, isMatch, relativePath, unique } from "./utils"
+import { asyncLock, DelayMsType, isMatch, relativePath, resolvePath, unique } from "./utils"
 
 export interface FourzeRouter extends FourzeMiddleware {
     /**
@@ -148,7 +149,9 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
                     ...route.meta
                 }
 
-                const activeHooks = router.hooks.filter(e => !e.base || path.startsWith(e.base))
+                console.log("path", path, "meta", request.meta)
+
+                const activeHooks = router.hooks.filter(e => !e.path || path.startsWith(e.path))
 
                 const handle = async () => {
                     const hook = activeHooks.shift()
@@ -203,9 +206,9 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
 
     router.match = function (this: FourzeRouter, url: string, method?: string, allowed = false): [FourzeRoute, RegExpMatchArray] | [] {
         if (allowed || this.isAllow(url)) {
-            const path = relativePath(url, this.options.base)
+            console.log("match", url)
             for (const route of this.routes) {
-                const matches = route.match(path, method)
+                const matches = route.match(url, method)
                 if (matches) {
                     return [route, matches]
                 }
@@ -275,12 +278,19 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
         for (const route of newRoutes) {
             routes.add(
                 defineRoute({
-                    ...route
+                    ...route,
+                    base: options.base
                 })
             )
         }
+
         for (const hook of newHooks) {
-            hooks.add(hook)
+            hooks.add(
+                defineFourzeHook({
+                    ...hook,
+                    path: hook.path ? resolvePath(hook.path, options.base) : options.base
+                })
+            )
         }
     })
 

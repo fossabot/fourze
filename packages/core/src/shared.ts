@@ -4,7 +4,7 @@ import { parseUrl } from "query-string"
 
 import { version } from "../package.json"
 import { flatHeaders, getHeaderRawValue } from "./polyfill/header"
-import { parseFormdata as parseFormData } from "./utils"
+import { parseFormdata as parseFormData, resolvePath } from "./utils"
 
 export const FOURZE_VERSION = version
 
@@ -63,6 +63,7 @@ export interface FourzeResponse extends FourzeBaseResponse {
 
 export interface FourzeBaseRoute {
     path: string
+    base?: string
     method?: RequestMethod
     handle: FourzeHandle
     meta?: Record<string, any>
@@ -92,7 +93,7 @@ const REQUEST_PATH_REGEX = new RegExp(`^(${FOURZE_METHODS.join("|")})\\s+`, "i")
 const PARAM_KEY_REGEX = /\{[\w_-]+\}/g
 
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
-    let { handle, method, path, meta = {} } = route
+    let { handle, method, path, meta = {}, base } = route
 
     if (REQUEST_PATH_REGEX.test(path)) {
         const arr = path.split(/\s+/)
@@ -103,6 +104,8 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         }
     }
 
+    path = resolvePath(path, base)
+
     return {
         method,
         path,
@@ -111,7 +114,7 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         match(this: FourzeRoute, url: string, method?: string) {
             if (!this.method || !method || this.method.toLowerCase() === method.toLowerCase()) {
                 const regex = new RegExp(`^${path.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}$`, "i")
-                console.log("Route match", regex, url)
+                console.log("Route match", regex, url, url.match(regex))
                 return url.match(regex)
             }
             return null
@@ -126,12 +129,12 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
 }
 
 export interface FourzeBaseHook extends FourzeMiddleware<any> {
-    base?: string
+    path?: string
 }
 
 export interface FourzeHook {
     handle: FourzeMiddleware<any>
-    base?: string
+    path?: string
     readonly [FOURZE_HOOK_SYMBOL]: true
 }
 
@@ -142,10 +145,9 @@ export function defineFourzeHook(interceptor: FourzeBaseHook): FourzeHook
 export function defineFourzeHook(interceptor: DefineFourzeHook): FourzeHook
 
 export function defineFourzeHook(param0: string | DefineFourzeHook | FourzeBaseHook, param1?: FourzeBaseHook) {
-    const base = typeof param0 === "string" ? param0 : param0.base
+    const path = typeof param0 === "string" ? param0 : param0.path
 
     const hook = {
-        base,
         handle:
             param1 ?? typeof param0 === "string"
                 ? param1
@@ -159,9 +161,9 @@ export function defineFourzeHook(param0: string | DefineFourzeHook | FourzeBaseH
                   }
     } as FourzeHook
 
-    Object.defineProperty(hook, "base", {
+    Object.defineProperty(hook, "path", {
         get() {
-            return base
+            return path
         }
     })
 
@@ -174,7 +176,7 @@ export function defineFourzeHook(param0: string | DefineFourzeHook | FourzeBaseH
 }
 
 export type DefineFourzeHook = {
-    base?: string
+    path?: string
     before?: FourzeHandle<void>
     handle?: FourzeHandle<any>
     after?: FourzeHandle<void>

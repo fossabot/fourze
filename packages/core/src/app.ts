@@ -1,6 +1,6 @@
 import { MaybePromise } from "maybe-types"
 import { DefineFourzeHook, defineFourzeHook, defineRoute, FourzeBaseHook, FourzeBaseRoute, FourzeHandle, FourzeHook, FourzeInstance, FOURZE_METHODS, isFourzeHook, RequestMethod } from "./shared"
-import { asyncLock, overload } from "./utils"
+import { asyncLock, overload, resolvePath } from "./utils"
 export interface FourzeOptions {
     base?: string
     setup?: FourzeSetup
@@ -52,10 +52,10 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
 
     const fourze = function (this: Fourze, param0: string | FourzeBaseRoute | FourzeBaseRoute[], param1: string | FourzeHandle, param2?: FourzeHandle) {
         if (isFourze(param0)) {
-            routes.push(...param0.routes)
+            routes.push(...param0.routes.map(defineRoute))
             hooks.push(...param0.hooks)
         } else if (Array.isArray(param0)) {
-            routes.push(...param0)
+            routes.push(...param0.map(defineRoute))
         } else if (typeof param0 === "object") {
             routes.push(param0)
         } else {
@@ -103,16 +103,22 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
     Object.defineProperties(fourze, {
         routes: {
             get() {
-                return routes.map(e =>
-                    defineRoute({
-                        ...e
+                return routes.map(e => {
+                    return defineRoute({
+                        ...e,
+                        base: _base
                     })
-                )
+                })
             }
         },
         hooks: {
             get() {
-                return hooks
+                return hooks.map(e => {
+                    return defineFourzeHook({
+                        ...e,
+                        path: e.path ? resolvePath(e.path, _base) : _base
+                    })
+                })
             }
         },
         base: {

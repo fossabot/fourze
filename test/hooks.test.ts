@@ -31,33 +31,36 @@ describe("hooks", async () => {
                         req.meta.token = req.headers["token"].toString().toUpperCase()
                     }
                     res.setHeader("token", data.token)
-                    await next?.()
+                    console.log("set-meta", req.meta)
+                    return await next?.()
                 })
 
-                route.hook("/api/test", async (req, res, next) => {
-                    if (req.method == "post") {
-                        res.result = "others"
-                    }
-                    return next?.()
-                })
+                // route.hook("/api/test", async (req, res, next) => {
+                //     if (req.method == "post") {
+                //         res.result = "others"
+                //     }
+                //     return next?.()
+                // })
 
-                route.hook("/api/test", (req, res, next) => {
-                    if (req.method == "post") {
-                        return "something"
-                    }
-                    return next?.()
-                })
+                // route.hook("/api/test", (req, res, next) => {
+                //     if (req.method == "post") {
+                //         return "something"
+                //     }
+                //     return next?.()
+                // })
 
-                route.hook("/api/test", (req, res, next) => {
-                    if (req.method == "post") {
-                        console.log("after somethings")
-                        return "unknown"
-                    }
-                    return next?.()
-                })
+                // route.hook("/api/test", (req, res, next) => {
+                //     if (req.method == "post") {
+                //         console.log("after somethings")
+                //         return "unknown"
+                //     }
+                //     return next?.()
+                // })
             })
 
         await router.setup()
+
+        console.log("hooks", router.hooks)
 
         const res = await fetch("/api/test", {
             headers: {
