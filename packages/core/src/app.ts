@@ -105,8 +105,7 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
             get() {
                 return routes.map(e =>
                     defineRoute({
-                        ...e,
-                        base: e.base ?? _base
+                        ...e
                     })
                 )
             }

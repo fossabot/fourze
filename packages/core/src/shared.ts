@@ -4,7 +4,7 @@ import { parseUrl } from "query-string"
 
 import { version } from "../package.json"
 import { flatHeaders, getHeaderRawValue } from "./polyfill/header"
-import { parseFormdata as parseFormData, resolvePath } from "./utils"
+import { parseFormdata as parseFormData } from "./utils"
 
 export const FOURZE_VERSION = version
 
@@ -63,7 +63,6 @@ export interface FourzeResponse extends FourzeBaseResponse {
 
 export interface FourzeBaseRoute {
     path: string
-    base?: string
     method?: RequestMethod
     handle: FourzeHandle
     meta?: Record<string, any>
@@ -71,9 +70,7 @@ export interface FourzeBaseRoute {
 
 export interface FourzeRoute extends FourzeBaseRoute {
     readonly [FOURZE_ROUTE_SYMBOL]: true
-    readonly pathRegex: RegExp
     readonly pathParams: RegExpMatchArray
-    readonly finalPath: string
     meta: Record<string, any>
     match: (url: string, method?: string, base?: string) => RegExpMatchArray | null
 }
@@ -95,7 +92,7 @@ const REQUEST_PATH_REGEX = new RegExp(`^(${FOURZE_METHODS.join("|")})\\s+`, "i")
 const PARAM_KEY_REGEX = /\{[\w_-]+\}/g
 
 export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
-    let { handle, method, path, base = "/", meta = {} } = route
+    let { handle, method, path, meta = {} } = route
 
     if (REQUEST_PATH_REGEX.test(path)) {
         const arr = path.split(/\s+/)
@@ -106,34 +103,21 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         }
     }
 
-    function getPathRegex(_path: string, _base: string) {
-        const finalPath = resolvePath(_path, _base)
-        return new RegExp(`^${finalPath.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}$`, "i")
-    }
-
     return {
         method,
         path,
-        base,
         meta,
         handle,
-        match(this: FourzeRoute, url: string, method?: string, _base?: string) {
-            _base = _base ?? "/"
+        match(this: FourzeRoute, url: string, method?: string) {
             if (!this.method || !method || this.method.toLowerCase() === method.toLowerCase()) {
-                const regex = getPathRegex(resolvePath(path, base), _base)
-                const match = url.match(regex)
-                return match
+                const regex = new RegExp(`^${path.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}$`, "i")
+                console.log("Route match", regex, url)
+                return url.match(regex)
             }
             return null
         },
-        get finalPath() {
-            return resolvePath(path, base)
-        },
         get pathParams() {
-            return this.finalPath.match(PARAM_KEY_REGEX) ?? []
-        },
-        get pathRegex() {
-            return getPathRegex(path, base)
+            return this.path.match(PARAM_KEY_REGEX) ?? []
         },
         get [FOURZE_ROUTE_SYMBOL](): true {
             return true
@@ -418,8 +402,7 @@ export function createRequest(options: Partial<FourzeRequest>) {
     const headers = flatHeaders(options.headers)
 
     const { query, url: path } = parseUrl(options.url!, {
-        parseBooleans: true,
-        parseNumbers: true
+        parseBooleans: true
     })
 
     const contentType = headers["content-type"]

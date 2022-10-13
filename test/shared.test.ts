@@ -27,8 +27,8 @@ describe("shared", async () => {
             return {
                 base: "/v1",
                 delay: "200-500",
-                allow: ["/api/**", "/hello", "/add", "/deny"],
-                deny: ["/deny"],
+                allow: ["/api/**", "/hello", "/add"],
+                deny: ["/api/deny"],
                 external: ["http://www.test.com"]
             }
         }).use("/api/", route => {
@@ -38,7 +38,7 @@ describe("shared", async () => {
                 }
             })
 
-            route.get("//hello", () => {
+            route.get("/hello", () => {
                 return {
                     ...testData
                 }
@@ -60,11 +60,11 @@ describe("shared", async () => {
                 }
             })
 
-            route.get("//deny", () => {
+            route.get("/deny", () => {
                 return "deny"
             })
 
-            route("POST //add", () => {
+            route("POST /add", () => {
                 return {
                     ...testData
                 }
@@ -84,16 +84,15 @@ describe("shared", async () => {
         expect(router.match("http://test.com/hello")).length(0)
 
         // not in allow
-        expect(router.match("/v1/api/hello")).length(0)
         expect(router.match("/api/hello")).length(0)
         expect(router.match("/hello")).length(0)
         expect(router.match("/v1/noallow")).length(0)
 
         // in allow
-        expect(router.match("/v1/hello")).not.length(0)
+        expect(router.match("/v1/api/hello")).not.length(0)
         expect(router.match("/v1/add", "post")).not.length(0)
 
         // in deny
-        expect(router.match("/v1/deny")).length(0)
+        expect(router.match("/v1/api/deny")).length(0)
     })
 })

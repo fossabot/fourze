@@ -132,29 +132,6 @@ importers:
     devDependencies:
       webpack: 5.74.0
 
-  playgrounds/common:
-    specifiers:
-      '@fourze/nuxt': workspace:*
-      '@vueuse/core': ^9.1.1
-      axios: ^0.27.2
-      dayjs: ^1.11.4
-      jquery: ^3.6.0
-      maybe-types: ^0.0.3
-      nuxt: 3.0.0-rc.11
-      nuxt-windicss: ^2.5.2
-      query-string: ^7.1.1
-    dependencies:
-      '@vueuse/core': 9.1.1
-      axios: 0.27.2
-      dayjs: 1.11.4
-      jquery: 3.6.0
-      query-string: 7.1.1
-    devDependencies:
-      '@fourze/nuxt': link:../../packages/nuxt
-      maybe-types: 0.0.3
-      nuxt: 3.0.0-rc.11
-      nuxt-windicss: 2.5.2
-
   playgrounds/nuxt-app:
     specifiers:
       '@fourze/nuxt': workspace:*
@@ -2580,12 +2557,12 @@ packages:
     resolution: {integrity: sha512-ALYone6pm6QmwZoAgeyNksccT9Q4AWZQ6PvfwR37GT6r6FWUPguq6sUmNGSMV2Wr761oQoBxwGGa6DR5o1DC9g==}
     dependencies:
       '@types/connect': 3.4.35
-      '@types/node': 18.6.0
+      '@types/node': 18.8.3
 
   /@types/bonjour/3.5.10:
     resolution: {integrity: sha512-p7ienRMiS41Nu2/igbJxxLDWrSZ0WxM8UQgCeO9KhoVF7cOVFkrKsiDr1EsJIla8vV3oEEjGcz11jc5yimhzZw==}
     dependencies:
-      '@types/node': 18.6.0
+      '@types/node': 18.8.3
     dev: true
 
   /@types/chai-subset/1.3.3:
@@ -2608,13 +2585,13 @@ packages:
     resolution: {integrity: sha512-h8QJa8xSb1WD4fpKBDcATDNGXghFj6/3GRWG6dhmRcu0RX1Ubasur2Uvx5aeEwlf0MwblEC2bMzzMQntxnw/Cw==}
     dependencies:
       '@types/express-serve-static-core': 4.17.29
-      '@types/node': 18.6.0
+      '@types/node': 18.8.3
     dev: true
 
   /@types/connect/3.4.35:
     resolution: {integrity: sha512-cdeYyv4KWoEgpBISTxWvqYsVy444DOqehiF3fM3ne10AmJ62RSyNkUnxMJXHQWRQQX2eR94m5y1IZyDwBjV9FQ==}
     dependencies:
-      '@types/node': 18.6.0
+      '@types/node': 18.8.3
 
   /@types/dedent/0.7.0:
     resolution: {integrity: sha512-EGlKlgMhnLt/cM4DbUSafFdrkeJoC9Mvnj0PUCU7tFmTjMjNRT957kXCx0wYm3JuEq4o4ZsS5vG+NlkM2DMd2A==}
@@ -2668,7 +2645,7 @@ packages:
   /@types/http-proxy/1.17.9:
     resolution: {integrity: sha512-QsbSjA/fSk7xB+UXlCT3wHBy5ai9wOcNDWwZAtud+jXhwOM3l+EYZh8Lng4+/6n8uar0J7xILzqftJdJ/Wdfkw==}
     dependencies:
-      '@types/node': 18.6.0
+      '@types/node': 18.8.3
     dev: true
 
   /@types/jquery/3.5.14:
@@ -2697,6 +2674,7 @@ packages:
 
   /@types/node/18.6.0:
     resolution: {integrity: sha512-WZ/6I1GL0DNAo4bb01lGGKTHH8BHJyECepf11kWONg3OJoHq2WYOm16Es1V54Er7NTUXsbDCpKRKdmBc4X2xhA==}
+    dev: true
 
   /@types/node/18.8.3:
     resolution: {integrity: sha512-0os9vz6BpGwxGe9LOhgP/ncvYN5Tx1fNcd2TM3rD/aCGBkysb+ZWpXEocG24h6ZzOi13+VB8HndAQFezsSOw1w==}
@@ -2735,7 +2713,7 @@ packages:
     resolution: {integrity: sha512-nCkHGI4w7ZgAdNkrEu0bv+4xNV/XDqW+DydknebMOQwkpDGx8G+HTlj7R7ABI8i8nKxVw0wtKPi1D+lPOkh4YQ==}
     dependencies:
       '@types/mime': 1.3.2
-      '@types/node': 18.6.0
+      '@types/node': 18.8.3
 
   /@types/sizzle/2.3.3:
     resolution: {integrity: sha512-JYM8x9EGF163bEyhdJBpR2QX1R5naCJHC8ucJylJ3w9/CVBaskdQ8WqBf8MmQrd1kRvp/a4TS8HJ+bxzR7ZJYQ==}
@@ -2744,7 +2722,7 @@ packages:
   /@types/sockjs/0.3.33:
     resolution: {integrity: sha512-f0KEEe05NvUnat+boPTZ0dgaLZ4SfSouXUgv5noUiefG2ajgKjmETo9ZJyuqsl7dfl2aHlLJUiki6B4ZYldiiw==}
     dependencies:
-      '@types/node': 18.6.0
+      '@types/node': 18.8.3
     dev: true
 
   /@types/web-bluetooth/0.0.15:
@@ -2771,7 +2749,7 @@ packages:
   /@types/ws/8.5.3:
     resolution: {integrity: sha512-6YOoWjruKj1uLf3INHH7D3qTXwFfEsg1kf3c0uDdSBJwfa/llkwIjrAGV7j7mVgGNbzTQ3HiHKKDXl6bJPD97w==}
     dependencies:
-      '@types/node': 18.6.0
+      '@types/node': 18.8.3
     dev: true
 
   /@typescript-eslint/eslint-plugin/5.31.0_4jrpqvszkjcwtaspamifhp3x7e:
@@ -3863,7 +3841,7 @@ packages:
       '@windicss/config': 1.8.7
       debug: 4.3.4
       fast-glob: 3.2.12
-      magic-string: 0.26.2
+      magic-string: 0.26.7
       micromatch: 4.0.5
       windicss: 3.5.6
     transitivePeerDependencies:
@@ -7887,10 +7865,6 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
-  /jsonc-parser/3.1.0:
-    resolution: {integrity: sha512-DRf0QjnNeCUds3xTjKlQQ3DpJD51GvDjJfnxUVWg6PZTo2otSm+slzNAxU/35hF8/oJIKoG9slq30JYOsF2azg==}
-    dev: true
-
   /jsonc-parser/3.2.0:
     resolution: {integrity: sha512-gfFQZrcTc8CnKXp6Y4/CBT3fTc0OVuDofpre4aEeEpSBPV5X5v4+Vmx+8snU7RLPrNHPKSgLxGo9YuQzz20o+w==}
 
@@ -8437,7 +8411,7 @@ packages:
     dependencies:
       acorn: 8.8.0
       pathe: 0.3.9
-      pkg-types: 0.3.3
+      pkg-types: 0.3.5
       ufo: 0.8.5
     dev: true
 
@@ -9156,7 +9130,7 @@ packages:
   /pkg-types/0.3.3:
     resolution: {integrity: sha512-6AJcCMnjUQPQv/Wk960w0TOmjhdjbeaQJoSKWRQv9N3rgkessCu6J0Ydsog/nw1MbpnxHuPzYbfOn2KmlZO1FA==}
     dependencies:
-      jsonc-parser: 3.1.0
+      jsonc-parser: 3.2.0
       mlly: 0.5.16
       pathe: 0.3.9
     dev: true

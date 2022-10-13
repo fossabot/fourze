@@ -193,7 +193,7 @@ export function setProxyXHR(router: FourzeRouter) {
             await router(this.$request, this.$response)
 
             if (this.$response.matched) {
-                logger.info(`Found route by [${method}] -> "${url}"`)
+                logger.success(`Found route by [${method}] -> "${url}"`)
 
                 this.$base?.abort()
 
@@ -214,7 +214,7 @@ export function setProxyXHR(router: FourzeRouter) {
                 this.dispatchEvent(new Event("load"))
                 this.dispatchEvent(new Event("loadend"))
             } else {
-                logger.warn(`Not found route by [${method}] -> "${url}"`)
+                logger.debug(`Not found route by [${method}] -> "${url}"`)
                 this.originalSend(data)
             }
         }
@@ -224,7 +224,7 @@ export function setProxyXHR(router: FourzeRouter) {
             const { url, method } = this.$request
 
             if (useMock === "off") {
-                logger.warn(`X-Fourze-Mock is off, fallback to original -> [${method}] ${url}`)
+                logger.debug(`X-Fourze-Mock is off, fallback to original -> [${method}] ${url}`)
                 this.originalSend(data)
             } else {
                 await this.mockSend(data)

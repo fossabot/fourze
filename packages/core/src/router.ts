@@ -203,8 +203,9 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
 
     router.match = function (this: FourzeRouter, url: string, method?: string, allowed = false): [FourzeRoute, RegExpMatchArray] | [] {
         if (allowed || this.isAllow(url)) {
+            const path = relativePath(url, this.options.base)
             for (const route of this.routes) {
-                const matches = route.match(url, method, options.base)
+                const matches = route.match(path, method)
                 if (matches) {
                     return [route, matches]
                 }
@@ -274,8 +275,7 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
         for (const route of newRoutes) {
             routes.add(
                 defineRoute({
-                    ...route,
-                    base: route.base ?? options.base
+                    ...route
                 })
             )
         }

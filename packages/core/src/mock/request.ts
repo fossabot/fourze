@@ -115,12 +115,12 @@ export function setProxyNodeRequest(router: FourzeRouter) {
                 body: this.buffer.toString("utf-8")
             })
             if (response.matched) {
-                logger.info(`Found route by [${this.method}] -> "${this._url}"`)
+                logger.success(`Found route by [${this.method}] -> "${this._url}"`)
 
                 const res = new ProxyClientResponse(response)
                 this.emit("response", res)
             } else {
-                logger.warn(`Not found route, fallback to original [${this.method}] -> "${this._url}"`)
+                logger.debug(`Not found route, fallback to original [${this.method}] -> "${this._url}"`)
                 this._nativeRequest()
             }
         }
@@ -143,7 +143,7 @@ export function setProxyNodeRequest(router: FourzeRouter) {
             const headers = flatHeaders(this._options.headers)
             const useMock = getHeaderValue(headers, "X-Fourze-Mock")
             if (useMock === "off") {
-                logger.warn(`X-Fourze-Mock is off, fallback to original [${method}] -> "${this._url}"`)
+                logger.debug(`X-Fourze-Mock is off, fallback to original [${method}] -> "${this._url}"`)
                 this._nativeRequest()
             } else {
                 this._mockRequest()
