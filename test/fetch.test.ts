@@ -1,4 +1,5 @@
-import { createMockRouter, randomInt, setLoggerLevel } from "@fourze/core"
+import { randomInt, setLoggerLevel } from "@fourze/core"
+import { createMockRouter } from "@fourze/mock"
 import nodeFetch from "node-fetch"
 import { describe, expect, it } from "vitest"
 

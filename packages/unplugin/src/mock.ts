@@ -1,4 +1,4 @@
-import { FourzeMockRouterOptions } from "@fourze/core"
+import { FourzeMockRouterOptions } from "@fourze/mock"
 import type { FourzeHotRouter } from "@fourze/server"
 import { normalizePath } from "@fourze/server"
 
@@ -7,7 +7,7 @@ const TEMPORARY_FILE_SUFFIX = ".tmp.js"
 export function defaultMockCode(router: FourzeHotRouter, options: FourzeMockRouterOptions) {
     const INJECT_KEY = "__FOURZE_MOCK_ROUTER__"
 
-    let code = `import {createMockRouter} from "@fourze/core"`
+    let code = `import {createMockRouter} from "@fourze/mock"`
 
     const names: string[] = []
     for (let i = 0; i < router.moduleNames.length; i++) {

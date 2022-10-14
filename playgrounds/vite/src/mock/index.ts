@@ -32,7 +32,7 @@ export default defineFourze(fourze => {
     fourze("POST /search/{name}", handleSearch)
 
     fourze("/img/avatar.jpg", async (req, res) => {
-        let avatarPath = path.resolve(__dirname, "../../dist/avatar.jpg")
+        let avatarPath = path.resolve(__dirname, ".tmp/avatar.jpg")
         if (!fs.existsSync(avatarPath)) {
             avatarPath = path.resolve(__dirname, "./test.webp")
         }
@@ -44,7 +44,11 @@ export default defineFourze(fourze => {
     fourze("/upload/avatar", async (req, res) => {
         const file = req.body.file as PolyfillFile
         if (!!file?.body) {
-            await fs.promises.writeFile(path.resolve(__dirname, "../../dist/avatar.jpg"), file.body)
+            if (!fs.existsSync(path.resolve(__dirname, ".tmp"))) {
+                fs.mkdirSync(path.resolve(__dirname, ".tmp"))
+            }
+
+            await fs.promises.writeFile(path.resolve(__dirname, ".tmp/avatar.jpg"), file.body)
             return {
                 size: file.size
             }

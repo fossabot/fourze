@@ -1,0 +1,23 @@
+{
+    "name": "@fourze/mock",
+    "version": "0.18.6",
+    "description": "",
+    "main": "dist/index.cjs",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/"
+    ],
+    "scripts": {
+        "build": "unbuild",
+        "stub": "unbuild --stub"
+    },
+    "author": "chizuki",
+    "license": "MIT",
+    "dependencies": {
+        "@fourze/core": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/node": "^18.6.0"
+    }
+}

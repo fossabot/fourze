@@ -14,9 +14,12 @@
         "jsx": "preserve",
         "paths": {
             "@fourze/core": ["./packages/core/src/index.ts"],
+            "@fourze/mock": ["./packages/mock/src/index.ts"],
             "@fourze/server": ["./packages/server/src/index.ts"],
             "@fourze/vite": ["./packages/vite/src/index.ts"],
-            "@fourze/unplugin": ["./packages/unplugin/src/index.ts"]
+            "@fourze/webpack": ["./packages/webpack/src/index.ts"],
+            "@fourze/unplugin": ["./packages/unplugin/src/index.ts"],
+            "@fourze/nuxt": ["./packages/nuxt/src/index.ts"]
         }
     },
     "include": ["playgrounds/**/*.ts", "playgrounds/**/*.tsx", "packages/**/*.ts", "playgrounds/vue-cli/vue.config.js"]

@@ -1,6 +1,6 @@
 import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
 import type { MaybePromise } from "maybe-types"
-import { parseUrl } from "query-string"
+import { parse, parseUrl } from "query-string"
 
 import { version } from "../package.json"
 import { decodeFormData } from "./polyfill/form-data"
@@ -414,9 +414,14 @@ export function createRequest(options: FourzeRequestOptions) {
     const contentType = headers["content-type"]
 
     if (contentType) {
-        if (typeof options.body === "string" && contentType.startsWith("application/json")) {
-            options.body = JSON.parse(options.body)
+        if (typeof options.body === "string") {
+            if (contentType.startsWith("application/json")) {
+                options.body = JSON.parse(options.body)
+            } else if (contentType.startsWith("application/x-www-form-urlencoded")) {
+                options.body = parse(options.body)
+            }
         }
+
         if (contentType.startsWith("multipart/form-data")) {
             const boundary = contentType.split("=")[1]
             options.body = decodeFormData(options.body, boundary)

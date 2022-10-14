@@ -1,6 +1,7 @@
-import { createLogger, DelayMsType, FourzeLogLevelKey, FourzeMockRouterOptions, setLoggerLevel } from "@fourze/core"
+import { createLogger, DelayMsType, FourzeLogLevelKey, setLoggerLevel } from "@fourze/core"
 import { createUnplugin } from "unplugin"
 
+import type { FourzeMockRouterOptions } from "@fourze/mock"
 import { createFourzeServer, createHotRouter, FourzeHotRouter, FourzeProxyOption } from "@fourze/server"
 import { defaultMockCode as defaultTransformCode } from "./mock"
 

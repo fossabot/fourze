@@ -39,7 +39,7 @@ export interface FourzeRouter extends FourzeMiddleware {
     use(setup: FourzeSetup): this
     use(path: string, setup: FourzeSetup): this
 
-    request(context: FourzeRequestContextOptions): Promise<FourzeContext>
+    service(context: FourzeRequestContextOptions): Promise<FourzeContext>
 
     readonly routes: FourzeRoute[]
     readonly hooks: FourzeHook[]
@@ -213,7 +213,7 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
         return []
     }
 
-    router.request = async function (this: FourzeRouter, options: FourzeRequestContextOptions) {
+    router.service = async function (this: FourzeRouter, options: FourzeRequestContextOptions) {
         const { request, response } = createRequestContext(options)
         await this(request, response)
         return { request, response }

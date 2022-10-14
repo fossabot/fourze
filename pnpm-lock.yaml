@@ -5,6 +5,7 @@ importers:
   .:
     specifiers:
       '@fourze/core': workspace:*
+      '@fourze/mock': workspace:*
       '@fourze/server': workspace:*
       '@types/node': ^18.6.0
       bumpp: ^8.2.1
@@ -21,6 +22,7 @@ importers:
       vitest: ^0.24.0
     devDependencies:
       '@fourze/core': link:packages/core
+      '@fourze/mock': link:packages/mock
       '@fourze/server': link:packages/server
       '@types/node': 18.6.0
       bumpp: 8.2.1
@@ -49,6 +51,15 @@ importers:
       query-string: 7.1.1
     devDependencies:
       '@types/minimatch': 5.1.2
+      '@types/node': 18.8.3
+
+  packages/mock:
+    specifiers:
+      '@fourze/core': workspace:*
+      '@types/node': ^18.6.0
+    dependencies:
+      '@fourze/core': link:../core
+    devDependencies:
       '@types/node': 18.8.3
 
   packages/nuxt:
@@ -94,6 +105,7 @@ importers:
   packages/unplugin:
     specifiers:
       '@fourze/core': workspace:*
+      '@fourze/mock': workspace:*
       '@fourze/server': workspace:*
       '@types/webpack': ^5.28.0
       esbuild: ^0.14.54
@@ -104,6 +116,7 @@ importers:
       webpack-dev-server: ^4.9.3
     dependencies:
       '@fourze/core': link:../core
+      '@fourze/mock': link:../mock
       '@fourze/server': link:../server
       unplugin: 0.8.0_jvfqdml3ppxkd6cfgnik4aja6u
     devDependencies:
@@ -2736,7 +2749,7 @@ packages:
   /@types/webpack/5.28.0_esbuild@0.14.54:
     resolution: {integrity: sha512-8cP0CzcxUiFuA9xGJkfeVpqmWTk9nx6CWwamRGCj95ph1SmlRRk9KlCZ6avhCbZd4L68LvYT6l1kpdEnQXrF8w==}
     dependencies:
-      '@types/node': 18.6.0
+      '@types/node': 18.8.3
       tapable: 2.2.1
       webpack: 5.74.0_esbuild@0.14.54
     transitivePeerDependencies:

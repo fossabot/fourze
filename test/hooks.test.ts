@@ -1,4 +1,5 @@
-import { createMockRouter, randomInt } from "@fourze/core"
+import { randomInt } from "@fourze/core"
+import { createMockRouter } from "@fourze/mock"
 import { describe, expect, it } from "vitest"
 
 describe("hooks", async () => {
@@ -13,7 +14,8 @@ describe("hooks", async () => {
         }
 
         const router = createMockRouter({
-            delay: "200-500"
+            delay: "200-500",
+            mode: ["fetch"]
         })
             .use("/api", route => {
                 route("GET /test", req => {

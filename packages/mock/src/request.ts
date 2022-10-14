@@ -1,11 +1,8 @@
+import { createLogger, flatHeaders, FourzeLogger, FourzeResponse, getHeaderValue, isBuffer, isFunction, isString } from "@fourze/core"
 import type { ClientRequest, ClientRequestArgs, IncomingMessage, RequestOptions } from "http"
 import http from "http"
 import https from "https"
-import { createLogger, FourzeLogger } from "../logger"
-import { flatHeaders, getHeaderValue } from "../polyfill/header"
-import type { FourzeRouter } from "../router"
-import { FourzeResponse } from "../shared"
-import { isBuffer, isFunction, isString } from "../utils"
+import { FourzeMockRouter } from "./types"
 
 type RequestCallback = (res: IncomingMessage) => void
 
@@ -29,9 +26,9 @@ function optionsToURL(options: RequestOptions): URL {
     return url
 }
 
-export function setProxyNodeRequest(router: FourzeRouter) {
-    const originHttpRequest = http.request
-    const originHttpsRequest = https.request
+export function createProxyRequest(router: FourzeMockRouter) {
+    const originHttpRequest = router.originalHttpRequest
+    const originHttpsRequest = router.originalHttpsRequest
     const logger = createLogger("@fourze/mock")
 
     if (!originHttpRequest || !originHttpsRequest) {
@@ -113,7 +110,7 @@ export function setProxyNodeRequest(router: FourzeRouter) {
         setTimeout(timeout: number) {}
 
         async _mockRequest() {
-            const { response } = await router.request({
+            const { response } = await router.service({
                 url: this._url,
                 method: this.method,
                 headers: this._requestHeaders,
@@ -219,7 +216,7 @@ export function setProxyNodeRequest(router: FourzeRouter) {
         }
     }
 
-    http.request = function (param0: URL | string | ProxyRequestOptions, param1?: ProxyRequestOptions | RequestCallback, param2?: RequestCallback) {
+    return function (param0: URL | string | ProxyRequestOptions, param1?: ProxyRequestOptions | RequestCallback, param2?: RequestCallback) {
         const isString = typeof param0 == "string"
         const isUrl = param0 instanceof URL
 
@@ -240,6 +237,4 @@ export function setProxyNodeRequest(router: FourzeRouter) {
 
         return new ProxyClientRequest(options, callback) as unknown as ClientRequest
     }
-
-    https.request = http.request
 }

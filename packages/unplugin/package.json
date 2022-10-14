@@ -21,6 +21,7 @@
     "license": "MIT",
     "dependencies": {
         "@fourze/core": "workspace:*",
+        "@fourze/mock": "workspace:*",
         "@fourze/server": "workspace:*",
         "unplugin": "^0.8.0"
     },

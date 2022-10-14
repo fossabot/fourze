@@ -1,40 +1,49 @@
 <template>
     <div class="px-4">
-        <div class=" font-bold py-4 text-2xl text-light-blue-400">Image Upload/Load</div>
-        <di class="flex space-x-4 px-8 items-center">
-            <img :style="{ width: '120px' , height:'120px' }" :src="avatarUrl" />
-            <div>
-                <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60"
-                    @click="upload">Upload</button>
-            </div>
-        </di>
+        <div class="">
+            <div class=" font-bold py-2 text-2xl text-light-blue-400">Image Upload/Load</div>
 
-        <div class=" font-bold py-4 text-2xl text-light-blue-400">XHR/FETCH</div>
-        <div class="px-8">
-
-            <div class="flex space-x-4 py-2 items-center">
-                <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60"
-                    @click="fetchClick">Fetch</button>
-                <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60"
-                    @click="axiosClick">Axios</button>
-                <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60"
-                    @click="jqueryClick">JQuery</button>
-            </div>
-            <div class="flex space-x-4">
-
-
-                <textarea readonly :value="JSON.stringify(result,null,4)" class="bg-gray-400 h-100 w-100"></textarea>
+            <div class="flex space-x-4 items-center">
+                <img :style="{ width: '120px' , height:'120px' }" :src="avatarUrl" />
                 <div>
-                    <div v-show="time" class="text-lg text-light-blue-400">loading time:{{time}}ms</div>
-                    <div v-show="serverDelay> 0" class="text-lg text-light-blue-400">server delay:{{serverDelay}}ms
-                    </div>
-                    <div v-show="time - serverDelay> 0" class="text-lg text-light-blue-400">response time:{{time -
-                    serverDelay}}ms
-                    </div>
+                    <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60"
+                        @click="upload">Upload</button>
                 </div>
 
             </div>
         </div>
+
+        <div class="flex space-x-8 mt-8">
+            <div>
+                <div class=" font-bold py-2 text-2xl text-light-blue-400">XHR/FETCH GET</div>
+
+                <div class="flex space-x-4 py-2 items-center">
+                    <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60"
+                        @click="handleFetch">Fetch</button>
+                    <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60"
+                        @click="handleAxios">Axios</button>
+                    <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60"
+                        @click="handleJQuery">JQuery</button>
+                </div>
+                <div class="flex space-x-4 ">
+                    <textarea readonly :value="jsonResult" class="bg-gray-200 h-100 p-2 w-120"></textarea>
+                    <div class="w-100">
+                        <div v-show="time" class="text-lg text-light-blue-400">loading time:{{time}}ms</div>
+                        <div v-show="serverDelay> 0" class="text-lg text-light-blue-400">server delay:{{serverDelay}}ms
+                        </div>
+                        <div v-show="time - serverDelay> 0" class="text-lg text-light-blue-400">response time:{{time -
+                        serverDelay}}ms
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div>
+                <div class=" font-bold py-2 text-2xl text-light-blue-400">XHR/FETCH POST</div>
+            </div>
+        </div>
+
     </div>
 </template>
 
@@ -42,6 +51,7 @@
 import { useNow } from "@vueuse/core"
 import axios from "axios"
 import $ from "jquery"
+import type { MaybeAsyncFunction } from "maybe-types"
 import { computed, ref } from "vue"
 
 export interface ResponseData {
@@ -65,7 +75,7 @@ function upload() {
             const formData = new FormData()
             formData.append("file", file.files[0])
             formData.append("name", "avatar")
-            const rs = await axios.post("/api/upload/avatar", formData, {
+            await axios.post("/api/upload/avatar", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data"
                 }
@@ -78,6 +88,10 @@ function upload() {
 
 
 const result = ref<any>()
+
+const jsonResult = computed(() => {
+    return JSON.stringify(result.value, null, 4)
+})
 
 
 const startTime = ref(0)
@@ -97,62 +111,52 @@ const time = computed(() => {
     return endTime.value - startTime.value
 })
 
-function start() {
-    startTime.value = Date.now()
-    endTime.value = 0
+const recoding = (fn: MaybeAsyncFunction<void>) => {
+    return async () => {
+        startTime.value = Date.now()
+        endTime.value = 0
+        serverDelay.value = 0
+        try {
+            await fn()
+        } catch (error) {
+            result.value = error
+        }
+        endTime.value = Date.now()
+    }
 }
 
-function end() {
-    endTime.value = Date.now()
-}
-
-
-async function fetchClick() {
-    start()
+const handleFetch = recoding(async () => {
     result.value = await fetch(`/api/search/${Math.floor(Math.random() * 9)}`, { method: "post", body: JSON.stringify({ phone: 2 }) })
         .then(r => {
             serverDelay.value = Number(r.headers.get("Fourze-Delay"))
             return r.json()
         })
         .then(r => r.data)
+})
 
-    end()
-}
 
-async function axiosClick() {
-    start()
-    result.value = await axios
-        .post<ResponseData>(`/api/search/${Math.floor(Math.random() * 9)}`, { phone: 2 })
-        .then(r => {
-            serverDelay.value = Number(r.headers["fourze-delay"])
-            return r.data.data
-        })
-    end()
-}
+const handleAxios = recoding(async () => {
+    const rs = await axios.post(`/api/search/${Math.floor(Math.random() * 9)}`, { phone: 2 })
+    serverDelay.value = Number(rs.headers["fourze-delay"])
+    result.value = rs.data.data
+})
 
-function jqueryClick() {
-    start()
-    $.ajax({
+
+const handleJQuery = recoding(async () => {
+    await $.ajax({
         url: `/api/search/${Math.floor(Math.random() * 9)}`,
-        method: "POST",
+        type: "post",
         data: JSON.stringify({ phone: 2 }),
-        dataType: "json",
         contentType: "application/json",
-
-        success(r) {
-            r = r.data
-            result.value = r
-            end()
-        },
-        complete(r) {
-            serverDelay.value = Number(r.getResponseHeader("Fourze-Delay"))
-        },
-        error(r) {
-            console.error(r)
+        success: (data, status, jqXHR) => {
+            serverDelay.value = Number(jqXHR.getResponseHeader("Fourze-Delay"))
+            result.value = data.data
         }
     })
 
-}
+})
+
+
 
 
 
