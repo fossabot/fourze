@@ -4,7 +4,6 @@ import { delayHook } from "./hooks"
 import { createLogger } from "./logger"
 import {
     createRequestContext,
-    defineFourzeHook,
     defineRoute,
     FourzeContext,
     FourzeHook,
@@ -17,7 +16,7 @@ import {
     FourzeRoute,
     FourzeSetupContext
 } from "./shared"
-import { asyncLock, DelayMsType, isMatch, relativePath, resolvePath, unique } from "./utils"
+import { asyncLock, DelayMsType, isMatch, relativePath, unique } from "./utils"
 
 export interface FourzeRouter extends FourzeMiddleware {
     /**
@@ -149,9 +148,7 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
                     ...route.meta
                 }
 
-                console.log("path", path, "meta", request.meta)
-
-                const activeHooks = router.hooks.filter(e => !e.path || path.startsWith(e.path))
+                const activeHooks = router.hooks.filter(e => isMatch(path, e.path))
 
                 const handle = async () => {
                     const hook = activeHooks.shift()
@@ -206,7 +203,6 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
 
     router.match = function (this: FourzeRouter, url: string, method?: string, allowed = false): [FourzeRoute, RegExpMatchArray] | [] {
         if (allowed || this.isAllow(url)) {
-            console.log("match", url)
             for (const route of this.routes) {
                 const matches = route.match(url, method)
                 if (matches) {
@@ -285,12 +281,10 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
         }
 
         for (const hook of newHooks) {
-            hooks.add(
-                defineFourzeHook({
-                    ...hook,
-                    path: hook.path ? resolvePath(hook.path, options.base) : options.base
-                })
-            )
+            hooks.add({
+                ...hook,
+                path: relativePath(hook.path, options.base)
+            })
         }
     })
 

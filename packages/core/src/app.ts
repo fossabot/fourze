@@ -114,10 +114,10 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
         hooks: {
             get() {
                 return hooks.map(e => {
-                    return defineFourzeHook({
+                    return {
                         ...e,
-                        path: e.path ? resolvePath(e.path, _base) : _base
-                    })
+                        path: resolvePath(e.path, _base)
+                    }
                 })
             }
         },
