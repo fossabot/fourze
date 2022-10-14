@@ -3,8 +3,9 @@ import type { MaybePromise } from "maybe-types"
 import { parseUrl } from "query-string"
 
 import { version } from "../package.json"
+import { decodeFormData } from "./polyfill/form-data"
 import { flatHeaders, getHeaderRawValue } from "./polyfill/header"
-import { parseFormdata as parseFormData, resolvePath } from "./utils"
+import { resolvePath } from "./utils"
 
 export const FOURZE_VERSION = version
 
@@ -28,6 +29,8 @@ export interface FourzeRequest extends IncomingMessage {
     meta: Record<string, any>
 
     headers: Record<string, string | string[] | undefined>
+
+    readonly raw: string
 
     readonly method: string
 
@@ -394,7 +397,14 @@ export function createRequestContext(options: FourzeRequestContextOptions) {
     }
 }
 
-export function createRequest(options: Partial<FourzeRequest>) {
+export interface FourzeRequestOptions {
+    url: string
+    method?: string
+    headers?: Record<string, string | string[] | number | undefined>
+    body?: any
+}
+
+export function createRequest(options: FourzeRequestOptions) {
     const headers = flatHeaders(options.headers)
 
     const { query, url: path } = parseUrl(options.url!, {
@@ -403,11 +413,13 @@ export function createRequest(options: Partial<FourzeRequest>) {
 
     const contentType = headers["content-type"]
 
-    if (typeof options.body === "string" && contentType) {
-        if (contentType.startsWith("application/json")) {
+    if (contentType) {
+        if (typeof options.body === "string" && contentType.startsWith("application/json")) {
             options.body = JSON.parse(options.body)
-        } else if (contentType.startsWith("multipart/form-data")) {
-            options.body = parseFormData(options.body)
+        }
+        if (contentType.startsWith("multipart/form-data")) {
+            const boundary = contentType.split("=")[1]
+            options.body = decodeFormData(options.body, boundary)
         }
     }
 

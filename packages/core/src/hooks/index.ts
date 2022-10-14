@@ -4,7 +4,8 @@ import { delay, DelayMsType } from "../utils"
 export function delayHook(ms: DelayMsType) {
     return defineFourzeHook(async (req, res, next) => {
         await next?.()
-        let time = await delay(ms)
+        const delayMs = res.getHeader("Fourze-Delay") ?? ms
+        let time = await delay(delayMs)
         res.setHeader("Fourze-Delay", time)
     })
 }

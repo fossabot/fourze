@@ -45,10 +45,10 @@ export interface FourzeServer extends EventEmitter {
 
 export function createServerContext(req: IncomingMessage, res: OutgoingMessage): Promise<FourzeContext> {
     return new Promise((resolve, reject) => {
-        let body: any = ""
+        let body: Buffer = Buffer.alloc(0)
 
-        req.on("data", chunk => {
-            body += chunk
+        req.on("data", (chunk: Buffer) => {
+            body = Buffer.concat([body, chunk])
         })
 
         req.on("end", () => {

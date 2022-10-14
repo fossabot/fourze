@@ -18,6 +18,10 @@ export function isBuffer(value: unknown): value is Buffer {
     return value != null && typeof value === "object" && "length" in value
 }
 
+export function isFormData(value: unknown): value is FormData {
+    return value != null && globalThis.FormData && value instanceof FormData
+}
+
 export function isURL(value: unknown): value is URL {
     return globalThis.URL && value instanceof URL
 }

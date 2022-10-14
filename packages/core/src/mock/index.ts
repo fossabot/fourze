@@ -25,7 +25,7 @@ export function createMockRouter(options: FourzeMockRouterOptions = {}): FourzeM
 
     logger.info("Fourze Mock is starting...")
 
-    const mode = options.mode ?? ["xhr", "fetch", "request"]
+    const mode = options.mode ?? ["xhr", "fetch"]
 
     if (mode) {
         if (mode.includes("fetch")) {

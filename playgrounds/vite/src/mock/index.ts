@@ -3,6 +3,7 @@ import dayjs from "dayjs"
 import fs from "fs"
 import path from "path"
 import { successResponseWrap } from "../utils/setup-mock"
+import { PolyfillFile } from "./../../../../packages/core/src/polyfill/form-data"
 
 const keymap = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -30,17 +31,28 @@ export default defineFourze(fourze => {
 
     fourze("POST /search/{name}", handleSearch)
 
-    fourze("/img/a.jpg", async (req, res) => {
-        const f = await fs.promises.readFile(path.resolve(__dirname, "./test.webp"))
+    fourze("/img/avatar.jpg", async (req, res) => {
+        let avatarPath = path.resolve(__dirname, "../../dist/avatar.jpg")
+        if (!fs.existsSync(avatarPath)) {
+            avatarPath = path.resolve(__dirname, "./test.webp")
+        }
+        res.setHeader("Fourze-Delay", 0)
+        const f = await fs.promises.readFile(avatarPath)
         res.image(f)
     })
 
-    fourze("/download/a", async (req, res) => {
-        const f = await fs.promises.readFile(path.resolve(__dirname, "./index.ts"))
-        res.binary(f)
+    fourze("/upload/avatar", async (req, res) => {
+        const file = req.body.file as PolyfillFile
+        if (!!file?.body) {
+            await fs.promises.writeFile(path.resolve(__dirname, "../../dist/avatar.jpg"), file.body)
+            return {
+                size: file.size
+            }
+        }
+        return {
+            size: 0
+        }
     })
-
-    fourze("post /upload", async (req, res) => {})
 
     return []
 })

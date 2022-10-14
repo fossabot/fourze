@@ -21,8 +21,7 @@ export default defineConfig({
             base: "/api",
             filePattern: [".ts$", ".js$"],
             hmr: true,
-            delay: "200-500",
-            logLevel: "info"
+            delay: "200-500"
         }),
         visualizer({
             open: false,

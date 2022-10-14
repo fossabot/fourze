@@ -1,7 +1,7 @@
 import { createLogger } from "../logger"
 import { appendHeader, flatHeaders, getHeader, getHeaderValue, toRawHeaders } from "../polyfill/header"
 import { FourzeRouter } from "../router"
-import { createRequestContext, FourzeRequest, FourzeResponse, FourzeRoute } from "../shared"
+import { FourzeRoute } from "../shared"
 import { HTTP_STATUS_CODES } from "./code"
 
 const XHR_EVENTS = "readystatechange loadstart progress abort error load timeout loadend".split(" ")
@@ -27,8 +27,9 @@ export function setProxyXHR(router: FourzeRouter) {
             return router.routes
         }
 
-        $request!: FourzeRequest
-        $response!: FourzeResponse
+        url: string = ""
+
+        method: string = "GET"
 
         constructor() {
             this.requestHeaders = {}
@@ -84,6 +85,8 @@ export function setProxyXHR(router: FourzeRouter) {
 
         async: boolean
 
+        matched: boolean = false
+
         requestHeaders: Record<string, string>
 
         responseHeaders: Record<string, string>
@@ -103,8 +106,8 @@ export function setProxyXHR(router: FourzeRouter) {
         withCredentials: boolean
 
         getAllResponseHeaders() {
-            if (!!this.$base) {
-                return this.$base.getAllResponseHeaders()
+            if (!this.matched) {
+                return this.$base?.getAllResponseHeaders()
             }
             return toRawHeaders(this.responseHeaders)
         }
@@ -112,8 +115,8 @@ export function setProxyXHR(router: FourzeRouter) {
         setRequestHeader(name: string, value: string) {
             if (!!this.$base) {
                 this.$base.setRequestHeader(name, value)
-                return
             }
+            console.log("setRequestHeader", name, value)
             appendHeader(this.requestHeaders, name, value)
         }
 
@@ -153,16 +156,11 @@ export function setProxyXHR(router: FourzeRouter) {
             }
             this.$base.open(method, url, async, username, password)
 
+            this.url = url.toString()
+            this.method = method
+            this.async = async
+
             logger.info("mock url ->", url)
-
-            const { request, response } = createRequestContext({
-                url: url.toString(),
-                method: method,
-                headers: this.requestHeaders
-            })
-
-            this.$request = request
-            this.$response = response
 
             this.readyState = this.OPENED
 
@@ -179,9 +177,8 @@ export function setProxyXHR(router: FourzeRouter) {
         }
 
         async mockSend(data: any) {
-            const { url, method = "GET" } = this.$request
+            const { url, method } = this
 
-            this.$request.body = data
             this.setRequestHeader("X-Requested-With", "Fourze XHR Proxy")
             this.setRequestHeader("Origin", location.origin)
             this.setRequestHeader("Host", location.host)
@@ -190,9 +187,19 @@ export function setProxyXHR(router: FourzeRouter) {
             this.readyState = this.HEADERS_RECEIVED
             this.dispatchEvent(new Event("readystatechange"))
             this.readyState = this.LOADING
-            await router(this.$request, this.$response)
 
-            if (this.$response.matched) {
+            console.log("url", url, this.requestHeaders)
+
+            const { response } = await router.request({
+                url,
+                method,
+                headers: this.requestHeaders,
+                body: data
+            })
+
+            this.matched = !!response.matched
+
+            if (this.matched) {
                 logger.success(`Found route by [${method}] -> "${url}"`)
 
                 this.$base?.abort()
@@ -201,11 +208,11 @@ export function setProxyXHR(router: FourzeRouter) {
                 this.status = 200
                 this.statusText = HTTP_STATUS_CODES[200]
 
-                this.response = this.$response.result
+                this.response = response.result
 
-                this.responseText = this.$response.result
+                this.responseText = response.result
 
-                this.responseHeaders = flatHeaders(this.$response.getHeaders())
+                this.responseHeaders = flatHeaders(response.getHeaders())
 
                 this.readyState = this.DONE
 
@@ -221,19 +228,19 @@ export function setProxyXHR(router: FourzeRouter) {
 
         async send(data?: Document | XMLHttpRequestBodyInit | null | undefined) {
             const useMock = getHeaderValue(this.requestHeaders, "X-Fourze-Mock")
-            const { url, method } = this.$request
+            const { url, method } = this
 
             if (useMock === "off") {
                 logger.debug(`X-Fourze-Mock is off, fallback to original -> [${method}] ${url}`)
-                this.originalSend(data)
+                await this.originalSend(data)
             } else {
                 await this.mockSend(data)
             }
         }
 
         abort() {
-            if (!!this.$base) {
-                this.$base.abort()
+            if (!this.matched) {
+                this.$base?.abort()
                 return
             }
 
@@ -243,8 +250,8 @@ export function setProxyXHR(router: FourzeRouter) {
         }
 
         getResponseHeader(name: string) {
-            if (!!this.$base) {
-                return this.$base.getResponseHeader(name)
+            if (!this.matched) {
+                return this.$base?.getResponseHeader(name)
             }
             return getHeader(this.responseHeaders, name)
         }
