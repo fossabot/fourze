@@ -1,5 +1,6 @@
 import { createLogger } from "../logger"
 import { createRouter, FourzeRouter, FourzeRouterOptions } from "../router"
+import { isNode } from "./../utils/common"
 import { setProxyFetch } from "./fetch"
 import { setProxyNodeRequest } from "./request"
 import { setProxyXHR } from "./xhr"
@@ -25,7 +26,7 @@ export function createMockRouter(options: FourzeMockRouterOptions = {}): FourzeM
 
     logger.info("Fourze Mock is starting...")
 
-    const mode = options.mode ?? ["xhr", "fetch"]
+    const mode = options.mode ?? isNode() ? ["request"] : ["xhr", "fetch"]
 
     if (mode) {
         if (mode.includes("fetch")) {

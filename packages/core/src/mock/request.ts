@@ -42,12 +42,17 @@ export function setProxyNodeRequest(router: FourzeRouter) {
 
     class ProxyClientResponse extends Readable {
         headers: IncomingMessage["headers"]
+
         method?: string
         statusCode: number = 200
         completed = false
         data: Buffer | Uint8Array | string
         _offset = 0
         _maxLength = 0
+
+        get rawHeaders() {
+            return Object.entries(this.headers).flatMap(([key, value]) => [key, value])
+        }
 
         constructor(res: FourzeResponse) {
             super()
