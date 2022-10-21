@@ -1,35 +1,68 @@
-import { defineFourze, FourzeHandle, jsonWrapperHook, randomDate, randomInt } from "@fourze/core"
-import dayjs from "dayjs"
+import { defineFourze, FourzeHandle, isNode, jsonWrapperHook, PolyfillFile, randomArray, randomDate, randomInt, randomItem } from "@fourze/mock"
 import fs from "fs"
 import path from "path"
-import { successResponseWrap } from "../utils/setup-mock"
-import { PolyfillFile } from "./../../../../packages/core/src/polyfill/form-data"
+import { slicePage, successResponseWrap } from "../utils/setup-mock"
 
-const keymap = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+interface Pagination {
+    page: number
+    pageSize: number
+}
 
 export default defineFourze(fourze => {
-    const cache: Record<string, any> = {}
-
     fourze.hook(jsonWrapperHook((data, req, res) => successResponseWrap(data, req.url)))
 
-    const handleSearch: FourzeHandle = async (req, res) => {
-        const num = Number(req.params.name ?? 0)
-        const phone: number = req.body.phone ?? 1
-        const rs: Record<string, string> = {}
-        for (let i = 0; i < num + phone; i++) {
-            const len = 10
-            let str = ""
-            for (let j = 0; j < len; j++) {
-                str += keymap[randomInt(0, keymap.length - 1)]
+    // person names
+
+    const createData = (source: "server" | "mock") => {
+        if (source == "mock") {
+            if (localStorage.getItem("fz_cache_data")) {
+                return JSON.parse(localStorage.getItem("fz_cache_data")!) as UserInfo[]
             }
-            rs[str] = `---[${dayjs(randomDate("2022-07-09", "2024-08-12")).format("YYYY-MM-DD HH:mm:ss")}] ---- ${phone}`
         }
-        return rs
+
+        return randomArray<UserInfo>(
+            value => {
+                return {
+                    id: `${randomInt(100, 999)}${String(value).padStart(4, "0")}`,
+                    username: randomItem(["Zhangsan", "Lisi", "Wangwu", "Zhaoliu", "Yan7", "Jack", "Rose", "Tom", "Jerry", "Henry", "Nancy"]),
+                    phone: randomInt("13000000000-19999999999"),
+                    createdTime: randomDate("2020-01-01", "2021-01-01"),
+                    allow: randomItem(["fetch", "xhr"]),
+                    source
+                }
+            },
+            40,
+            80
+        )
     }
 
-    fourze("POST http://test.com/Search/{name}", handleSearch)
+    function cacheData() {
+        if (!isNode()) {
+            localStorage.setItem("fz_cache_data", JSON.stringify(data))
+        }
+    }
 
-    fourze("POST /search/{name}", handleSearch)
+    const data = isNode() ? createData("server") : createData("mock")
+    cacheData()
+
+    const handleSearch: FourzeHandle<PagingData<UserInfo>> = async req => {
+        const { page = 1, pageSize = 10, keyword = "" } = req.query as Pagination & { keyword?: string }
+        const items = data.filter(item => item.username.includes(keyword))
+        return slicePage(items, { page, pageSize })
+    }
+
+    fourze("GET /item/list", handleSearch)
+
+    fourze("DELETE /item/{id}", async req => {
+        const { id } = req.params
+        const index = data.findIndex(item => item.id == id)
+        if (index == -1) {
+            throw new Error(`item(${id}) not exists`)
+        }
+        data.splice(index, 1)
+        cacheData()
+        return { result: true }
+    })
 
     fourze("/img/avatar.jpg", async (req, res) => {
         let avatarPath = path.resolve(__dirname, ".tmp/avatar.jpg")

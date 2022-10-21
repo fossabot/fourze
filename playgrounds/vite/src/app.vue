@@ -6,156 +6,229 @@
             <div class="flex space-x-4 items-center">
                 <img :style="{ width: '120px' , height:'120px' }" :src="avatarUrl" />
                 <div>
-                    <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60"
-                        @click="upload">Upload</button>
+                    <Button @click="upload">Upload</Button>
                 </div>
 
             </div>
         </div>
 
-        <div class="flex space-x-8 mt-8">
+        <div>
             <div>
-                <div class=" font-bold py-2 text-2xl text-light-blue-400">XHR/FETCH GET</div>
-
-                <div class="flex space-x-4 py-2 items-center">
-                    <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60"
-                        @click="handleFetch">Fetch</button>
-                    <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60"
-                        @click="handleAxios">Axios</button>
-                    <button class="bg-light-blue-400 text-white py-1 px-2 hover:bg-opacity-60"
-                        @click="handleJQuery">JQuery</button>
+                <div class=" font-bold mt-4 py-2 text-2xl text-light-blue-400">XHR/FETCH GET</div>
+                <div class="flex space-x-4 items-center">
+                    <div class="font-bold text-lg text-light-blue-400">Mock Data:</div>
+                    <Selection item-class="px-4 py-1 select-none cursor-pointer"
+                        active-class="bg-light-blue-300 text-white" unactive-class="text-light-blue-300"
+                        v-model="mockEnabled" class="flex space-x-4 items-center">
+                        <Item :value="true">Enable</Item>
+                        <Item :value="false">Disable</Item>
+                    </Selection>
                 </div>
-                <div class="flex space-x-4 ">
-                    <textarea readonly :value="jsonResult" class="bg-gray-200 h-100 p-2 w-120"></textarea>
-                    <div class="w-100">
-                        <div v-show="time" class="text-lg text-light-blue-400">loading time:{{time}}ms</div>
-                        <div v-show="serverDelay> 0" class="text-lg text-light-blue-400">server delay:{{serverDelay}}ms
-                        </div>
-                        <div v-show="time - serverDelay> 0" class="text-lg text-light-blue-400">response time:{{time -
-                        serverDelay}}ms
-                        </div>
+                <div class="flex space-x-4 mt-2 items-center">
+                    <div class="font-bold text-lg text-light-blue-400">Request Type:</div>
+                    <Selection item-class="px-4 py-1 select-none cursor-pointer"
+                        active-class="bg-light-blue-300 text-white" unactive-class="text-light-blue-300"
+                        v-model="args.type" class="flex space-x-4 items-center">
+                        <Item value="fetch">Fetch</Item>
+                        <Item value="axios">Axios</Item>
+                        <Item value="jquery">JQuery</Item>
+                    </Selection>
+                </div>
+                <Loading :loading="isLoading" class="mt-4 w-240">
+                    <div class="min-h-128 ">
+                        <Table :data="state.items" :columns="columns" row-key="id" />
                     </div>
-
-                </div>
+                    <Pagination button-class="px-2 bg-light-blue-300 text-white cursor-pointer select-none"
+                        :total-page="state.totalPageCount" v-model:page="args.page">
+                    </Pagination>
+                </Loading>
             </div>
 
-            <div>
-                <div class=" font-bold py-2 text-2xl text-light-blue-400">XHR/FETCH POST</div>
-            </div>
+
         </div>
 
     </div>
 </template>
 
-<script setup lang="ts">
-import { useNow } from "@vueuse/core"
+<script setup lang="tsx">
+import { getGlobalMockRouter } from "@fourze/mock"
+import { useAsyncState } from "@vueuse/core"
 import axios from "axios"
+import dayjs from "dayjs"
 import $ from "jquery"
-import type { MaybeAsyncFunction } from "maybe-types"
-import { computed, ref } from "vue"
+import querystring from "query-string"
+import { computed, reactive, ref, watch } from "vue"
+import Button from "./components/base/button.vue"
+import Item from "./components/base/item.vue"
+import Loading from "./components/base/loading.vue"
+import Selection from "./components/base/selection.vue"
+import Table from "./components/base/table"
+import { TableColumns } from "./components/hooks/table"
 
-export interface ResponseData {
-    code: number
-    data: any
-    msg: string
-}
 
 const t = ref(0)
 
-const avatarUrl = computed(() => {
-    return "/api/img/avatar.jpg?t=" + t.value
+const avatarUrl = computed(() =>
+    `/api/img/avatar.jpg?t=${t.value} `
+)
+
+const _mockEnabled = ref(!!getGlobalMockRouter()?.enabled)
+
+
+const mockEnabled = computed({
+    get() {
+        return _mockEnabled.value
+    },
+    set(value) {
+        const router = getGlobalMockRouter()
+        if (router) {
+            if (value) {
+                router.enable()
+            } else {
+                router.disable()
+            }
+        }
+        _mockEnabled.value = value
+    }
 })
 
 
 function upload() {
-    const file = document.createElement("input")
-    file.type = "file"
-    file.onchange = async (e) => {
-        if (file.files) {
+    const fileElement = document.createElement("input")
+    fileElement.type = "file"
+    fileElement.onchange = async (e) => {
+        if (fileElement.files) {
             const formData = new FormData()
-            formData.append("file", file.files[0])
+            formData.append("file", fileElement.files[0])
             formData.append("name", "avatar")
             await axios.post("/api/upload/avatar", formData, {
                 headers: {
-                    "Content-Type": "multipart/form-data"
+                    "Content-Type": "multipart/form-data",
+                    "X-Fourze-Mock": "off" // disable mock.
                 }
             })
             t.value = new Date().getTime()
         }
     }
-    file.click()
+    fileElement.click()
 }
 
 
-const result = ref<any>()
-
-const jsonResult = computed(() => {
-    return JSON.stringify(result.value, null, 4)
+const args = reactive({
+    type: "fetch" as "fetch" | "axios" | "jquery",
+    keyword: "",
+    page: 1
 })
 
 
-const startTime = ref(0)
-const endTime = ref(0)
-
-const now = useNow()
-
-const serverDelay = ref(0)
-
-const time = computed(() => {
-    if (endTime.value === 0) {
-        if (startTime.value == 0) {
-            return 0
+const columns: TableColumns<UserInfo> = [
+    {
+        dataIndex: "username",
+        title: "User Name",
+        width: 160
+    },
+    {
+        dataIndex: "phone",
+        title: "Phone",
+        width: 160
+    },
+    {
+        dataIndex: "createdTime",
+        title: "Created Time",
+        width: 160,
+        render({ record }) {
+            return dayjs(record.createdTime).format("YYYY-MM-DD HH:mm:ss")
         }
-        return now.value.getTime() - startTime.value
+    },
+    {
+        dataIndex: "source",
+        title: "Source",
+        width: 160
+    },
+    {
+        dataIndex: "operation",
+        title: "Operation",
+        width: 160,
+        render({ record }) {
+            return <div class="space-x-2">
+                <Button size="small">Edit</Button>
+                <Button size="small" class="!bg-red-400" onClick={() => deleteById(record.id)}>Delete</Button>
+            </div>
+        }
     }
-    return endTime.value - startTime.value
-})
+]
 
-const recoding = (fn: MaybeAsyncFunction<void>) => {
-    return async () => {
-        startTime.value = Date.now()
-        endTime.value = 0
-        serverDelay.value = 0
-        try {
-            await fn()
-        } catch (error) {
-            result.value = error
-        }
-        endTime.value = Date.now()
+interface RequestOptions {
+    url: string
+    method?: string
+    params?: Record<string, any>
+    type?: "jquery" | "fetch" | "axios"
+    data?: Record<string, any>
+}
+
+async function request(options: RequestOptions) {
+    const { url, method = "GET", params = {}, data = {}, type = "fetch" } = options
+    switch (type) {
+
+        case "jquery":
+            return $.ajax({
+                url: querystring.stringifyUrl({
+                    url,
+                    query: params
+                }),
+                data,
+                method,
+            }).then(r => r.data)
+        case "axios":
+            return axios(url, {
+                method,
+                params,
+                data
+            }).then(r => r.data.data)
+        case "fetch":
+        default:
+            return await fetch(querystring.stringifyUrl({ url, query: params }), {
+                body: ["GET", "HEAD", "DELETE"].includes(method.toUpperCase()) ? undefined : JSON.stringify(data),
+                method
+            }).then(r => r.json()).then(r => r.data)
     }
 }
 
-const handleFetch = recoding(async () => {
-    result.value = await fetch(`/api/search/${Math.floor(Math.random() * 9)}`, { method: "post", body: JSON.stringify({ phone: 2 }) })
-        .then(r => {
-            serverDelay.value = Number(r.headers.get("Fourze-Delay"))
-            return r.json()
-        })
-        .then(r => r.data)
-})
 
 
-const handleAxios = recoding(async () => {
-    const rs = await axios.post(`/api/search/${Math.floor(Math.random() * 9)}`, { phone: 2 })
-    serverDelay.value = Number(rs.headers["fourze-delay"])
-    result.value = rs.data.data
-})
+const { state, isLoading, execute } = useAsyncState<PagingData<UserInfo>>(() => {
 
+    return request({
+        url: `/api/item/list`,
+        params: {
+            page: args.page,
+            keyword: args.keyword
+        },
+        type: args.type,
+        method: "get"
+    }) as Promise<PagingData<UserInfo>>
+}, {
+    items: [],
+    totalCount: 0,
+    totalPageCount: 0,
+    currentPageIndex: 1,
+    pageSize: 10,
+    nextIndex: 2,
+    previousIndex: 0,
+    startIndex: 1
+}, { resetOnExecute: false })
 
-const handleJQuery = recoding(async () => {
-    await $.ajax({
-        url: `/api/search/${Math.floor(Math.random() * 9)}`,
-        type: "post",
-        data: JSON.stringify({ phone: 2 }),
-        contentType: "application/json",
-        success: (data, status, jqXHR) => {
-            serverDelay.value = Number(jqXHR.getResponseHeader("Fourze-Delay"))
-            result.value = data.data
-        }
+async function deleteById(id: string) {
+    await request({
+        url: `/api/item/${id}`,
+        type: args.type,
+        method: "DELETE",
     })
+    await execute()
+}
 
-})
 
+watch([args, mockEnabled], () => execute(), { deep: true })
 
 
 
