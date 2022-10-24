@@ -195,7 +195,7 @@ importers:
 
   playgrounds/vite:
     specifiers:
-      '@fourze/mock': workspace:0.19.0
+      '@fourze/mock': workspace:*
       '@fourze/vite': workspace:*
       '@types/jquery': ^3.5.14
       '@vitejs/plugin-vue': ^3.0.1
@@ -8684,7 +8684,7 @@ packages:
       acorn: 8.8.0
       pathe: 0.3.9
       pkg-types: 0.3.5
-      ufo: 0.8.5
+      ufo: 0.8.6
     dev: true
 
   /mlly/0.5.16:
