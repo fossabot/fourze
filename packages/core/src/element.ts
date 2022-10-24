@@ -1,13 +1,14 @@
 import { MaybePromise } from "maybe-types"
+import { isFunction, isPromise } from "./utils"
 
 async function resolveElement(ele: any) {
-    if (ele instanceof Promise) {
+    if (isPromise(ele)) {
         ele = await ele
     }
     if (isFourzeComponent(ele)) {
         return await ele.render?.()
     }
-    if (typeof ele === "function") {
+    if (isFunction(ele)) {
         return await ele()
     }
     return ele
@@ -58,7 +59,7 @@ export interface FourzeComponent extends FourzeComponentOption {
 }
 
 export function defineFourzeComponent(setup: FourzeComponentOption | FourzeComponentOption["setup"]): FourzeComponent {
-    if (typeof setup === "function") {
+    if (isFunction(setup)) {
         setup = { setup }
     }
     return {

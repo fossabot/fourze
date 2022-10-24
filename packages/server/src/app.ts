@@ -1,4 +1,4 @@
-import { CommonMiddleware, createLogger, createServiceContext, FourzeContext, FourzeLogger, FourzeMiddleware, FourzeNext, FOURZE_VERSION } from "@fourze/core"
+import { CommonMiddleware, createLogger, createServiceContext, FourzeContext, FourzeLogger, FourzeMiddleware, FourzeNext, FOURZE_VERSION, isFunction, isString } from "@fourze/core"
 import EventEmitter from "events"
 import type { IncomingMessage, OutgoingMessage, Server } from "http"
 import http from "http"
@@ -106,7 +106,7 @@ function injectEventEmitter(app: FourzeServer) {
 
 function normalizeAddress(address?: AddressInfo | string | null): string {
     if (address) {
-        if (typeof address === "string") {
+        if (isString(address)) {
             return address
         }
         return `${address.address}:${address.port}`
@@ -140,7 +140,7 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
                 const middleware = middlewares[i++]
                 if (middleware) {
                     await middleware(request, response, fn)
-                } else if (next && typeof next === "function") {
+                } else if (isFunction(next)) {
                     await next()
                 } else if (!response.writableEnded) {
                     response.statusCode = 404
@@ -165,8 +165,9 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
     })
 
     app.use = function (param0: FourzeMiddleware | string, ...params: FourzeMiddleware[]) {
-        const base = typeof param0 === "string" ? param0 : "/"
-        const arr = (typeof param0 === "string" ? params : [param0, ...params]).filter(e => typeof e == "function")
+        const isStr = isString(param0)
+        const base = isStr ? param0 : "/"
+        const arr = (isStr ? params : [param0, ...params]).filter(isFunction)
         const middlewares = middlewareMap.get(base) ?? []
         middlewareMap.set(base, middlewares.concat(arr))
 
@@ -217,7 +218,7 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
                         const address = server.address()
                         let rawAddress = "unknown"
                         if (address) {
-                            if (typeof address === "string") {
+                            if (isString(address)) {
                                 rawAddress = address
                             } else {
                                 rawAddress = `${address.address}:${address.port}`

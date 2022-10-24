@@ -1,5 +1,6 @@
 import type { MaybeRegex } from "maybe-types"
 import minimatch from "minimatch"
+import { isRegExp } from "./is-type"
 export function slash(p: string): string {
     return p.replace(/\\/g, "/").replace(/\/+/g, "/")
 }
@@ -33,7 +34,7 @@ export function isRelative(path: string) {
 
 export function isMatch(path: string, ...pattern: MaybeRegex[]) {
     return pattern.some(r => {
-        if (r instanceof RegExp) {
+        if (isRegExp(r)) {
             return r.test(path)
         }
         return path.startsWith(r) || minimatch(path, r, { partial: true })

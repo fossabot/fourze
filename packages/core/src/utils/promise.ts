@@ -1,10 +1,11 @@
 import { MaybeArray, MaybeFunction, MaybeNumber, MaybePromise } from "maybe-types"
 import { parseFakerNumber } from "./faker"
+import { isFunction } from "./is-type"
 
 export type DelayMsType = MaybeFunction<MaybeArray<MaybeNumber>>
 
 export function delay(ms: DelayMsType) {
-    ms = typeof ms === "function" ? ms() : ms
+    ms = isFunction(ms) ? ms() : ms
     const tmp = parseFakerNumber(ms)
     return new Promise<number>(resolve => setTimeout(() => resolve(tmp), tmp))
 }

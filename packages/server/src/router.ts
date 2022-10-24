@@ -1,4 +1,18 @@
-import { createLogger, createRouter, defineFourze, DelayMsType, Fourze, FourzeBaseHook, FourzeBaseRoute, FourzeRoute, FourzeRouter, FourzeRouterOptions, isFourze, isRoute } from "@fourze/core"
+import {
+    createLogger,
+    createRouter,
+    defineFourze,
+    DelayMsType,
+    Fourze,
+    FourzeBaseHook,
+    FourzeBaseRoute,
+    FourzeRoute,
+    FourzeRouter,
+    FourzeRouterOptions,
+    isFourze,
+    isRoute,
+    isString
+} from "@fourze/core"
 import type { FSWatcher } from "chokidar"
 import fs from "fs"
 import { join, resolve } from "path"
@@ -62,7 +76,7 @@ const TEMPORARY_FILE_SUFFIX = ".tmp.js"
 
 function transformPattern(pattern: (string | RegExp)[]) {
     return pattern.map(p => {
-        if (typeof p === "string") {
+        if (isString(p)) {
             return new RegExp(p)
         }
         return p
@@ -208,7 +222,7 @@ export function createHotRouter(options: FourzeHotRouterOptions = {}): FourzeHot
         let watchDir: string
         let watcher: FSWatcher | undefined = undefined
 
-        if (typeof dir === "string") {
+        if (isString(dir)) {
             watchDir = dir
             watcher = customWatcher
         } else {
@@ -264,7 +278,7 @@ export function createHotRouter(options: FourzeHotRouterOptions = {}): FourzeHot
         let path: string
         let dir: string
         let renderBase = base
-        if (typeof p == "string") {
+        if (isString(p)) {
             path = p
             dir = join(rootDir, "/", path)
         } else {

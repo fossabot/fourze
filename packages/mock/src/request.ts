@@ -1,4 +1,4 @@
-import { createLogger, flatHeaders, FourzeLogger, FourzeResponse, getHeaderValue, isBuffer, isFunction, isString, normalizeRoute } from "@fourze/core"
+import { createLogger, flatHeaders, FourzeLogger, FourzeResponse, getHeaderValue, isBuffer, isFunction, isString, isURL, normalizeRoute } from "@fourze/core"
 import type { ClientRequest, ClientRequestArgs, IncomingMessage, RequestOptions } from "http"
 import http from "http"
 import https from "https"
@@ -218,23 +218,23 @@ export function createProxyRequest(router: FourzeMockRouter) {
     }
 
     return function (param0: URL | string | ProxyRequestOptions, param1?: ProxyRequestOptions | RequestCallback, param2?: RequestCallback) {
-        const isString = typeof param0 == "string"
-        const isUrl = param0 instanceof URL
+        const isStr = isString(param0)
+        const isUrl = isURL(param0)
 
-        const isOptions = !isString && !isUrl
+        const isOptions = !isStr && !isUrl
 
-        const isFunction = typeof param1 == "function"
+        const isFunc = isFunction(param1)
 
-        const options = (isOptions ? param0 : isFunction ? undefined : param1) ?? {}
+        const options = (isOptions ? param0 : isFunc ? undefined : param1) ?? {}
 
-        const u = isString ? new URL(param0) : isUrl ? param0 : optionsToURL(param0)
+        const u = isStr ? new URL(param0) : isUrl ? param0 : optionsToURL(param0)
 
         options.protocol = u.protocol
         options.hostname = u.hostname
         options.port = u.port
         options.path = u.pathname + u.search
         options.nativeRequest = u.protocol == "https:" ? originHttpsRequest : originHttpRequest
-        const callback = isFunction ? param1 : param2!
+        const callback = isFunc ? param1 : param2!
 
         return new ProxyClientRequest(options, callback) as unknown as ClientRequest
     }

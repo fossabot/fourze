@@ -1,4 +1,5 @@
 import type { MaybeDate } from "maybe-types"
+import { isString } from "./is-type"
 
 export function randomInt(tmp: string): number
 
@@ -14,7 +15,7 @@ export function randomInt(min: number, max: number): number
  */
 export function randomInt(param0: number | string, max?: number) {
     let min: number
-    if (typeof param0 === "string") {
+    if (isString(param0)) {
         const [minStr, maxStr] = param0.split("-")
         min = parseInt(minStr)
         max = parseInt(maxStr)

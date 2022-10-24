@@ -1,6 +1,6 @@
 import { MaybePromise } from "maybe-types"
 import { DefineFourzeHook, defineFourzeHook, defineRoute, FourzeBaseHook, FourzeBaseRoute, FourzeHandle, FourzeHook, FourzeInstance, FOURZE_METHODS, isFourzeHook, RequestMethod } from "./shared"
-import { asyncLock, overload, resolvePath } from "./utils"
+import { asyncLock, isFunction, isString, overload, resolvePath } from "./utils"
 export interface FourzeOptions {
     base?: string
     setup?: FourzeSetup
@@ -40,9 +40,9 @@ export function defineFourze(base: string, setup: FourzeSetup): Fourze
 export function defineFourze(): Fourze
 
 export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | FourzeSetup | string = {}, setupFn?: FourzeSetup): Fourze {
-    const isBase = typeof options === "string"
+    const isBase = isString(options)
     const isRoutes = Array.isArray(options)
-    const isSetup = typeof options === "function"
+    const isSetup = isFunction(options)
     const isOption = !isRoutes && !isSetup && !isBase
 
     let _base = isBase ? options : isOption ? options.base : undefined

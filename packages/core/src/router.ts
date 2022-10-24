@@ -3,7 +3,7 @@ import { defineFourze, Fourze, FourzeSetup, isFourze } from "./app"
 import { delayHook } from "./endpoints"
 import { createLogger } from "./logger"
 import { createServiceContext, defineRoute, FourzeContext, FourzeContextOptions, FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute } from "./shared"
-import { asyncLock, DelayMsType, isMatch, normalizeRoute, relativePath, unique } from "./utils"
+import { asyncLock, DelayMsType, isFunction, isMatch, isString, normalizeRoute, relativePath, unique } from "./utils"
 
 export interface FourzeRouter extends FourzeMiddleware {
     /**
@@ -84,10 +84,10 @@ export function createRouter(modules: Fourze[]): FourzeRouter
 export function createRouter(setup: MaybeAsyncFunction<Fourze[] | FourzeRouterOptions>): FourzeRouter
 
 export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions> = {}): FourzeRouter {
-    const isFunction = typeof params === "function"
+    const isFunc = isFunction(params)
     const isArray = Array.isArray(params)
-    const isOptions = !isFunction && !isArray
-    const setup: MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions> = isFunction ? params : () => params
+    const isOptions = !isFunc && !isArray
+    const setup: MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions> = isFunc ? params : () => params
     const modules = new Set<FourzeInstance>()
 
     let options = isOptions ? params : {}
@@ -201,12 +201,12 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
     }
 
     router.use = function (module: FourzeInstance | FourzeSetup | string, setup?: FourzeSetup) {
-        if (typeof module === "string") {
+        if (isString(module)) {
             if (!setup) {
                 return this
             }
             module = defineFourze(module, setup)
-        } else if (typeof module === "function") {
+        } else if (isFunction(module)) {
             module = defineFourze(module)
         }
 

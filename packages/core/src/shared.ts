@@ -6,7 +6,7 @@ import { version } from "../package.json"
 import { decodeFormData } from "./polyfill/form-data"
 import { flatHeaders, getHeaderRawValue, getHeaderValue, PolyfillHeaderInit } from "./polyfill/header"
 import { PolyfillServerResponse } from "./polyfill/response"
-import { resolvePath } from "./utils"
+import { isString, resolvePath } from "./utils"
 
 export const FOURZE_VERSION = version
 
@@ -150,14 +150,15 @@ export function defineFourzeHook(interceptor: FourzeBaseHook): FourzeHook
 export function defineFourzeHook(interceptor: DefineFourzeHook): FourzeHook
 
 export function defineFourzeHook(param0: string | DefineFourzeHook | FourzeBaseHook, param1?: FourzeBaseHook) {
-    const path = typeof param0 === "string" ? param0 : param0.path ?? ""
+    const isStr = isString(param0)
+    const path = isStr ? param0 : param0.path ?? ""
 
     const hook = {
         path,
         handle:
-            param1 ?? typeof param0 === "string"
+            param1 ?? isStr
                 ? param1
-                : typeof param0 == "function"
+                : typeof param0 === "function"
                 ? param0
                 : async (request: FourzeRequest, response: FourzeResponse, handle: FourzeHandle) => {
                       await param0.before?.(request, response)
@@ -374,7 +375,7 @@ export function createRequest(options: FourzeRequestOptions) {
 
     const contentType = getHeaderValue(headers, "content-type", "application/json")
 
-    if (typeof options.body === "string") {
+    if (isString(options.body)) {
         if (contentType.startsWith("application/json")) {
             options.body = JSON.parse(options.body)
         } else if (contentType.startsWith("application/x-www-form-urlencoded")) {

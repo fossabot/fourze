@@ -18,6 +18,14 @@ export function isBuffer(value: unknown): value is Buffer {
     return value != null && typeof value === "object" && "length" in value
 }
 
+export function isPromise<R = unknown>(value: unknown): value is Promise<R> {
+    return value != null && typeof value === "object" && "then" in value
+}
+
+export function isRegExp(value: unknown): value is RegExp {
+    return value instanceof RegExp
+}
+
 export function isFormData(value: unknown): value is FormData {
     return value != null && globalThis.FormData && value instanceof FormData
 }
@@ -26,14 +34,30 @@ export function isURL(value: unknown): value is URL {
     return globalThis.URL && value instanceof URL
 }
 
+export function isPrimitive(value: unknown): value is string | number | boolean | null | undefined {
+    return isString(value) || isNumber(value) || isBoolean(value) || isNullOrUndefined(value)
+}
+
+export function isSymbol(value: unknown): value is symbol {
+    return typeof value === "symbol"
+}
+
 export function isUndefined(value: unknown): value is undefined {
     return typeof value === "undefined"
 }
 
 export function isNull(value: unknown): value is null {
-    return isUndefined(value) || value === null
+    return value === null
+}
+
+export function isNullOrUndefined(value: unknown): value is null | undefined {
+    return isUndefined(value) || isNull(value)
 }
 
 export function isFalsy(value: unknown): value is false {
     return !value
+}
+
+export function isTruthy(value: unknown): value is true {
+    return !!value
 }
