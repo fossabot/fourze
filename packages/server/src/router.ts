@@ -17,7 +17,7 @@ import type { FSWatcher } from "chokidar"
 import fs from "fs"
 import { join, resolve } from "path"
 import { createRenderer } from "./renderer"
-import { normalizePath } from "./utils"
+import { defineEnvs, normalizePath } from "./utils"
 
 export interface FourzeHotRouterOptions extends FourzeRouterOptions {
     /**
@@ -66,7 +66,10 @@ export interface FourzeHotRouter extends FourzeRouter {
     watch(watcher?: FSWatcher): this
     watch(dir?: string, watcher?: FSWatcher): this
     proxy(p: string | FourzeProxyOption): this
+    define(key: string, value: string): this
+    define(env: Record<string, any>): this
     delay?: DelayMsType
+    readonly env: Record<string, any>
     readonly base: string
     readonly routes: FourzeRoute[]
     readonly moduleNames: string[]
@@ -112,6 +115,8 @@ export function createHotRouter(options: FourzeHotRouterOptions = {}): FourzeHot
             delay
         }
     }) as FourzeHotRouter
+
+    const env: Record<string, any> = {}
 
     router.load = async function (this: FourzeHotRouter, moduleName: string = rootDir) {
         if (!fs.existsSync(moduleName)) {
@@ -189,7 +194,8 @@ export function createHotRouter(options: FourzeHotRouterOptions = {}): FourzeHot
                     format: "cjs",
                     metafile: true,
                     allowOverwrite: true,
-                    target: "es6"
+                    target: "es6",
+                    define: defineEnvs(env, "import.meta.env.")
                 })
                 return loadJsModule(modName)
             } catch (err) {
@@ -307,6 +313,15 @@ export function createHotRouter(options: FourzeHotRouterOptions = {}): FourzeHot
         return this
     }
 
+    router.define = function (this: FourzeHotRouter, name: string | Record<string, any>, value?: any) {
+        if (isString(name)) {
+            env[name] = value
+        } else {
+            Object.assign(env, name)
+        }
+        return this
+    }
+
     return Object.defineProperties(router, {
         name: {
             get() {
@@ -321,6 +336,11 @@ export function createHotRouter(options: FourzeHotRouterOptions = {}): FourzeHot
         delay: {
             get() {
                 return delay
+            }
+        },
+        env: {
+            get() {
+                return env
             }
         },
         moduleNames: {

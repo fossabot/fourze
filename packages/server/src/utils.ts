@@ -11,3 +11,11 @@ export const isWindows = os.platform() === "win32"
 export function normalizePath(id: string) {
     return path.posix.normalize(isWindows ? slash(id) : id)
 }
+
+export function defineEnvs(env: Record<string, any>, prefix: string = ""): Record<string, string> {
+    return Object.fromEntries(
+        Object.entries(env).map(([key, value]) => {
+            return [`${prefix}${key}`, JSON.stringify(value)]
+        })
+    )
+}

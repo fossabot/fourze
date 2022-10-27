@@ -167,6 +167,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
                 }
             },
             async configResolved(config) {
+                router.define(config.env)
                 if (options.mock) {
                     await installPackage("@fourze/mock", { cwd: config.root, silent: true })
                 }

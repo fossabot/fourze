@@ -6,7 +6,7 @@ import { version } from "../package.json"
 import { decodeFormData } from "./polyfill/form-data"
 import { flatHeaders, getHeaderRawValue, getHeaderValue, PolyfillHeaderInit } from "./polyfill/header"
 import { PolyfillServerResponse } from "./polyfill/response"
-import { isString, resolvePath } from "./utils"
+import { isBuffer, isString, resolvePath } from "./utils"
 
 export const FOURZE_VERSION = version
 
@@ -375,17 +375,23 @@ export function createRequest(options: FourzeRequestOptions) {
 
     const contentType = getHeaderValue(headers, "content-type", "application/json")
 
-    if (isString(options.body)) {
-        if (contentType.startsWith("application/json")) {
-            options.body = JSON.parse(options.body)
-        } else if (contentType.startsWith("application/x-www-form-urlencoded")) {
-            options.body = qs.parse(options.body)
-        }
-    }
+    let bodyRaw: Buffer | string | Record<string, any> = options.body ?? request.body ?? {}
+    let body: Record<string, any> = {}
+    if (isBuffer(bodyRaw) || isString(bodyRaw)) {
+        if (bodyRaw.length > 0) {
+            if (contentType.startsWith("application/json")) {
+                body = JSON.parse(bodyRaw.toString("utf-8"))
+            } else if (contentType.startsWith("application/x-www-form-urlencoded")) {
+                body = qs.parse(bodyRaw.toString("utf-8"))
+            }
 
-    if (contentType.startsWith("multipart/form-data")) {
-        const boundary = contentType.split("=")[1]
-        options.body = decodeFormData(options.body, boundary)
+            if (contentType.startsWith("multipart/form-data")) {
+                const boundary = contentType.split("=")[1]
+                body = decodeFormData(bodyRaw, boundary)
+            }
+        }
+    } else {
+        body = { ...bodyRaw }
     }
 
     request.params = options.params ?? {}
@@ -399,15 +405,20 @@ export function createRequest(options: FourzeRequestOptions) {
         data: {
             get() {
                 return {
-                    ...request.query,
-                    ...(request.body ?? {}),
+                    ...query,
+                    ...(body ?? {}),
                     ...(request.params ?? {})
                 }
             }
         },
         body: {
             get() {
-                return options.body ?? {}
+                return body ?? {}
+            }
+        },
+        bodyRaw: {
+            get() {
+                return bodyRaw
             }
         },
         query: {
