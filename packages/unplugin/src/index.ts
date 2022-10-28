@@ -1,7 +1,6 @@
 import { createLogger, DelayMsType, FourzeLogLevelKey, setLoggerLevel } from "@fourze/core"
 import { createUnplugin } from "unplugin"
 
-import { installPackage } from "@antfu/install-pkg"
 import type { FourzeMockRouterOptions } from "@fourze/mock"
 import { createFourzeServer, createHotRouter, FourzeHotRouter, FourzeProxyOption } from "@fourze/server"
 import { defaultMockCode as defaultTransformCode } from "./mock"
@@ -163,14 +162,16 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
                 return {
                     define: {
                         VITE_PLUGIN_FOURZE_MOCK: options.mock
+                    },
+                    build: {
+                        rollupOptions: {
+                            external: ["@fourze/mock", "@fourze/core"]
+                        }
                     }
                 }
             },
             async configResolved(config) {
                 router.define(config.env)
-                if (options.mock) {
-                    await installPackage("@fourze/mock", { cwd: config.root, silent: true })
-                }
             },
 
             configureServer({ middlewares, httpServer, watcher }) {
