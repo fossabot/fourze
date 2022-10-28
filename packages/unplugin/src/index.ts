@@ -162,11 +162,6 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
                 return {
                     define: {
                         VITE_PLUGIN_FOURZE_MOCK: options.mock
-                    },
-                    build: {
-                        rollupOptions: {
-                            external: ["@fourze/mock", "@fourze/core"]
-                        }
                     }
                 }
             },

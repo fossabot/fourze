@@ -176,8 +176,6 @@ export function createProxyXMLHttpRequest(router: FourzeMockRouter) {
             const { url, method } = this
 
             this.setRequestHeader("X-Requested-With", "Fourze XHR Proxy")
-            this.setRequestHeader("Origin", location.origin)
-            this.setRequestHeader("Host", location.host)
             this.dispatchEvent(new Event("loadstart"))
 
             this.readyState = this.HEADERS_RECEIVED
