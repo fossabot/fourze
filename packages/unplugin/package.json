@@ -20,7 +20,6 @@
     "author": "chizuki",
     "license": "MIT",
     "dependencies": {
-        "@antfu/install-pkg": "^0.1.1",
         "@fourze/core": "workspace:*",
         "@fourze/server": "workspace:*",
         "unplugin": "^0.10.0"
