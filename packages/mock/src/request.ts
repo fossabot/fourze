@@ -118,10 +118,9 @@ export function createProxyRequest(router: FourzeMockRouter) {
                 body: this.buffer.toString("utf-8")
             })
             if (response.matched) {
-                logger.success(`Found route by ${normalizeRoute(this._url, this.method)}.`)
-
                 const res = new ProxyClientResponse(response)
                 this.emit("response", res)
+                logger.success(`Found route by ${normalizeRoute(this._url, this.method)}.`)
             } else {
                 logger.debug(`Not found route, fallback to original ${normalizeRoute(this._url, this.method)}.`)
                 this._nativeRequest()

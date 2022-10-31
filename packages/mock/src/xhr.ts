@@ -156,8 +156,6 @@ export function createProxyXMLHttpRequest(router: FourzeMockRouter) {
             this.method = method
             this.async = async
 
-            logger.info("mock url ->", url)
-
             this.readyState = this.OPENED
 
             this.dispatchEvent(new Event("readystatechange"))
