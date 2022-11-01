@@ -1,6 +1,6 @@
 {
     "name": "@fourze/webpack",
-    "version": "0.20.5",
+    "version": "0.20.6",
     "description": "",
     "main": "dist/index.cjs",
     "module": "dist/index.mjs",
