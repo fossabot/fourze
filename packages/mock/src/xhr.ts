@@ -30,8 +30,6 @@ export function createProxyXMLHttpRequest(router: FourzeMockRouter) {
             this.requestHeaders = {}
             this.responseHeaders = {}
             this.response = null
-            this.responseText = ""
-            this.responseXML = null
             this.responseType = "json"
             this.responseURL = ""
             this.headers = {}
@@ -88,13 +86,27 @@ export function createProxyXMLHttpRequest(router: FourzeMockRouter) {
 
         events: Record<string, EventListener[]>
 
-        responseText: string
+        get responseText() {
+            if (this.matched) {
+                const res = this.response
+                if (typeof res === "string") {
+                    return res
+                }
+                return JSON.stringify(res)
+            }
+            return this.$base?.responseText
+        }
+
+        get responseXML() {
+            if (this.matched) {
+                return this.response as Document
+            }
+            return this.$base?.responseXML
+        }
 
         responseType: XMLHttpRequestResponseType
 
         responseURL: string
-
-        responseXML: Document | null
 
         timeout: number
 
@@ -133,8 +145,6 @@ export function createProxyXMLHttpRequest(router: FourzeMockRouter) {
                 if (this.$base) {
                     this.responseType = this.$base.responseType
                     this.response = this.$base.response
-                    this.responseText = this.$base.responseText
-                    this.responseXML = this.$base.responseXML
                     this.responseURL = this.$base.responseURL
                     this.status = this.$base.status
                     this.statusText = this.$base.statusText
@@ -199,8 +209,6 @@ export function createProxyXMLHttpRequest(router: FourzeMockRouter) {
                 this.statusText = HTTP_STATUS_CODES[200]
 
                 this.response = response.result
-
-                this.responseText = response.result
 
                 this.responseHeaders = flatHeaders(response.getHeaders())
 
