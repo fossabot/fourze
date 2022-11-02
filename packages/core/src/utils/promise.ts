@@ -1,4 +1,4 @@
-import { MaybeArray, MaybeFunction, MaybeNumber, MaybePromise } from "maybe-types"
+import { Func, MaybeArray, MaybeFunction, MaybeNumber, MaybePromise } from "maybe-types"
 import { parseFakerNumber } from "./faker"
 import { isFunction } from "./is-type"
 
@@ -10,14 +10,13 @@ export function delay(ms: DelayMsType) {
     return new Promise<number>(resolve => setTimeout(() => resolve(tmp), tmp))
 }
 
-export interface AsyncLock<R, Arg extends any[] = any[]> {
-    (...args: Arg): Promise<R>
+export interface AsyncLock<R = void, Args extends any[] = any[]> extends Func<Promise<R>, Args> {
     release(): void
     readonly state: "ready" | "pending" | "done" | "error"
     readonly callCount: number
 }
 
-export function asyncLock<R = any, Arg extends any[] = any[]>(fn: (...args: Arg) => MaybePromise<R>): AsyncLock<R, Arg> {
+export function asyncLock<R = void, Args extends any[] = any[]>(fn: Func<MaybePromise<R>, Args>): AsyncLock<R, Args> {
     const listeners = new Set<(data: R) => void>()
     const errors = new Set<(err: any) => void>()
     let _state: AsyncLock<R>["state"] = "ready"
@@ -25,26 +24,24 @@ export function asyncLock<R = any, Arg extends any[] = any[]>(fn: (...args: Arg)
     let _error: any
     let _callCount = 0
 
-    const lock = ((...arg: Arg) => {
+    const lock = ((...arg: Args) => {
         _callCount++
         switch (_state) {
             case "ready":
                 _state = "pending"
-                try {
-                    return new Promise<R>(async (resolve, reject) => {
-                        listeners.add(resolve)
-                        listeners.add(() => (_state = "done"))
-                        errors.add(reject)
-
+                return new Promise<R>(async (resolve, reject) => {
+                    listeners.add(resolve)
+                    errors.add(reject)
+                    try {
                         _result = await fn(...arg)
-                        listeners.forEach(fn => fn(_result))
-                    })
-                } catch (err) {
-                    _state = "error"
-                    _error = err
-                    errors.forEach(fn => fn(err))
-                    return
-                }
+                        listeners.add(() => (_state = "done"))
+                        listeners.forEach(f => f(_result))
+                    } catch (err) {
+                        _state = "error"
+                        _error = err
+                        errors.forEach(f => f(err))
+                    }
+                })
 
             case "pending":
                 return new Promise<R>((resolve, reject) => {
