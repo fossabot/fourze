@@ -46,12 +46,12 @@ importers:
       query-string: ^7.1.1
     dependencies:
       consola: 2.15.3
+      maybe-types: 0.0.3
       minimatch: 5.1.0
       query-string: 7.1.1
     devDependencies:
       '@types/minimatch': 5.1.2
       '@types/node': 18.8.3
-      maybe-types: 0.0.3
 
   packages/mock:
     specifiers:
@@ -8399,7 +8399,6 @@ packages:
 
   /maybe-types/0.0.3:
     resolution: {integrity: sha512-N2uxJ/KxCubqnxqVGi3s0EGB26J8X6xWLjEUZfLTNUBmlPRa2WcC8lWywpOsJZc6iLwG7ih8l6xFxr+jt9JnxQ==}
-    dev: true
 
   /mdn-data/2.0.14:
     resolution: {integrity: sha512-dn6wd0uw5GsdswPFfsgMp5NSB0/aDe6fK94YJV/AJDYXL6HVLWBsxeq7js7Ad+mU2K9LAlwpk6kN2D5mwCPVow==}

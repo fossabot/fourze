@@ -17,11 +17,11 @@
     "dependencies": {
         "consola": "^2.15.3",
         "minimatch": "^5.1.0",
-        "query-string": "^7.1.1"
+        "query-string": "^7.1.1",
+        "maybe-types": "^0.0.3"
     },
     "devDependencies": {
         "@types/minimatch": "^5.1.2",
-        "@types/node": "^18.6.0",
-        "maybe-types": "^0.0.3"
+        "@types/node": "^18.6.0"
     }
 }
