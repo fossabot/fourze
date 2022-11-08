@@ -11,6 +11,17 @@ interface Pagination {
 export default defineFourze(fourze => {
     fourze.hook(jsonWrapperHook((data, req, res) => successResponseWrap(data, req.url)))
 
+    fourze.get(
+        "/test",
+        {
+            name: {
+                type: String,
+                required: true
+            }
+        },
+        (req, res) => req.data.name
+    )
+
     // person names
 
     const createData = (source: "server" | "mock") => {

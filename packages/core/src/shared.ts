@@ -15,7 +15,9 @@ const FOURZE_HOOK_SYMBOL = Symbol("FourzeInterceptor")
 const FOURZE_REQUEST_SYMBOL = Symbol("FourzeRequest")
 const FOURZE_RESPONSE_SYMBOL = Symbol("FourzeResponse")
 
-export interface FourzeRequest extends IncomingMessage {
+export type FourzeRequestData = Record<string, unknown>
+
+export interface FourzeRequest<D = FourzeRequestData> extends IncomingMessage {
     url: string
     method: string
     headers: Record<string, string | string[] | undefined>
@@ -23,7 +25,7 @@ export interface FourzeRequest extends IncomingMessage {
     route: FourzeRoute
     relativePath: string
 
-    params: Record<string, any>
+    readonly params: Record<string, any>
 
     meta: Record<string, any>
 
@@ -33,7 +35,7 @@ export interface FourzeRequest extends IncomingMessage {
     /**
      *  {...query, ...params, ...body}
      */
-    readonly data: Record<string, any>
+    readonly data: D
 
     readonly raw: string
 
@@ -67,30 +69,67 @@ export interface FourzeResponse extends FourzeBaseResponse {
     readonly [FOURZE_RESPONSE_SYMBOL]: true
 }
 
-export interface FourzeBaseRoute {
+export interface FourzeBaseRoute<P = FourzeRequestData> {
     path: string
     base?: string
     method?: RequestMethod
-    handle: FourzeHandle
+    handle: FourzeHandle<P>
     meta?: Record<string, any>
+    data?: FourzeObjectProps<P>
 }
 
-export interface FourzeRoute extends FourzeBaseRoute {
+type Prop<T, D = T> = PropOptions<T, D> | PropType<T>
+
+export type FourzeObjectProps<P = Record<string, unknown>> = {
+    [K in keyof P]: Prop<P[K]>
+}
+
+export type PropConstructor<T = any> =
+    | {
+          new (...args: any[]): T & {}
+      }
+    | {
+          (): T
+      }
+    | PropMethod<T>
+
+type PropMethod<T, TConstructor = any> = [T] extends [((...args: any) => any) | undefined]
+    ? {
+          new (): TConstructor
+          (): T
+          readonly prototype: TConstructor
+      }
+    : never
+
+interface PropOptions<T = any, D = T> {
+    type?: PropType<T> | true | null
+    required?: boolean
+    default?: D | DefaultFactory<D> | null | undefined | object
+    validator?(value: unknown): boolean
+    in?: "body" | "path" | "query" | "headers"
+}
+
+declare type DefaultFactory<T> = (props: FourzeRequestData) => T | null | undefined
+
+export type PropType<T> = PropConstructor<T> | PropConstructor<T>[]
+
+export interface FourzeRoute<P = FourzeRequestData> extends FourzeBaseRoute<P> {
     readonly [FOURZE_ROUTE_SYMBOL]: true
     readonly pathParams: RegExpMatchArray
     meta: Record<string, any>
+    data: FourzeObjectProps<P>
     match: (url: string, method?: string, base?: string) => RegExpMatchArray | null
 }
 
 export type FourzeNext = (rs?: boolean) => MaybePromise<void>
 
-export type FourzeHandle<R = any> = (request: FourzeRequest, response: FourzeResponse) => MaybePromise<R>
+export type FourzeHandle<D = FourzeRequestData, R = any> = (request: FourzeRequest<D>, response: FourzeResponse) => MaybePromise<R>
 
 export const FOURZE_METHODS: RequestMethod[] = ["get", "post", "delete", "put", "patch", "options", "head", "trace", "connect"]
 
 export type RequestMethod = "get" | "post" | "delete" | "put" | "patch" | "head" | "options" | "trace" | "connect"
 
-export function isRoute(route: any): route is FourzeRoute {
+export function isRoute(route: any): route is FourzeRoute<any> {
     return !!route && !!route[FOURZE_ROUTE_SYMBOL]
 }
 
@@ -98,8 +137,8 @@ const REQUEST_PATH_REGEX = new RegExp(`^(${FOURZE_METHODS.join("|")})\\s+`, "i")
 
 const PARAM_KEY_REGEX = /\{[\w_-]+\}/g
 
-export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
-    let { handle, method, path, meta = {}, base } = route
+export function defineRoute<P = FourzeRequestData>(route: FourzeBaseRoute<P>): FourzeRoute<P> {
+    let { handle, method, path, meta = {}, base, data = {} as FourzeObjectProps<P> } = route
 
     if (REQUEST_PATH_REGEX.test(path)) {
         const arr = path.split(/\s+/)
@@ -126,6 +165,9 @@ export function defineRoute(route: FourzeBaseRoute): FourzeRoute {
         },
         get pathParams() {
             return this.path.match(PARAM_KEY_REGEX) ?? []
+        },
+        get data() {
+            return data
         },
         get [FOURZE_ROUTE_SYMBOL](): true {
             return true
@@ -178,9 +220,9 @@ export function defineFourzeHook(param0: string | DefineFourzeHook | FourzeBaseH
 
 export type DefineFourzeHook = {
     path?: string
-    before?: FourzeHandle<void>
+    before?: FourzeHandle
     handle?: FourzeHandle<any>
-    after?: FourzeHandle<void>
+    after?: FourzeHandle
 }
 
 export interface FourzeInstance {
@@ -394,8 +436,6 @@ export function createRequest(options: FourzeRequestOptions) {
         body = { ...bodyRaw }
     }
 
-    request.params = options.params ?? {}
-
     Object.defineProperties(request, {
         [FOURZE_REQUEST_SYMBOL]: {
             get() {
@@ -407,7 +447,7 @@ export function createRequest(options: FourzeRequestOptions) {
                 return {
                     ...query,
                     ...(body ?? {}),
-                    ...(request.params ?? {})
+                    ...request.params
                 }
             }
         },
@@ -419,6 +459,11 @@ export function createRequest(options: FourzeRequestOptions) {
         bodyRaw: {
             get() {
                 return bodyRaw
+            }
+        },
+        params: {
+            get() {
+                return options.params ?? {}
             }
         },
         query: {

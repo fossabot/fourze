@@ -109,12 +109,10 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
             const [route, matches] = router.match(path, method, true)
 
             if (route && matches) {
-                const params: Record<string, any> = {}
-
                 for (let i = 0; i < route.pathParams.length; i++) {
                     const key = route.pathParams[i].slice(1, -1)
                     const value = matches[i + 1]
-                    params[key] = value
+                    request.params[key] = value
                 }
 
                 request.route = route
@@ -122,7 +120,6 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
                 if (matches.length > route.pathParams.length) {
                     request.relativePath = matches[matches.length - 2]
                 }
-                request.params = params
 
                 request.meta = {
                     ...request.meta,

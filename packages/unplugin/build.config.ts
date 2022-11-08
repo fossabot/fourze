@@ -6,7 +6,6 @@ const externals = [...Object.keys(devDependencies ?? {}), ...Object.keys(rootDev
 
 export default defineBuildConfig({
     entries: ["src/index"],
-    outDir: "dist",
     clean: true,
     declaration: true,
     failOnWarn: false,

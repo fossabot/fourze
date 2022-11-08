@@ -5,6 +5,7 @@ export default defineBuildConfig({
     clean: true,
     declaration: true,
     failOnWarn: false,
+    externals: ["vite"],
     rollup: {
         emitCJS: true,
         dts: {
