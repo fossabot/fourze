@@ -1,10 +1,10 @@
-type OverloadConfig<T = object> = {
+type OverloadConfig<T = object, V = T[keyof T]> = {
     name: keyof T
     required?: boolean
     type: "string" | "number" | "boolean" | "array" | "object" | "function"
     default?: any
-    transform?: (value: T[keyof T]) => any
-    match?: (value: T[keyof T]) => boolean
+    transform?: (value: V) => any
+    match?: (value: V) => boolean
 }[]
 
 export function overload<T>(config: OverloadConfig<T>, args: any[]) {

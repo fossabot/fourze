@@ -9,7 +9,6 @@ import {
     FourzeHook,
     FourzeInstance,
     FourzeObjectProps,
-    FourzeRequestData,
     FOURZE_METHODS,
     isFourzeHook,
     RequestMethod
@@ -81,7 +80,6 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
         } else if (typeof param0 === "object") {
             routes.push(param0)
         } else {
-            console.log(...args)
             routes.push(
                 overload(
                     [

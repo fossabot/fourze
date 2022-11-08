@@ -1,6 +1,5 @@
-import { createFourzeServer } from "@fourze/server"
 import { createRouter, randomInt, setLoggerLevel } from "@fourze/core"
-import { createMockRouter } from "@fourze/mock"
+import { createFourzeServer } from "@fourze/server"
 import axios from "axios"
 import { describe, expect, it } from "vitest"
 
@@ -22,6 +21,20 @@ describe("data", async () => {
             external: ["http://localhost:7609"],
             base: "/"
         }).use(route => {
+            route("/hello-1", "get", { name: String }, (req, res) => {
+                return {
+                    name: req.data.name
+                }
+            })
+
+            route("/hello-2", "get", (req, res) => {
+                return testData
+            })
+
+            route("GET /hello-3", { test: String }, (req, res) => {
+                return testData
+            })
+
             route.post(
                 "/hello",
                 {
