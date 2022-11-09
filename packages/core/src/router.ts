@@ -3,7 +3,7 @@ import { defineFourze, Fourze, FourzeSetup, isFourze } from "./app";
 import { delayHook } from "./endpoints";
 import { createLogger } from "./logger";
 import { createServiceContext, defineRoute, FourzeContext, FourzeContextOptions, FourzeHook, FourzeInstance, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse, FourzeRoute } from "./shared";
-import { asyncLock, DelayMsType, isFunction, isMatch, isString, normalizeRoute, relativePath, unique } from "./utils";
+import { createSingletonPromise, DelayMsType, isFunction, isMatch, isString, normalizeRoute, relativePath, unique } from "./utils";
 
 export interface FourzeRouter extends FourzeMiddleware {
     /**
@@ -213,7 +213,7 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
     return this;
   };
 
-  const setupRouter = asyncLock(async function () {
+  const setupRouter = createSingletonPromise(async function () {
     const rs = await setup();
     const isArray = Array.isArray(rs);
 
@@ -289,7 +289,7 @@ export function createRouter(params: FourzeRouterOptions | Fourze[] | MaybeAsync
 
     refresh: {
       get() {
-        return setupRouter.release;
+        return setupRouter.reset;
       },
     },
     routes: {

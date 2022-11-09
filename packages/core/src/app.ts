@@ -13,7 +13,7 @@ import {
   isFourzeHook,
   RequestMethod,
 } from "./shared";
-import { asyncLock, isFunction, isString, overload, resolvePath } from "./utils";
+import { createSingletonPromise, isFunction, isString, overload, resolvePath } from "./utils";
 export interface FourzeOptions {
     base?: string
     setup?: FourzeSetup
@@ -175,7 +175,7 @@ export function defineFourze(options: FourzeOptions | FourzeBaseRoute[] | Fourze
     },
   });
 
-  fourze.setup = asyncLock(async () => {
+  fourze.setup = createSingletonPromise(async () => {
     const extra = (await setup?.(fourze)) ?? [];
 
     if (Array.isArray(extra)) {

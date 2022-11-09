@@ -1,4 +1,4 @@
-import { asyncLock, delay, DelayMsType, parseFakerNumber, randomArray, randomInt, randomItem } from "@fourze/core";
+import { asyncLock, createSingletonPromise, delay, DelayMsType, parseFakerNumber, randomArray, randomInt, randomItem } from "@fourze/core";
 import { describe, expect, it } from "vitest";
 
 describe("utils", () => {
@@ -28,10 +28,10 @@ describe("utils", () => {
     expect(array).include(item);
   });
 
-  it("asynclock", async () => {
+  it("createSingletonPromise", async () => {
     const createInstance = () => randomInt("374-9197");
 
-    const fn = asyncLock(createInstance);
+    const fn = createSingletonPromise(createInstance);
 
     const delayFn = function (ms: DelayMsType) {
       return async () => {
@@ -40,23 +40,16 @@ describe("utils", () => {
       };
     };
 
-    expect(fn.state).toBe("ready");
-
     const r = await fn();
 
-    fn.release();
-
-    expect(fn.state).toBe("ready");
+    fn.reset();
 
     const [r0, r1] = await Promise.all([delayFn(300), delayFn("200-700")].map(r => r()));
 
     expect(r0).not.toBe(r);
 
     expect(r0).toBe(r1);
-    expect(fn.state).toBe("done");
-    expect(fn.callCount).toBe(3);
     const r2 = await delayFn("300-700")();
     expect(r2).toBe(r0);
-    expect(fn.callCount).toBe(4);
   });
 });

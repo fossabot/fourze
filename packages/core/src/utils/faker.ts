@@ -1,5 +1,5 @@
 import type { MaybeArray, MaybeNumber } from "maybe-types";
-import { isFunction, isPrimitive, isString } from "./is-type";
+import { isFunction, isPrimitive, isString } from "./is";
 import { randomInt, randomItem } from "./random";
 
 export type BaseValueType = number | string | boolean | null | undefined;

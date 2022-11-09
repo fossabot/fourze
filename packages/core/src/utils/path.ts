@@ -1,6 +1,6 @@
 import type { MaybeRegex } from "maybe-types";
 import minimatch from "minimatch";
-import { isRegExp } from "./is-type";
+import { isRegExp } from "./is";
 export function slash(p: string): string {
   return p.replace(/\\/g, "/").replace(/\/+/g, "/");
 }

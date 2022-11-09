@@ -1,5 +1,5 @@
 import type { MaybeDate } from "maybe-types";
-import { isString } from "./is-type";
+import { isString } from "./is";
 
 export function randomInt(tmp: string): number
 

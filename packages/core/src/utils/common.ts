@@ -1,6 +1,4 @@
-export const isNode = () => typeof window === "undefined";
 
-export const isBrowser = () => !isNode();
 
 export function normalizeRoute(path: string, method = "GET") {
   method = method.toUpperCase();
