@@ -1,6 +1,6 @@
 {
     "name": "@fourze/unplugin",
-    "version": "0.20.9",
+    "version": "0.21.0",
     "description": "",
     "main": "dist/index.cjs",
     "module": "dist/index.mjs",
