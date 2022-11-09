@@ -1,6 +1,6 @@
-import type { FourzeRouter, FourzeRouterOptions } from "@fourze/core"
-import type http from "http"
-import type https from "https"
+import type { FourzeRouter, FourzeRouterOptions } from "@fourze/core";
+import type http from "http";
+import type https from "https";
 
 export type FourzeMockRequestMode = "xhr" | "fetch" | "request"
 
@@ -19,7 +19,7 @@ export interface FourzeMockRouterOptions extends FourzeRouterOptions {
     global?: boolean
 }
 
-export const FOURZE_MOCK_ROUTER_SYMBOL = Symbol("FOURZE_MOCK_ROUTER_SYMBOL")
+export const FOURZE_MOCK_ROUTER_SYMBOL = Symbol("FOURZE_MOCK_ROUTER_SYMBOL");
 
 export interface FourzeMockRouter extends FourzeRouter {
     originalFetch: typeof fetch
@@ -43,5 +43,8 @@ export interface FourzeMockRouter extends FourzeRouter {
 }
 
 declare global {
-    var __FOURZE_MOCK_ROUTER__: FourzeMockRouter
+    /* eslint no-var:"off" */
+    var __FOURZE_MOCK_ROUTER__: FourzeMockRouter;
 }
+
+export { };

@@ -1,39 +1,46 @@
 type OverloadConfig<T = object, V = T[keyof T]> = {
-    name: keyof T
-    required?: boolean
-    type: "string" | "number" | "boolean" | "array" | "object" | "function"
-    default?: any
-    transform?: (value: V) => any
-    match?: (value: V) => boolean
-}[]
+    name: keyof T;
+    required?: boolean;
+    type: "string" | "number" | "boolean" | "array" | "object" | "function";
+    default?: any;
+    transform?: (value: V) => any;
+    match?: (value: V) => boolean;
+}[];
 
 export function overload<T>(config: OverloadConfig<T>, args: any[]) {
-    const result = {} as T
+  const result = {} as T;
 
-    for (const { name, required = false, type, default: defaultValue, match, transform } of config) {
-        function matchValue(value: any) {
-            if (match) {
-                return match(value)
-            }
-            if (value == undefined) {
-                return !required
-            }
-            if (type == "array") {
-                return Array.isArray(value)
-            }
-            return typeof value == type
-        }
-
-        const value = args.shift()
-
-        if (matchValue(value)) {
-            result[name] = transform ? transform(value) : value
-            continue
-        } else {
-            result[name] = defaultValue
-        }
-
-        args.unshift(value)
+  for (const {
+    name,
+    required = false,
+    type,
+    default: defaultValue,
+    match,
+    transform,
+  } of config) {
+    function matchValue(value: any) {
+      if (match) {
+        return match(value);
+      }
+      if (value === undefined || value === null) {
+        return !required;
+      }
+      if (type === "array") {
+        return Array.isArray(value);
+      }
+      return typeof value === type;
     }
-    return result
+
+    const value = args.shift();
+
+    if (matchValue(value)) {
+      result[name] = transform ? transform(value) : value;
+      continue;
+    } else {
+      result[name] = defaultValue;
+    }
+
+    args.unshift(value);
+  }
+  return result;
 }

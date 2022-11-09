@@ -1,8 +1,8 @@
-import type { MaybeArray, MaybeNumber } from "maybe-types"
-import { isFunction, isPrimitive, isString } from "./is-type"
-import { randomInt, randomItem } from "./random"
+import type { MaybeArray, MaybeNumber } from "maybe-types";
+import { isFunction, isPrimitive, isString } from "./is-type";
+import { randomInt, randomItem } from "./random";
 
-export type BaseValueType = number | string | boolean | null | undefined
+export type BaseValueType = number | string | boolean | null | undefined;
 
 /**
  *
@@ -13,99 +13,108 @@ export type BaseValueType = number | string | boolean | null | undefined
  * @returns
  */
 export function parseFakerNumber(num: MaybeArray<MaybeNumber>): number {
-    if (Array.isArray(num)) {
-        return parseFakerNumber(randomItem(num))
+  if (Array.isArray(num)) {
+    return parseFakerNumber(randomItem(num));
+  }
+  if (isString(num)) {
+    if (num.match(/^\d+-\d+$/g)) {
+      return randomInt(num);
     }
-    if (isString(num)) {
-        if (num.match(/^\d+-\d+$/g)) {
-            return randomInt(num)
-        }
-        return parseInt(num)
-    }
-    return num
+    return parseInt(num);
+  }
+  return num;
 }
 
 export interface MockObjectOption {
-    deep?: boolean
-    context?: Record<string, any>
+    deep?: boolean;
+    context?: Record<string, any>;
 }
 
-const transformSign = ["|", "-", "{", "}", "$"]
+const transformSign = ["|", "-", "{", "}", "$"];
 
 export function getContextValue(context: any, key: string): any {
-    const keys = key.split(".")
-    let value = context
-    for (const k of keys) {
-        if (value === undefined) {
-            return undefined
-        }
-        value = value[k]
+  const keys = key.split(".");
+  let value = context;
+  for (const k of keys) {
+    if (value === undefined) {
+      return undefined;
     }
-    return value
+    value = value[k];
+  }
+  return value;
 }
 
-export function parseFakerDynamic(val: string, context: Record<string, any>): BaseValueType {
-    if (/^\d+(\-\d+)?$/g.test(val)) {
-        return parseFakerNumber(val)
-    }
-    if (val == "true") {
-        return true
-    }
-    if (val == "false") {
-        return false
-    }
-    if (val === "null") {
-        return null
-    }
-    if (val === "undefined") {
-        return undefined
-    }
-    if (/(\w+)(\|(\w+))+/g.test(val)) {
-        const value = val.split("|")
-        return parseFakerDynamic(randomItem(value), context)
-    }
+export function parseFakerDynamic(
+  val: string,
+  context: Record<string, any>
+): BaseValueType {
+  if (/^\d+(-\d+)?$/g.test(val)) {
+    return parseFakerNumber(val);
+  }
+  if (val === "true") {
+    return true;
+  }
+  if (val === "false") {
+    return false;
+  }
+  if (val === "null") {
+    return null;
+  }
+  if (val === "undefined") {
+    return undefined;
+  }
+  if (/(\w+)(\|(\w+))+/g.test(val)) {
+    const value = val.split("|");
+    return parseFakerDynamic(randomItem(value), context);
+  }
 
-    if (/^\w[\w\d_]*\(\)$/g.test(val)) {
-        const fnName = val.slice(0, -2)
-        const fn = context[fnName]
-        if (isFunction(val)) {
-            return fn()
-        }
+  if (/^\w[\w\d_]*\(\)$/g.test(val)) {
+    const fnName = val.slice(0, -2);
+    const fn = context[fnName];
+    if (isFunction(val)) {
+      return fn();
     }
-    if (/^\w[\w\d_]*$/g.test(val)) {
-        const field = context[val]
-        return field
-    }
+  }
+  if (/^\w[\w\d_]*$/g.test(val)) {
+    const field = context[val];
+    return field;
+  }
 
-    if (/^'[^']*'$/g.test(val)) {
-        return val.slice(1, -1)
-    }
+  if (/^'[^']*'$/g.test(val)) {
+    return val.slice(1, -1);
+  }
 
-    if (/^"[^"]*"$/g.test(val)) {
-        return val.slice(1, -1)
-    }
+  if (/^"[^"]*"$/g.test(val)) {
+    return val.slice(1, -1);
+  }
 
-    return val
+  return val;
 }
 
-export function parseFakerValue(val: string | number | boolean, context: any = {}) {
-    if (isString(val)) {
-        if (val.match(/^\{[^}]*\}$/g)) {
-            return parseFakerDynamic(val.slice(1, -1), context)
-        }
-
-        const matches = val.match(/\{[^}]*}/g)
-        if (matches) {
-            for (const match of matches) {
-                const matchValue = match.slice(1, -1)
-                val = val.replace(match, String(parseFakerDynamic(matchValue, context)))
-            }
-        }
-        val = transformSign.reduce((rs, keyword) => {
-            return rs.replaceAll(`\\${keyword}`, keyword)
-        }, val)
+export function parseFakerValue(
+  val: string | number | boolean,
+  context: any = {}
+) {
+  if (isString(val)) {
+    if (val.match(/^\{[^}]*\}$/g)) {
+      return parseFakerDynamic(val.slice(1, -1), context);
     }
-    return val
+
+    const matches = val.match(/\{[^}]*}/g);
+    if (matches) {
+      for (const match of matches) {
+        const matchValue = match.slice(1, -1);
+        val = val.replace(
+          match,
+          String(parseFakerDynamic(matchValue, context))
+        );
+      }
+    }
+    val = transformSign.reduce((rs, keyword) => {
+      return rs.replaceAll(`\\${keyword}`, keyword);
+    }, val);
+  }
+  return val;
 }
 
 /**
@@ -123,23 +132,26 @@ export function parseFakerValue(val: string | number | boolean, context: any = {
  * @param obj
  * @param param1
  */
-export function parseFakerObject(obj: MaybeArray<MaybeNumber | Record<string, any>>, options: MockObjectOption = {}): any {
-    options.context = options.context ?? {}
+export function parseFakerObject(
+  obj: MaybeArray<MaybeNumber | Record<string, any>>,
+  options: MockObjectOption = {}
+): any {
+  options.context = options.context ?? {};
 
-    if (Array.isArray(obj)) {
-        return obj.map(v => parseFakerObject(v, options))
-    }
+  if (Array.isArray(obj)) {
+    return obj.map((v) => parseFakerObject(v, options));
+  }
 
-    if (isPrimitive(obj)) {
-        return parseFakerValue(obj, options.context)
-    }
+  if (isPrimitive(obj)) {
+    return parseFakerValue(obj, options.context);
+  }
 
-    return Object.fromEntries(
-        Object.entries(obj).map(([k, v]) => {
-            if (Array.isArray(v)) {
-                return [k, v.map(f => parseFakerObject(f, options))]
-            }
-            return [k, parseFakerObject(v, options)]
-        })
-    )
+  return Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => {
+      if (Array.isArray(v)) {
+        return [k, v.map((f) => parseFakerObject(f, options))];
+      }
+      return [k, parseFakerObject(v, options)];
+    })
+  );
 }

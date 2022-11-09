@@ -1,5 +1,5 @@
-import { CSSProperties, PropType, VNode } from "vue"
-import { defineHooks } from "./define"
+import { CSSProperties, PropType, VNode } from "vue";
+import { defineHooks } from "./define";
 
 export interface PaginationProps {}
 
@@ -30,38 +30,38 @@ export interface TableColumn<R extends Record<string, any> = any> extends Record
 }
 
 export const tableProps = {
-    data: {
-        type: [Object, Array] as PropType<any[]>,
-        default: () => []
-    },
-    columns: {
-        type: Array as PropType<TableColumn<any>[]>,
-        default: () => []
-    },
-    expandKey: {
-        type: String
-    },
-    loading: {
-        type: Boolean,
-        default: false
-    },
-    rowKey: {
-        type: String,
-        default: "id"
-    },
-    headerClass: {
-        type: [String, Array] as PropType<string | string[]>
-    },
-    rowClass: {
-        type: [Function, String, Array] as PropType<((record: any, index: number) => string | string[]) | string | string[]>
-    },
-    draggable: {
-        type: [Object, Boolean] as PropType<TableDraggable | boolean>
-    },
-    pagination: {
-        type: [Object, Boolean] as PropType<PaginationProps | false>
-    }
-}
+  data: {
+    type: [Object, Array] as PropType<any[]>,
+    default: () => [],
+  },
+  columns: {
+    type: Array as PropType<TableColumn<any>[]>,
+    default: () => [],
+  },
+  expandKey: {
+    type: String,
+  },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+  rowKey: {
+    type: String,
+    default: "id",
+  },
+  headerClass: {
+    type: [String, Array] as PropType<string | string[]>,
+  },
+  rowClass: {
+    type: [Function, String, Array] as PropType<((record: any, index: number) => string | string[]) | string | string[]>,
+  },
+  draggable: {
+    type: [Object, Boolean] as PropType<TableDraggable | boolean>,
+  },
+  pagination: {
+    type: [Object, Boolean] as PropType<PaginationProps | false>,
+  },
+};
 
 export interface TableDraggable {
     /**
@@ -87,5 +87,5 @@ export interface TableDraggable {
 }
 
 export const useTable = defineHooks(tableProps, props => {
-    return {}
-})
+  return {};
+});
