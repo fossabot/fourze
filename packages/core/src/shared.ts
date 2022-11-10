@@ -624,6 +624,10 @@ export function createRequest(options: FourzeRequestOptions) {
     body = { ...bodyRaw };
   }
 
+  body = body ?? {};
+
+  const params = { ...options.params };
+
   Object.defineProperties(request, {
     [FOURZE_REQUEST_SYMBOL]: {
       get() {
@@ -634,14 +638,14 @@ export function createRequest(options: FourzeRequestOptions) {
       get() {
         return {
           ...query,
-          ...(body ?? {}),
-          ...request.params,
+          ...body,
+          ...params,
         };
       },
     },
     body: {
       get() {
-        return body ?? {};
+        return body;
       },
     },
     bodyRaw: {
@@ -651,7 +655,7 @@ export function createRequest(options: FourzeRequestOptions) {
     },
     params: {
       get() {
-        return options.params ?? {};
+        return params;
       },
     },
     query: {
