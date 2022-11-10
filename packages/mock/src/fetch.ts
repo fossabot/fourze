@@ -1,4 +1,13 @@
-import { createLogger, flatHeaders, FourzeResponse, getHeaderValue, isString, isURL, normalizeRoute, PolyfillHeaders } from "@fourze/core";
+import {
+  createLogger,
+  flatHeaders,
+  FourzeResponse,
+  getHeaderValue,
+  isString,
+  isURL,
+  normalizeRoute,
+  PolyfillHeaders,
+} from "@fourze/core";
 import { FourzeMockRouter } from "./shared";
 
 class ProxyFetchResponse implements Response {
@@ -25,7 +34,7 @@ class ProxyFetchResponse implements Response {
   _response: FourzeResponse;
 
   constructor(response: FourzeResponse) {
-    this.url = response.url!;
+    this.url = response.url;
     this.status = response.statusCode;
     this.statusText = response.statusMessage;
     this.data = response.result;
@@ -100,15 +109,27 @@ export function createProxyFetch(router: FourzeMockRouter) {
         headers,
       });
       if (response.matched) {
-        logger.success(`Found route by -> ${normalizeRoute(url, method)}.`);
+        logger.success(
+          `Found route by -> ${normalizeRoute(url, method)}.`
+        );
         return new ProxyFetchResponse(response);
       }
-      logger.debug(`Not found route, fallback to original -> ${normalizeRoute(url, method)}.`);
+      logger.debug(
+        `Not found route, fallback to original -> ${normalizeRoute(
+          url,
+          method
+        )}.`
+      );
       return originalFetch(input, init);
     }
 
     if (useMock === "off") {
-      logger.debug(`X-Fourze-Mock is off, fallback to original ${normalizeRoute(url, method)}.`);
+      logger.debug(
+        `X-Fourze-Mock is off, fallback to original ${normalizeRoute(
+          url,
+          method
+        )}.`
+      );
       const res = await originalFetch(input, init);
       return res;
     } else {

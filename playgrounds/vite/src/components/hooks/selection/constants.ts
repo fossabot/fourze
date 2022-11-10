@@ -1,10 +1,10 @@
-export const AciveSymbol = Symbol("[i-selection]active");
+export const ActiveSymbol = Symbol("[i-selection]active");
 
 export const InitSymbol = Symbol("[i-selection]init");
 
 export const ModelValueSymbol = Symbol("[i-selection]model-value");
 
-export const AciveClassSymbol = Symbol("[i-selection]active-class");
+export const ActiveClassSymbol = Symbol("[i-selection]active-class");
 export const ItemClassSymbol = Symbol("[i-selection]item-class");
 export const UnactiveSymbol = Symbol("[i-selection]unactive-class");
 export const DisabledSymbol = Symbol("[i-selection]disabled-class");
@@ -17,7 +17,7 @@ export const ChangeActiveSymbol = Symbol("[i-selection]change-active");
 export const IsActiveSymbol = Symbol("[i-selection]is-active");
 
 export interface Option {
-    id?: string
-    value: any | null
-    render(): JSX.Element | string
+    id?: string;
+    value: any | null;
+    render(): JSX.Element | string;
 }

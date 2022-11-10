@@ -11,7 +11,7 @@ import {
   PolyfillHeaderInit,
 } from "./polyfill/header";
 import { PolyfillServerResponse } from "./polyfill/response";
-import { isBuffer, isString, resolvePath } from "./utils";
+import { isBuffer, isDefined, isString, resolvePath } from "./utils";
 
 export const FOURZE_VERSION = version;
 
@@ -106,6 +106,10 @@ export type ExtractPropTypes<
     [K in keyof Pick<O, OptionalKeys<O>>]?: InferPropType<O[K]>;
 } & DefaultData;
 
+export type LooseRequired<T> = {
+    [P in string & keyof T]: T[P];
+};
+
 type RequiredKeys<T> = {
     [K in keyof T]: T[K] extends
         | {
@@ -127,10 +131,6 @@ type RequiredKeys<T> = {
 }[keyof T];
 
 type OptionalKeys<T> = Exclude<keyof T, RequiredKeys<T>>;
-
-export declare type LooseRequired<T> = {
-    [P in string & keyof T]: T[P];
-};
 
 type InKeys<T, In extends PropIn> = {
     [K in keyof T]: T[K] extends {
@@ -212,10 +212,11 @@ type PropMethod<T, TConstructor = any> = [T] extends [
     : never;
 
 interface PropOptions<T = any, D = T> {
-    type?: PropType<T> | true | null;
+    type: PropType<T>;
     required?: boolean;
     default?: D | DefaultFactory<D> | null | undefined | object;
     validator?(value: unknown): boolean;
+    transform?(value: unknown): T;
     in?: PropIn;
 }
 
@@ -452,15 +453,15 @@ export function createResponse(options: FourzeResponseOptions) {
     name: string,
     value: string | ReadonlyArray<string> | number
   ) {
-    if (this.hasHeader(name)) {
-      let oldValue = this.getHeader(name)!;
-      if (Array.isArray(oldValue)) {
-        oldValue = oldValue.join(",");
-      }
-      if (Array.isArray(value)) {
-        value = value.join(",");
-      }
-      this.setHeader(name, `${oldValue},${value}`);
+    const oldValue = this.getHeader(name);
+    if (isDefined(oldValue)) {
+      this.setHeader(
+        name,
+        [oldValue, value]
+          .flat()
+          .filter((r) => !!r)
+          .join(",")
+      );
     } else {
       this.setHeader(name, value);
     }

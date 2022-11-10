@@ -1,4 +1,3 @@
-
 export function isString(value: unknown): value is string {
   return typeof value === "string";
 }
@@ -8,12 +7,17 @@ export function isNumber(value: unknown): value is number {
 }
 
 export function isBoolean(value: unknown): value is boolean {
-  return typeof value === "boolean" ;
+  return typeof value === "boolean";
 }
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-export function isFunction<T extends Function>(value: unknown): value is T{
+export function isFunction<T extends Function>(value: unknown): value is T {
   return typeof value === "function" || value instanceof Function;
+}
+
+// eslint-disable-next-line @typescript-eslint/ban-types
+export function isConstructor<T extends Function>(value: unknown): value is T {
+  return isFunction(value) && value.prototype !== undefined;
 }
 
 export function isBuffer(value: unknown): value is Buffer {
@@ -41,9 +45,9 @@ export function isPrimitive(
 ): value is string | number | boolean | null | undefined {
   return (
     isString(value) ||
-    isNumber(value) ||
-    isBoolean(value) ||
-    isNullOrUndefined(value)
+        isNumber(value) ||
+        isBoolean(value) ||
+        isNullOrUndefined(value)
   );
 }
 
@@ -67,7 +71,9 @@ export function isNullOrUndefined(value: unknown): value is null | undefined {
   return isUndefined(value) || isNull(value);
 }
 
-export function isFalsy(value: unknown): value is false | 0 | "" | null | undefined {
+export function isFalsy(
+  value: unknown
+): value is false | 0 | "" | null | undefined {
   return !value;
 }
 
@@ -75,6 +81,6 @@ export function isTruthy<T>(value: T): value is NonNullable<T> {
   return !!value;
 }
 
-export const isNode = () => typeof window === "undefined" ;
+export const isNode = () => typeof window === "undefined";
 
 export const isBrowser = () => !isNode();

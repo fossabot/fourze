@@ -1,11 +1,15 @@
 import fourzeUnplugin, { UnpluginFourzeOptions } from "@fourze/unplugin";
-import { addServerHandler, addTemplate, addVitePlugin, defineNuxtModule } from "@nuxt/kit";
+import {
+  addServerHandler,
+  addTemplate,
+  addVitePlugin,
+  defineNuxtModule,
+} from "@nuxt/kit";
 import "@nuxt/schema";
 import dedent from "dedent";
 import { join } from "pathe";
-import { fileURLToPath } from "url";
 
-export type ModuleOptions = UnpluginFourzeOptions
+export type ModuleOptions = UnpluginFourzeOptions;
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
@@ -18,13 +22,13 @@ export default defineNuxtModule<ModuleOptions>({
     mock: false,
   },
   setup(options, nuxt) {
-    const runtimeDir = fileURLToPath(new URL("./runtime", import.meta.url));
-    nuxt.options.build.transpile.push(runtimeDir);
-
-    if (nuxt.options.target === "static") {
+    if (!nuxt.options.ssr) {
       addVitePlugin(fourzeUnplugin.vite(options));
     } else {
-      const mockHandlerPath = join(nuxt.options.buildDir, "@fourze/client");
+      const mockHandlerPath = join(
+        nuxt.options.buildDir,
+        "@fourze/client"
+      );
 
       addTemplate({
         filename: "@fourze/client",
@@ -33,7 +37,7 @@ export default defineNuxtModule<ModuleOptions>({
           return dedent`
                     import pkg from "@fourze/server"
                     import { defineEventHandler } from "h3"
-                    
+
                     const { createFourzeServer, createHotRouter } = pkg
                     const fourzeServer = createFourzeServer()
                     const hotRouter = createHotRouter({

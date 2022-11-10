@@ -5,6 +5,7 @@
     "description": "",
     "main": "index.js",
     "dependencies": {
+        "@fourze/core": "workspace:*",
         "@vueuse/core": "^9.1.1",
         "axios": "^0.27.2",
         "dayjs": "^1.11.4",
@@ -32,6 +33,7 @@
     },
     "scripts": {
         "dev": "vite",
+        "preview": "vite preview",
         "build": "vite build"
     },
     "author": "chizuki",

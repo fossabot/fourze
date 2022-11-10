@@ -18,9 +18,17 @@
             "@fourze/server": ["./packages/server/src/index.ts"],
             "@fourze/vite": ["./packages/integrations/vite/src/index.ts"],
             "@fourze/webpack": ["./packages/integrations/webpack/src/index.ts"],
-            "@fourze/unplugin": ["./packages/integrations/unplugin/src/index.ts"],
-            "@fourze/nuxt": ["./packages/nuxt/src/index.ts"]
+            "@fourze/unplugin": [
+                "./packages/integrations/unplugin/src/index.ts"
+            ],
+            "@fourze/nuxt": ["./packages/integrations/nuxt/src/index.ts"]
         }
     },
-    "include": ["playgrounds/**/*.ts", "playgrounds/**/*.tsx", "packages/**/*.ts", "playgrounds/vue-cli/vue.config.js"]
+    "include": [
+        "playgrounds/**/*.ts",
+        "playgrounds/**/*.tsx",
+        "packages/**/**.ts",
+        "playgrounds/vue-cli/vue.config.js"
+    ],
+    "exclude": ["node_modules", "dist"]
 }

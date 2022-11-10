@@ -13,8 +13,8 @@
         "hmr"
     ],
     "scripts": {
-        "build": "rimraf packages/*/dist && pnpm -r --filter=./packages/* build",
-        "stub": "pnpm -r --filter=./packages/* --parallel run stub",
+        "build": "pnpm -r --parallel --filter=./packages/** build",
+        "stub": "pnpm -r --parallel --filter=./packages/**  run stub",
         "lint": "eslint ./packages/ --ext .ts --fix",
         "play:vite": "pnpm build &&  pnpm -r --filter=./playgrounds/vite dev",
         "play:vite-mock": "pnpm build &&  pnpm -r --filter=./playgrounds/vite dev --mode mock",
@@ -52,7 +52,7 @@
         "prettier": "^2.7.1",
         "rimraf": "^3.0.2",
         "typescript": "^4.8.4",
-        "unbuild": "^0.8.8",
+        "unbuild": "^0.9.4",
         "vitest": "^0.24.0"
     }
 }
