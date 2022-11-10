@@ -1,4 +1,9 @@
-import { createLogger, createRouter, isNode } from "@fourze/core";
+import {
+  createLogger,
+  createRouter,
+  isNode,
+  isNullOrUndefined,
+} from "@fourze/core";
 import { createProxyFetch } from "./fetch";
 import { createProxyRequest } from "./request";
 import {
@@ -23,7 +28,7 @@ export function createMockRouter(
   const activeMode = new Set<FourzeMockRequestMode>(mode);
 
   if (options.global) {
-    if (globalThis.PerformanceMeasure) {
+    if (isNullOrUndefined(globalThis.__FOURZE_MOCK_ROUTER__)) {
       logger.warn(
         "Fourze Mock is already started, please do not start it again."
       );
