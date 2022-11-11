@@ -1,9 +1,9 @@
 import {
     defineFourze,
-    ObjectProps,
     FourzeHandle,
     isNode,
     jsonWrapperHook,
+    ObjectProps,
     PolyfillFile,
     randomArray,
     randomDate,
@@ -101,16 +101,26 @@ export default defineFourze((fourze) => {
 
     fourze("GET /item/list", handleSearch);
 
-    fourze("DELETE /item/{id}", async (req) => {
-        const { id } = req.params;
-        const index = data.findIndex((item) => item.id == id);
-        if (index == -1) {
-            throw new Error(`item(${id}) not exists`);
+    fourze(
+        "DELETE /item/{id}",
+        {
+            id: {
+                type: String,
+                required: true,
+                in: "path",
+            },
+        },
+        async (req) => {
+            const { id } = req.params;
+            const index = data.findIndex((item) => item.id == id);
+            if (index == -1) {
+                throw new Error(`item(${id}) not exists`);
+            }
+            data.splice(index, 1);
+            cacheData();
+            return { result: true };
         }
-        data.splice(index, 1);
-        cacheData();
-        return { result: true };
-    });
+    );
 
     fourze("/img/avatar.jpg", async (req, res) => {
         let avatarPath = path.resolve(__dirname, ".tmp/avatar.jpg");
@@ -122,9 +132,17 @@ export default defineFourze((fourze) => {
         res.image(f);
     });
 
-    fourze("/upload/avatar", async (req, res) => {
-        const file = req.body.file as PolyfillFile;
-        if (file?.body) {
+    fourze(
+        "/upload/avatar",
+        {
+            file: {
+                type: PolyfillFile,
+                required: true,
+                in: "body",
+            },
+        },
+        async (req) => {
+            const file = req.body.file;
             if (!fs.existsSync(path.resolve(__dirname, ".tmp"))) {
                 fs.mkdirSync(path.resolve(__dirname, ".tmp"));
             }
@@ -137,10 +155,7 @@ export default defineFourze((fourze) => {
                 size: file.size,
             };
         }
-        return {
-            size: 0,
-        };
-    });
+    );
 
     return [];
 });

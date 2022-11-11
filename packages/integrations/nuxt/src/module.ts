@@ -1,9 +1,9 @@
 import fourzeUnplugin, { UnpluginFourzeOptions } from "@fourze/unplugin";
 import {
-  addServerHandler,
-  addTemplate,
-  addVitePlugin,
-  defineNuxtModule,
+    addServerHandler,
+    addTemplate,
+    addVitePlugin,
+    defineNuxtModule,
 } from "@nuxt/kit";
 import "@nuxt/schema";
 import dedent from "dedent";
@@ -12,29 +12,29 @@ import { join } from "pathe";
 export type ModuleOptions = UnpluginFourzeOptions;
 
 export default defineNuxtModule<ModuleOptions>({
-  meta: {
-    name: "@fourze/nuxt",
-    configKey: "fourze",
-  },
-  defaults: {
-    base: "/api",
-    dir: "mock",
-    mock: false,
-  },
-  setup(options, nuxt) {
-    if (!nuxt.options.ssr) {
-      addVitePlugin(fourzeUnplugin.vite(options));
-    } else {
-      const mockHandlerPath = join(
-        nuxt.options.buildDir,
-        "@fourze/client"
-      );
+    meta: {
+        name: "@fourze/nuxt",
+        configKey: "fourze",
+    },
+    defaults: {
+        base: "/api",
+        dir: "mock",
+        mock: false,
+    },
+    setup(options, nuxt) {
+        if (!nuxt.options.ssr) {
+            addVitePlugin(fourzeUnplugin.vite(options));
+        } else {
+            const mockHandlerPath = join(
+                nuxt.options.buildDir,
+                "@fourze/client"
+            );
 
-      addTemplate({
-        filename: "@fourze/client",
-        write: true,
-        getContents() {
-          return dedent`
+            addTemplate({
+                filename: "@fourze/client",
+                write: true,
+                getContents() {
+                    return dedent`
                     import pkg from "@fourze/server"
                     import { defineEventHandler } from "h3"
 
@@ -54,13 +54,13 @@ export default defineNuxtModule<ModuleOptions>({
                         await fourzeServer(event.req, event.res, onNotFound)
                     })
                   `;
-        },
-      });
+                },
+            });
 
-      addServerHandler({
-        middleware: true,
-        handler: mockHandlerPath,
-      });
-    }
-  },
+            addServerHandler({
+                middleware: true,
+                handler: mockHandlerPath,
+            });
+        }
+    },
 });

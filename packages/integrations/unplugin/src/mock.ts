@@ -4,20 +4,23 @@ import { normalizePath } from "@fourze/server";
 
 const TEMPORARY_FILE_SUFFIX = ".tmp.js";
 
-export function defaultMockCode(router: FourzeHotRouter, options: FourzeMockRouterOptions) {
-  let code = "import {createMockRouter} from \"@fourze/mock\"";
+export function defaultMockCode(
+    router: FourzeHotRouter,
+    options: FourzeMockRouterOptions
+) {
+    let code = "import {createMockRouter} from \"@fourze/mock\"";
 
-  const names: string[] = [];
-  for (let i = 0; i < router.moduleNames.length; i++) {
-    let modName = router.moduleNames[i];
-    names[i] = `fourze_module_${i}`;
-    modName = modName.replace(TEMPORARY_FILE_SUFFIX, "");
-    modName = normalizePath(modName);
+    const names: string[] = [];
+    for (let i = 0; i < router.moduleNames.length; i++) {
+        let modName = router.moduleNames[i];
+        names[i] = `fourze_module_${i}`;
+        modName = modName.replace(TEMPORARY_FILE_SUFFIX, "");
+        modName = normalizePath(modName);
 
-    code += `
+        code += `
         import ${names[i]} from "${modName}"`;
-  }
-  code += `
+    }
+    code += `
   createMockRouter({
     base:"${router.base}",
     modules:[${names.join(",")}].flat(),
@@ -26,5 +29,5 @@ export function defaultMockCode(router: FourzeHotRouter, options: FourzeMockRout
     allow:${JSON.stringify(options.allow)},
     global:true
   })`;
-  return code;
+    return code;
 }
