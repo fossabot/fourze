@@ -1,50 +1,51 @@
-import type { FourzeRouter, FourzeRouterOptions } from "@fourze/core";
-import type http from "http";
-import type https from "https";
+import type http from "http"
+import type https from "https"
+import type { FourzeRouter, FourzeRouterOptions } from "@fourze/core"
 
 export type FourzeMockRequestMode = "xhr" | "fetch" | "request"
 
 export interface FourzeMockRouterOptions extends FourzeRouterOptions {
-    /**
-     * @default ["xhr","fetch"]
-     */
-    mode?: FourzeMockRequestMode[]
+  /**
+   * @default ["xhr","fetch"]
+   */
+  mode?: FourzeMockRequestMode[]
 
-    port?: string
+  port?: string
 
-    host?: string
+  host?: string
 
-    autoEnable?: boolean
+  autoEnable?: boolean
 
-    global?: boolean
+  global?: boolean
 }
 
-export const FOURZE_MOCK_ROUTER_SYMBOL = Symbol("FOURZE_MOCK_ROUTER_SYMBOL");
+export const FOURZE_MOCK_ROUTER_SYMBOL = Symbol("FOURZE_MOCK_ROUTER_SYMBOL")
 
 export interface FourzeMockRouter extends FourzeRouter {
-    originalFetch: typeof fetch
-    originalXMLHttpRequest: typeof XMLHttpRequest
-    originalHttpRequest: typeof http.request
-    originalHttpsRequest: typeof https.request
+  originalFetch: typeof fetch
+  originalXMLHttpRequest: typeof XMLHttpRequest
+  originalHttpRequest: typeof http.request
+  originalHttpsRequest: typeof https.request
 
-    XmlHttpRequest: typeof XMLHttpRequest
-    fetch: typeof fetch
-    request: typeof http.request
+  XmlHttpRequest: typeof XMLHttpRequest
+  fetch: typeof fetch
+  request: typeof http.request
 
-    enabled: boolean
+  enabled: boolean
 
-    enable(): void
+  enable(): void
 
-    disable(): void
+  disable(): void
 
-    activeModes: FourzeMockRequestMode[]
+  activeModes: FourzeMockRequestMode[]
 
-    [FOURZE_MOCK_ROUTER_SYMBOL]: true
+  [FOURZE_MOCK_ROUTER_SYMBOL]: true
 }
 
 declare global {
-    /* eslint no-var:"off" */
-    var __FOURZE_MOCK_ROUTER__: FourzeMockRouter;
+  /* eslint no-var:"off" */
+  // eslint-disable-next-line vars-on-top
+  var __FOURZE_MOCK_ROUTER__: FourzeMockRouter
 }
 
-export { };
+export {}

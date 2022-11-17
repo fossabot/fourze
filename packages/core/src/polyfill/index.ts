@@ -1,2 +1,2 @@
-export * from "./form-data";
-export * from "./header";
+export * from "./form-data"
+export * from "./header"
