@@ -1,7 +1,7 @@
-import { defineBuildConfig } from "unbuild"
-import { devDependencies } from "./package.json"
+import { defineBuildConfig } from "unbuild";
+import { devDependencies } from "./package.json";
 
-const externals = [...Object.keys(devDependencies ?? {})]
+const externals = [...Object.keys(devDependencies ?? {})];
 
 export default defineBuildConfig({
   entries: ["src/index"],
@@ -12,7 +12,7 @@ export default defineBuildConfig({
   rollup: {
     emitCJS: true,
     dts: {
-      respectExternal: false,
-    },
-  },
-})
+      respectExternal: false
+    }
+  }
+});

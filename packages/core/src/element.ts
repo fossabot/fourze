@@ -1,17 +1,17 @@
-import type { MaybePromise } from "maybe-types"
-import { isFunction, isPromise } from "./utils"
+import type { MaybePromise } from "maybe-types";
+import { isFunction, isPromise } from "./utils";
 
 async function resolveElement(ele: any) {
   if (isPromise(ele)) {
-    ele = await ele
+    ele = await ele;
   }
   if (isFourzeComponent(ele)) {
-    return await ele.render?.()
+    return await ele.render?.();
   }
   if (isFunction(ele)) {
-    await ele()
+    await ele();
   }
-  return ele
+  return ele;
 }
 
 export async function createElement(
@@ -20,41 +20,41 @@ export async function createElement(
   ...children: (string | JSX.Element)[]
 ) {
   if (!props || typeof props !== "object" || Array.isArray(props)) {
-    props = {}
+    props = {};
   }
 
   if (props.class && Array.isArray(props.class)) {
-    props.class = props.class.join(" ")
+    props.class = props.class.join(" ");
   }
 
   async function renderChildren(
-    children: (string | JSX.Element)[],
+    children: (string | JSX.Element)[]
   ): Promise<string> {
     if (Array.isArray(children)) {
-      const tasks = children.map(async c =>
-        Array.isArray(c) ? renderChildren(c) : resolveElement(c),
-      )
-      const childs = await Promise.all(tasks)
-      return childs.join("")
+      const tasks = children.map(async (c) =>
+        Array.isArray(c) ? renderChildren(c) : resolveElement(c)
+      );
+      const childs = await Promise.all(tasks);
+      return childs.join("");
     }
-    return children
+    return children;
   }
 
-  const content = await renderChildren(children)
+  const content = await renderChildren(children);
   const attrs = Object.entries(props)
     .map(([key, value]) => ` ${key}="${value}"`)
-    .join("")
+    .join("");
 
   if (tag.toLowerCase() === "fragment") {
-    return content
+    return content;
   }
 
-  return `<${tag}${attrs}>${content}</${tag}>`
+  return `<${tag}${attrs}>${content}</${tag}>`;
 }
 
-export const h = createElement
+export const h = createElement;
 
-export const FourzeComponentSymbol = Symbol("FourzeComponent")
+export const FourzeComponentSymbol = Symbol("FourzeComponent");
 
 export interface FourzeComponentOption {
   name?: string
@@ -67,19 +67,19 @@ export interface FourzeComponent extends FourzeComponentOption {
 }
 
 export function defineFourzeComponent(
-  setup: FourzeComponentOption | FourzeComponentOption["setup"],
+  setup: FourzeComponentOption | FourzeComponentOption["setup"]
 ): FourzeComponent {
   if (isFunction(setup)) {
-    setup = { setup }
+    setup = { setup };
   }
   return {
     ...setup,
-    [FourzeComponentSymbol]: true,
-  }
+    [FourzeComponentSymbol]: true
+  };
 }
 
 export function isFourzeComponent(
-  component: any,
+  component: any
 ): component is FourzeComponent {
-  return component && component[FourzeComponentSymbol]
+  return component && component[FourzeComponentSymbol];
 }

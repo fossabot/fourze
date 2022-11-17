@@ -1,27 +1,27 @@
-import { isFormData } from "../utils"
+import { isFormData } from "../utils";
 
-export type PolyfillDataValue = string | Buffer | Uint8Array
+export type PolyfillDataValue = string | Buffer | Uint8Array;
 
 export class PolyfillFile {
-  readonly fileName: string
-  readonly body: Buffer
-  readonly contentType: string
+  readonly fileName: string;
+  readonly body: Buffer;
+  readonly contentType: string;
 
-  readonly encoding = "binary"
+  readonly encoding = "binary";
 
   get size() {
-    return this.body.length
+    return this.body.length;
   }
 
   constructor(
     init: string,
     fileName: string,
     encoding: BufferEncoding = "binary",
-    contentType = "application/octet-stream",
+    contentType = "application/octet-stream"
   ) {
-    this.fileName = fileName
-    this.body = Buffer.from(init, encoding)
-    this.contentType = contentType
+    this.fileName = fileName;
+    this.body = Buffer.from(init, encoding);
+    this.contentType = contentType;
   }
 }
 
@@ -34,78 +34,78 @@ interface FormDataPart {
 }
 
 const CONTENT_DISPOSITION_REGEX
-  = /Content-Disposition: form-data; name="([^"]+)"(?:; filename="([^"]+)")?/
+  = /Content-Disposition: form-data; name="([^"]+)"(?:; filename="([^"]+)")?/;
 
 function decodeFormDataDisposition(data: string) {
-  const match = data.match(CONTENT_DISPOSITION_REGEX)
+  const match = data.match(CONTENT_DISPOSITION_REGEX);
   if (!match) {
-    return null
+    return null;
   }
   return {
     name: match[1],
-    filename: match[2] as string | undefined,
-  }
+    filename: match[2] as string | undefined
+  };
 }
 
 export function decodeFormData(
   data: string | Buffer | Uint8Array | FormData,
-  boundary: string,
+  boundary: string
 ) {
   if (isFormData(data)) {
-    const rs: Record<string, any> = {}
+    const rs: Record<string, any> = {};
     data.forEach((value, key) => {
-      rs[key] = value
-    })
-    return rs
+      rs[key] = value;
+    });
+    return rs;
   }
 
-  data = Buffer.from(data).toString("binary")
+  data = Buffer.from(data).toString("binary");
 
-  data = data.replace(`--${boundary}--\r\n`, "")
+  data = data.replace(`--${boundary}--\r\n`, "");
 
-  const chunks = data.split(`--${boundary}\r\n`)
+  const chunks = data.split(`--${boundary}\r\n`);
 
-  const body: Record<string, PolyfillFile | string> = {}
+  const body: Record<string, PolyfillFile | string> = {};
 
   for (let i = 0; i < chunks.length; i++) {
-    let data = chunks[i]
+    let data = chunks[i];
 
-    const part = {} as FormDataPart
+    const part = {} as FormDataPart;
 
     function readLine() {
-      const index = data.indexOf("\r\n")
+      const index = data.indexOf("\r\n");
       if (index < 0) {
-        return data
+        return data;
       }
-      const line = data.slice(0, index)
-      data = data.slice(index + 2)
-      return line
+      const line = data.slice(0, index);
+      data = data.slice(index + 2);
+      return line;
     }
 
-    let line = readLine()
+    let line = readLine();
 
     if (line.startsWith("Content-Disposition:")) {
-      const disposition = decodeFormDataDisposition(line)
+      const disposition = decodeFormDataDisposition(line);
       if (disposition) {
-        part.name = disposition.name
-        part.fileName = disposition.filename
+        part.name = disposition.name;
+        part.fileName = disposition.filename;
       }
-      line = readLine()
+      line = readLine();
     }
 
     if (line.startsWith("Content-Type:")) {
-      part.contentType = line.slice(14)
-      line = readLine()
+      part.contentType = line.slice(14);
+      line = readLine();
     }
     if (line.startsWith("Content-Transfer-Encoding:")) {
-      part.encoding = line.slice(26) as BufferEncoding
-      line = readLine()
+      part.encoding = line.slice(26) as BufferEncoding;
+      line = readLine();
     }
 
-    data = data.slice(0, -2)
+    data = data.slice(0, -2);
 
     if (data.length > 0) {
-      part.value = data
+      part.value = data;
     }
 
     if (part.fileName) {
@@ -113,12 +113,11 @@ export function decodeFormData(
         part.value,
         part.fileName,
         part.encoding,
-        part.contentType,
-      )
-    }
-    else {
-      body[part.name] = part.value
+        part.contentType
+      );
+    } else {
+      body[part.name] = part.value;
     }
   }
-  return body
+  return body;
 }

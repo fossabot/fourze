@@ -1,4 +1,4 @@
-import type { FourzeResponse } from "@fourze/core"
+import type { FourzeResponse } from "@fourze/core";
 import {
   PolyfillHeaders,
   createLogger,
@@ -6,134 +6,132 @@ import {
   getHeaderValue,
   isString,
   isURL,
-  normalizeRoute,
-} from "@fourze/core"
-import type { FourzeMockRouter } from "./shared"
+  normalizeRoute
+} from "@fourze/core";
+import type { FourzeMockRouter } from "./shared";
 
 class ProxyFetchResponse implements Response {
-  readonly url: string
+  readonly url: string;
 
-  readonly statusText: string = "OK"
+  readonly statusText: string = "OK";
 
-  readonly status: number = 200
+  readonly status: number = 200;
 
-  readonly headers: Headers
+  readonly headers: Headers;
 
-  readonly ok: boolean = true
+  readonly ok: boolean = true;
 
-  readonly body: ReadableStream<Uint8Array> | null = null
+  readonly body: ReadableStream<Uint8Array> | null = null;
 
-  readonly data: any
+  readonly data: any;
 
-  bodyUsed = false
+  bodyUsed = false;
 
-  redirected = false
+  redirected = false;
 
-  type: ResponseType = "basic"
+  type: ResponseType = "basic";
 
-  _response: FourzeResponse
+  _response: FourzeResponse;
 
   constructor(response: FourzeResponse) {
-    this.url = response.url
-    this.status = response.statusCode
-    this.statusText = response.statusMessage
-    this.data = response.result
-    this.headers = new PolyfillHeaders(response.getHeaders())
-    this._response = response
+    this.url = response.url;
+    this.status = response.statusCode;
+    this.statusText = response.statusMessage;
+    this.data = response.result;
+    this.headers = new PolyfillHeaders(response.getHeaders());
+    this._response = response;
   }
 
   async arrayBuffer() {
-    return new Blob([this.data]).arrayBuffer()
+    return new Blob([this.data]).arrayBuffer();
   }
 
   async blob(): Promise<Blob> {
-    return new Blob([this.data])
+    return new Blob([this.data]);
   }
 
   async formData() {
-    const formData = new FormData()
+    const formData = new FormData();
     for (const [key, value] of Object.entries(this.data)) {
-      formData.append(key, value as any)
+      formData.append(key, value as any);
     }
-    return formData
+    return formData;
   }
 
   async json() {
-    return isString(this.data) ? JSON.parse(this.data) : this.data
+    return isString(this.data) ? JSON.parse(this.data) : this.data;
   }
 
   clone(): Response {
-    return new ProxyFetchResponse(this._response)
+    return new ProxyFetchResponse(this._response);
   }
 
   async text() {
-    return String(this.data)
+    return String(this.data);
   }
 
   async raw() {
-    return this.data
+    return this.data;
   }
 }
 
 export function createProxyFetch(router: FourzeMockRouter) {
-  const logger = createLogger("@fourze/mock")
-  const originalFetch = router.originalFetch
+  const logger = createLogger("@fourze/mock");
+  const originalFetch = router.originalFetch;
 
   if (!originalFetch) {
-    logger.warn("globalThis.fetch is not defined")
+    logger.warn("globalThis.fetch is not defined");
   }
 
   return async (input: RequestInfo | URL, init?: RequestInit) => {
-    let url: string
-    let method = "GET"
-    let body: any
+    let url: string;
+    let method = "GET";
+    let body: any;
     if (isString(input) || isURL(input)) {
-      url = input.toString()
-      method = init?.method ?? method
-      body = init?.body ?? {}
-    }
-    else {
-      url = input.url
-      method = input.method ?? init?.method ?? method
-      body = input.body ?? init?.body ?? {}
+      url = input.toString();
+      method = init?.method ?? method;
+      body = init?.body ?? {};
+    } else {
+      url = input.url;
+      method = input.method ?? init?.method ?? method;
+      body = input.body ?? init?.body ?? {};
     }
 
-    const headers = flatHeaders(init?.headers)
-    const useMock = getHeaderValue(headers, "X-Fourze-Mock")
+    const headers = flatHeaders(init?.headers);
+    const useMock = getHeaderValue(headers, "X-Fourze-Mock");
 
     async function mockRequest() {
-      headers["X-Request-With"] = "Fourze Fetch Proxy"
+      headers["X-Request-With"] = "Fourze Fetch Proxy";
       const { response } = await router.service({
         url,
         method,
         body,
-        headers,
-      })
+        headers
+      });
       if (response.matched) {
-        logger.success(`Found route by -> ${normalizeRoute(url, method)}.`)
-        return new ProxyFetchResponse(response)
+        logger.success(`Found route by -> ${normalizeRoute(url, method)}.`);
+        return new ProxyFetchResponse(response);
       }
       logger.debug(
         `Not found route, fallback to original -> ${normalizeRoute(
           url,
-          method,
-        )}.`,
-      )
-      return originalFetch(input, init)
+          method
+        )}.`
+      );
+      return originalFetch(input, init);
     }
 
     if (useMock === "off") {
       logger.debug(
         `X-Fourze-Mock is off, fallback to original ${normalizeRoute(
           url,
-          method,
-        )}.`,
-      )
-      const res = await originalFetch(input, init)
-      return res
+          method
+        )}.`
+      );
+      const res = await originalFetch(input, init);
+      return res;
+    } else {
+      return mockRequest();
     }
-    else {
-      return mockRequest()
-    }
-  }
+  };
 }

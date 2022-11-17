@@ -1,3 +1,3 @@
-export * from "./router"
+export * from "./router";
 
-export * from "./shared"
+export * from "./shared";

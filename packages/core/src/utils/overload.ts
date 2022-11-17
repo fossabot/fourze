@@ -1,4 +1,4 @@
-import { isUndef } from "./is"
+import { isUndef } from "./is";
 
 type OverloadConfig<T = object, V = T[keyof T]> = {
   name: keyof T
@@ -7,10 +7,10 @@ type OverloadConfig<T = object, V = T[keyof T]> = {
   default?: any
   transform?: (value: V) => any
   match?: (value: V) => boolean
-}[]
+}[];
 
 export function overload<T>(config: OverloadConfig<T>, args: any[]) {
-  const result = {} as T
+  const result = {} as T;
 
   for (const {
     name,
@@ -18,32 +18,31 @@ export function overload<T>(config: OverloadConfig<T>, args: any[]) {
     type,
     default: defaultValue,
     match,
-    transform,
+    transform
   } of config) {
     function matchValue(value: any) {
       if (match) {
-        return match(value)
+        return match(value);
       }
       if (isUndef(value)) {
-        return !required
+        return !required;
       }
       if (type === "array") {
-        return Array.isArray(value)
+        return Array.isArray(value);
       }
-      return typeof value === type
+      return typeof value === type;
     }
 
-    const value = args.shift()
+    const value = args.shift();
 
     if (matchValue(value)) {
-      result[name] = transform ? transform(value) : value
-      continue
-    }
-    else {
-      result[name] = defaultValue
+      result[name] = transform ? transform(value) : value;
+      continue;
+    } else {
+      result[name] = defaultValue;
     }
 
-    args.unshift(value)
+    args.unshift(value);
   }
-  return result
+  return result;
 }

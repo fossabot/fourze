@@ -1,33 +1,32 @@
-import type { UnpluginFourzeOptions } from "@fourze/unplugin"
-import fourzeUnplugin from "@fourze/unplugin"
+import type { UnpluginFourzeOptions } from "@fourze/unplugin";
+import fourzeUnplugin from "@fourze/unplugin";
 import {
   addServerHandler,
   addTemplate,
   addVitePlugin,
-  defineNuxtModule,
-} from "@nuxt/kit"
-import "@nuxt/schema"
-import dedent from "dedent"
-import { join } from "pathe"
+  defineNuxtModule
+} from "@nuxt/kit";
+import "@nuxt/schema";
+import dedent from "dedent";
+import { join } from "pathe";
 
-export type ModuleOptions = UnpluginFourzeOptions
+export type ModuleOptions = UnpluginFourzeOptions;
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: "@fourze/nuxt",
-    configKey: "fourze",
+    configKey: "fourze"
   },
   defaults: {
     base: "/api",
     dir: "mock",
-    mock: false,
+    mock: false
   },
   setup(options, nuxt) {
     if (!nuxt.options.ssr) {
-      addVitePlugin(fourzeUnplugin.vite(options))
-    }
-    else {
-      const mockHandlerPath = join(nuxt.options.buildDir, "@fourze/client")
+      addVitePlugin(fourzeUnplugin.vite(options));
+    } else {
+      const mockHandlerPath = join(nuxt.options.buildDir, "@fourze/client");
 
       addTemplate({
         filename: "@fourze/client",
@@ -52,14 +51,14 @@ export default defineNuxtModule<ModuleOptions>({
                     export default defineEventHandler(async event => {
                         await fourzeServer(event.req, event.res, onNotFound)
                     })
-                  `
-        },
-      })
+                  `;
+        }
+      });
 
       addServerHandler({
         middleware: true,
-        handler: mockHandlerPath,
-      })
+        handler: mockHandlerPath
+      });
     }
-  },
-})
+  }
+});

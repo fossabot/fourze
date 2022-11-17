@@ -1,26 +1,26 @@
-import type { FourzeRequest, FourzeResponse } from "../shared"
-import { defineFourzeHook } from "../shared"
-import type { DelayMsType } from "../utils"
-import { delay } from "../utils"
+import type { FourzeRequest, FourzeResponse } from "../shared";
+import { defineFourzeHook } from "../shared";
+import type { DelayMsType } from "../utils";
+import { delay } from "../utils";
 
 export function delayHook(ms: DelayMsType) {
   return defineFourzeHook(async (req, res, next) => {
-    await next?.()
+    await next?.();
     const delayMs
-      = res.getHeader("Fourze-Delay") ?? req.headers["Fourze-Delay"] ?? ms
-    const time = await delay(delayMs)
-    res.setHeader("Fourze-Delay", time)
-  })
+      = res.getHeader("Fourze-Delay") ?? req.headers["Fourze-Delay"] ?? ms;
+    const time = await delay(delayMs);
+    res.setHeader("Fourze-Delay", time);
+  });
 }
 
 export function jsonWrapperHook(
-  fn: (data: any, req: FourzeRequest, res: FourzeResponse) => any,
+  fn: (data: any, req: FourzeRequest, res: FourzeResponse) => any
 ) {
   return defineFourzeHook(async (req, res, next) => {
-    const _json = res.json.bind(res)
+    const _json = res.json.bind(res);
     res.json = function (data) {
-      return _json(fn(data, req, res))
-    }
-    await next?.()
-  })
+      return _json(fn(data, req, res));
+    };
+    await next?.();
+  });
 }

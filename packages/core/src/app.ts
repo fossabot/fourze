@@ -1,4 +1,4 @@
-import type { MaybePromise } from "maybe-types"
+import type { MaybePromise } from "maybe-types";
 import type {
   DefineFourzeHook,
   FourzeBaseHook,
@@ -7,21 +7,21 @@ import type {
   FourzeHook,
   FourzeInstance,
   ObjectProps,
-  RequestMethod,
-} from "./shared"
+  RequestMethod
+} from "./shared";
 import {
   FOURZE_METHODS,
   defineFourzeHook,
   defineRoute,
-  isFourzeHook,
-} from "./shared"
+  isFourzeHook
+} from "./shared";
 import {
   createSingletonPromise,
   isFunction,
   isString,
   overload,
-  resolvePath,
-} from "./utils"
+  resolvePath
+} from "./utils";
 export interface FourzeOptions {
   base?: string
   setup?: FourzeSetup
@@ -31,7 +31,7 @@ export interface FourzeOptions {
 
 export type FourzeSetup = (
   fourze: Fourze
-) => MaybePromise<void | FourzeBaseRoute[] | FourzeInstance>
+) => MaybePromise<void | FourzeBaseRoute[] | FourzeInstance>;
 
 export type FourzeRequestFunctions = {
   [K in RequestMethod]: {
@@ -42,9 +42,9 @@ export type FourzeRequestFunctions = {
     ): Fourze
     (path: string, handle: FourzeHandle): Fourze
   };
-}
+};
 
-const FOURZE_SYMBOL = Symbol("FourzeInstance")
+const FOURZE_SYMBOL = Symbol("FourzeInstance");
 export interface Fourze extends FourzeRequestFunctions, FourzeInstance {
   <M extends RequestMethod, P extends ObjectProps = ObjectProps>(
     path: string,
@@ -77,37 +77,37 @@ export interface Fourze extends FourzeRequestFunctions, FourzeInstance {
   readonly [FOURZE_SYMBOL]: true
 }
 
-export function defineFourze(routes: FourzeBaseRoute[]): Fourze
+export function defineFourze(routes: FourzeBaseRoute[]): Fourze;
 
-export function defineFourze(options: FourzeOptions): Fourze
+export function defineFourze(options: FourzeOptions): Fourze;
 
-export function defineFourze(setup: FourzeSetup): Fourze
+export function defineFourze(setup: FourzeSetup): Fourze;
 
-export function defineFourze(base: string, setup: FourzeSetup): Fourze
+export function defineFourze(base: string, setup: FourzeSetup): Fourze;
 
-export function defineFourze(): Fourze
+export function defineFourze(): Fourze;
 
 export function defineFourze(
   options: FourzeOptions | FourzeBaseRoute[] | FourzeSetup | string = {},
-  setupFn?: FourzeSetup,
+  setupFn?: FourzeSetup
 ): Fourze {
-  const isBase = isString(options)
-  const isRoutes = Array.isArray(options)
-  const isSetup = isFunction(options)
-  const isOption = !isRoutes && !isSetup && !isBase
+  const isBase = isString(options);
+  const isRoutes = Array.isArray(options);
+  const isSetup = isFunction(options);
+  const isOption = !isRoutes && !isSetup && !isBase;
 
-  let _base = isBase ? options : isOption ? options.base : undefined
+  let _base = isBase ? options : isOption ? options.base : undefined;
   const setup = isBase
     ? setupFn
     : isOption
       ? options.setup
       : isSetup
         ? options
-        : undefined
+        : undefined;
   const routes = Array.from(
-    (isOption ? options.routes : isRoutes ? options : []) ?? [],
-  )
-  const hooks: FourzeHook[] = []
+    (isOption ? options.routes : isRoutes ? options : []) ?? []
+  );
+  const hooks: FourzeHook[] = [];
 
   const fourze = function (
     this: Fourze,
@@ -115,44 +115,41 @@ export function defineFourze(
     ...args: any[]
   ) {
     if (isFourze(param0)) {
-      routes.push(...param0.routes.map(defineRoute))
-      hooks.push(...param0.hooks)
-    }
-    else if (Array.isArray(param0)) {
-      routes.push(...param0.map(defineRoute))
-    }
-    else if (typeof param0 === "object") {
-      routes.push(param0)
-    }
-    else {
+      routes.push(...param0.routes.map(defineRoute));
+      hooks.push(...param0.hooks);
+    } else if (Array.isArray(param0)) {
+      routes.push(...param0.map(defineRoute));
+    } else if (typeof param0 === "object") {
+      routes.push(param0);
+    } else {
       routes.push(
         overload(
           [
             {
               type: "string",
               name: "path",
-              required: true,
+              required: true
             },
             {
               type: "string",
-              name: "method",
+              name: "method"
             },
             {
               type: "object",
-              name: "props",
+              name: "props"
             },
             {
               type: "function",
               name: "handle",
-              required: true,
-            },
+              required: true
+            }
           ],
-          [param0, ...args],
-        ),
-      )
+          [param0, ...args]
+        )
+      );
     }
-    return this
-  } as Fourze
+    return this;
+  } as Fourze;
 
   fourze.hook = function (
     ...args:
@@ -162,22 +159,21 @@ export function defineFourze(
       | [FourzeHook]
   ) {
     if (args.length === 1 && isFourzeHook(args[0])) {
-      hooks.push(args[0])
-    }
-    else {
+      hooks.push(args[0]);
+    } else {
       const hook = defineFourzeHook(
-        ...(args as Parameters<typeof defineFourzeHook>),
-      )
-      hooks.push(hook)
+        ...(args as Parameters<typeof defineFourzeHook>)
+      );
+      hooks.push(hook);
     }
-    return this
-  }
+    return this;
+  };
 
   fourze.apply = function (instance: FourzeInstance) {
-    routes.push(...instance.routes)
-    hooks.push(...instance.hooks)
-    return this
-  }
+    routes.push(...instance.routes);
+    hooks.push(...instance.hooks);
+    return this;
+  };
 
   Object.defineProperties(fourze, {
     routes: {
@@ -185,32 +181,32 @@ export function defineFourze(
         return routes.map((e) => {
           return defineRoute({
             ...e,
-            base: _base,
-          })
-        })
-      },
+            base: _base
+          });
+        });
+      }
     },
     hooks: {
       get() {
         return hooks.map((e) => {
           return {
             ...e,
-            path: resolvePath(e.path, _base),
-          }
-        })
-      },
+            path: resolvePath(e.path, _base)
+          };
+        });
+      }
     },
     base: {
       get() {
-        return _base
+        return _base;
       },
       set(value) {
-        _base = value
-      },
+        _base = value;
+      }
     },
 
     ...Object.fromEntries(
-      FOURZE_METHODS.map(method => [
+      FOURZE_METHODS.map((method) => [
         method,
         {
           get() {
@@ -218,36 +214,35 @@ export function defineFourze(
               this: Fourze,
               path: string,
               data: ObjectProps,
-              handle: FourzeHandle,
+              handle: FourzeHandle
             ) {
-              return this(path, method, data, handle)
-            }
-          },
-        },
-      ]),
+              return this(path, method, data, handle);
+            };
+          }
+        }
+      ])
     ),
 
     [FOURZE_SYMBOL]: {
       get() {
-        return true
-      },
-    },
-  })
+        return true;
+      }
+    }
+  });
 
   fourze.setup = createSingletonPromise(async () => {
-    const extra = (await setup?.(fourze)) ?? []
+    const extra = (await setup?.(fourze)) ?? [];
 
     if (Array.isArray(extra)) {
-      routes.push(...extra)
+      routes.push(...extra);
+    } else if (extra) {
+      fourze.apply(extra);
     }
-    else if (extra) {
-      fourze.apply(extra)
-    }
-  })
+  });
 
-  return fourze
+  return fourze;
 }
 
 export function isFourze(fourze: any): fourze is Fourze {
-  return !!fourze && fourze[FOURZE_SYMBOL]
+  return !!fourze && fourze[FOURZE_SYMBOL];
 }

@@ -1,33 +1,33 @@
-import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http"
-import type { MaybePromise } from "maybe-types"
-import qs from "query-string"
+import type { IncomingMessage, OutgoingMessage, ServerResponse } from "http";
+import type { MaybePromise } from "maybe-types";
+import qs from "query-string";
 
-import { version } from "../package.json"
-import { decodeFormData } from "./polyfill/form-data"
-import type { PolyfillHeaderInit } from "./polyfill/header"
+import { version } from "../package.json";
+import { decodeFormData } from "./polyfill/form-data";
+import type { PolyfillHeaderInit } from "./polyfill/header";
 import {
   flatHeaders,
   getHeaderRawValue,
-  getHeaderValue,
-} from "./polyfill/header"
-import { PolyfillServerResponse } from "./polyfill/response"
-import { isBuffer, isDef, isString, resolvePath } from "./utils"
+  getHeaderValue
+} from "./polyfill/header";
+import { PolyfillServerResponse } from "./polyfill/response";
+import { isBuffer, isDef, isString, resolvePath } from "./utils";
 
-export const FOURZE_VERSION = version
+export const FOURZE_VERSION = version;
 
-const FOURZE_ROUTE_SYMBOL = Symbol("FourzeRoute")
-const FOURZE_HOOK_SYMBOL = Symbol("FourzeInterceptor")
-const FOURZE_REQUEST_SYMBOL = Symbol("FourzeRequest")
-const FOURZE_RESPONSE_SYMBOL = Symbol("FourzeResponse")
+const FOURZE_ROUTE_SYMBOL = Symbol("FourzeRoute");
+const FOURZE_HOOK_SYMBOL = Symbol("FourzeInterceptor");
+const FOURZE_REQUEST_SYMBOL = Symbol("FourzeRequest");
+const FOURZE_RESPONSE_SYMBOL = Symbol("FourzeResponse");
 
-export type DefaultData = Record<string, unknown>
+export type DefaultData = Record<string, unknown>;
 
 export interface FourzeRequest<
   Props extends ObjectProps = ObjectProps,
   Data = ExtractPropTypes<Props>,
   Query = ExtractPropTypes<Props, "query">,
   Body = ExtractPropTypes<Props, "body">,
-  Params = ExtractPropTypes<Props, "path">,
+  Params = ExtractPropTypes<Props, "path">
 > extends IncomingMessage {
   url: string
   method: string
@@ -94,21 +94,21 @@ export interface FourzeBaseRoute<Props extends ObjectProps = ObjectProps> {
  *  inspired by vue props
  */
 
-export type PropIn = "body" | "query" | "path"
+export type PropIn = "body" | "query" | "path";
 
 export type ExtractPropTypes<
   P extends Record<string, any>,
   In extends PropIn | "any" = "any",
-  O = In extends PropIn ? Pick<P, InKeys<P, In>> : P,
+  O = In extends PropIn ? Pick<P, InKeys<P, In>> : P
 > = {
   [K in keyof Pick<O, RequiredKeys<O>>]: InferPropType<O[K]>;
 } & {
   [K in keyof Pick<O, OptionalKeys<O>>]?: InferPropType<O[K]>;
-} & DefaultData
+} & DefaultData;
 
 export type LooseRequired<T> = {
   [P in string & keyof T]: T[P];
-}
+};
 
 type RequiredKeys<T> = {
   [K in keyof T]: T[K] extends
@@ -128,9 +128,9 @@ type RequiredKeys<T> = {
       ? never
       : K
     : never;
-}[keyof T]
+}[keyof T];
 
-type OptionalKeys<T> = Exclude<keyof T, RequiredKeys<T>>
+type OptionalKeys<T> = Exclude<keyof T, RequiredKeys<T>>;
 
 type InKeys<T, In extends PropIn> = {
   [K in keyof T]: T[K] extends {
@@ -138,44 +138,44 @@ type InKeys<T, In extends PropIn> = {
   }
     ? K
     : never;
-}[keyof T]
+}[keyof T];
 
-type IfAny<T, Y, N> = 0 extends 1 & T ? Y : N
+type IfAny<T, Y, N> = 0 extends 1 & T ? Y : N;
 
 type InferPropType<T> = [T] extends [null]
   ? any
   : [T] extends [
       {
         type: null | true
-      },
+      }
     ]
       ? any
       : [T] extends [
           | ObjectConstructor
           | {
             type: ObjectConstructor
-          },
+          }
         ]
           ? Record<string, any>
           : [T] extends [
               | BooleanConstructor
               | {
                 type: BooleanConstructor
-              },
+              }
             ]
               ? boolean
               : [T] extends [
                   | DateConstructor
                   | {
                     type: DateConstructor
-                  },
+                  }
                 ]
                   ? Date
                   : [T] extends [
                       | (infer U)[]
                       | {
                         type: (infer U)[]
-                      },
+                      }
                     ]
                       ? U extends DateConstructor
                         ? Date | InferPropType<U>
@@ -184,13 +184,13 @@ type InferPropType<T> = [T] extends [null]
                           ? unknown extends V
                             ? IfAny<V, V, D>
                             : V
-                          : T
+                          : T;
 
 export type ObjectProps<P = Record<string, unknown>> = {
   [K in keyof P]: Prop<P[K]> | null;
-}
+};
 
-type Prop<T, D = T> = PropOptions<T, D> | PropType<T>
+type Prop<T, D = T> = PropOptions<T, D> | PropType<T>;
 
 type PropConstructor<T = any> =
   | {
@@ -199,17 +199,17 @@ type PropConstructor<T = any> =
   | {
     (): T
   }
-  | PropMethod<T>
+  | PropMethod<T>;
 
 type PropMethod<T, TConstructor = any> = [T] extends [
-  ((...args: any) => any) | undefined,
+  ((...args: any) => any) | undefined
 ]
   ? {
       new (): TConstructor
       (): T
       readonly prototype: TConstructor
     }
-  : never
+  : never;
 
 interface PropOptions<T = any, D = T> {
   type: PropType<T>
@@ -220,9 +220,9 @@ interface PropOptions<T = any, D = T> {
   in?: PropIn
 }
 
-declare type DefaultFactory<T> = (props: DefaultData) => T | null | undefined
+declare type DefaultFactory<T> = (props: DefaultData) => T | null | undefined;
 
-export type PropType<T> = PropConstructor<T> | PropConstructor<T>[]
+export type PropType<T> = PropConstructor<T> | PropConstructor<T>[];
 
 // #endregion
 
@@ -239,12 +239,12 @@ export interface FourzeRoute<Props extends ObjectProps = ObjectProps>
   ) => RegExpMatchArray | null
 }
 
-export type FourzeNext = (rs?: boolean) => MaybePromise<void>
+export type FourzeNext = (rs?: boolean) => MaybePromise<void>;
 
 export type FourzeHandle<Props extends ObjectProps = ObjectProps, R = any> = (
   request: FourzeRequest<Props>,
   response: FourzeResponse
-) => MaybePromise<R>
+) => MaybePromise<R>;
 
 export const FOURZE_METHODS: RequestMethod[] = [
   "get",
@@ -255,8 +255,8 @@ export const FOURZE_METHODS: RequestMethod[] = [
   "options",
   "head",
   "trace",
-  "connect",
-]
+  "connect"
+];
 
 export type RequestMethod =
   | "get"
@@ -267,36 +267,36 @@ export type RequestMethod =
   | "head"
   | "options"
   | "trace"
-  | "connect"
+  | "connect";
 
 export function isRoute(route: any): route is FourzeRoute<any> {
-  return !!route && !!route[FOURZE_ROUTE_SYMBOL]
+  return !!route && !!route[FOURZE_ROUTE_SYMBOL];
 }
 
 const REQUEST_PATH_REGEX = new RegExp(
   `^(${FOURZE_METHODS.join("|")})\\s+`,
-  "i",
-)
+  "i"
+);
 
-const PARAM_KEY_REGEX = /\{[\w_-]+\}/g
+const PARAM_KEY_REGEX = /\{[\w_-]+\}/g;
 
 export function defineRoute<Props extends ObjectProps = ObjectProps>(
-  route: FourzeBaseRoute<Props>,
+  route: FourzeBaseRoute<Props>
 ): FourzeRoute<Props> {
   /* eslint @typescript-eslint/ban-types:"off" */
-  const { handle, meta = {}, base, props = {} as Props } = route
-  let { method, path } = route
+  const { handle, meta = {}, base, props = {} as Props } = route;
+  let { method, path } = route;
 
   if (REQUEST_PATH_REGEX.test(path)) {
-    const arr = path.split(/\s+/)
-    const m = arr[0].toLowerCase() as RequestMethod
+    const arr = path.split(/\s+/);
+    const m = arr[0].toLowerCase() as RequestMethod;
     if (FOURZE_METHODS.includes(m)) {
-      method = m
-      path = arr[1].trim()
+      method = m;
+      path = arr[1].trim();
     }
   }
 
-  path = resolvePath(path, base)
+  path = resolvePath(path, base);
 
   return {
     method,
@@ -311,22 +311,22 @@ export function defineRoute<Props extends ObjectProps = ObjectProps>(
       ) {
         const regex = new RegExp(
           `^${path.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}$`,
-          "i",
-        )
-        return url.match(regex)
+          "i"
+        );
+        return url.match(regex);
       }
-      return null
+      return null;
     },
     get pathParams() {
-      return this.path.match(PARAM_KEY_REGEX) ?? []
+      return this.path.match(PARAM_KEY_REGEX) ?? [];
     },
     get props() {
-      return props
+      return props;
     },
     get [FOURZE_ROUTE_SYMBOL](): true {
-      return true
-    },
-  }
+      return true;
+    }
+  };
 }
 
 export interface FourzeBaseHook extends FourzeMiddleware<any> {
@@ -342,18 +342,18 @@ export interface FourzeHook {
 export function defineFourzeHook(
   base: string,
   interceptor: FourzeBaseHook
-): FourzeHook
+): FourzeHook;
 
-export function defineFourzeHook(interceptor: FourzeBaseHook): FourzeHook
+export function defineFourzeHook(interceptor: FourzeBaseHook): FourzeHook;
 
-export function defineFourzeHook(interceptor: DefineFourzeHook): FourzeHook
+export function defineFourzeHook(interceptor: DefineFourzeHook): FourzeHook;
 
 export function defineFourzeHook(
   param0: string | DefineFourzeHook | FourzeBaseHook,
-  param1?: FourzeBaseHook,
+  param1?: FourzeBaseHook
 ) {
-  const isStr = isString(param0)
-  const path = isStr ? param0 : param0.path ?? ""
+  const isStr = isString(param0);
+  const path = isStr ? param0 : param0.path ?? "";
 
   const hook = {
     path,
@@ -365,21 +365,21 @@ export function defineFourzeHook(
           : async (
             request: FourzeRequest,
             response: FourzeResponse,
-            handle: FourzeHandle,
+            handle: FourzeHandle
           ) => {
-            await param0.before?.(request, response)
-            const result = await handle(request, response)
-            await param0.after?.(request, response)
-            return result
-          },
-  } as FourzeHook
+            await param0.before?.(request, response);
+            const result = await handle(request, response);
+            await param0.after?.(request, response);
+            return result;
+          }
+  } as FourzeHook;
 
   Object.defineProperty(hook, FOURZE_HOOK_SYMBOL, {
     get() {
-      return true
-    },
-  })
-  return hook
+      return true;
+    }
+  });
+  return hook;
 }
 
 export interface DefineFourzeHook {
@@ -417,111 +417,110 @@ export interface FourzeResponseOptions {
 
 export function createResponse(options: FourzeResponseOptions) {
   const response = (options?.response
-    ?? new PolyfillServerResponse()) as FourzeResponse
+    ?? new PolyfillServerResponse()) as FourzeResponse;
 
-  const _end = response.end.bind(response)
+  const _end = response.end.bind(response);
 
   response.end = (data: any) => {
-    response.result = data ?? response.result
+    response.result = data ?? response.result;
 
     if (response.result) {
-      let contentType = getHeaderRawValue(response.getHeader("content-type"))
+      let contentType = getHeaderRawValue(response.getHeader("content-type"));
 
       if (!contentType) {
-        contentType = "application/json"
-        response.setHeader("content-type", contentType)
+        contentType = "application/json";
+        response.setHeader("content-type", contentType);
       }
       if (contentType.startsWith("application/json")) {
-        response.json(response.result)
+        response.json(response.result);
       }
     }
 
-    _end(response.result)
-    return response
-  }
+    _end(response.result);
+    return response;
+  };
 
   response.appendHeader = function (
     name: string,
-    value: string | ReadonlyArray<string> | number,
+    value: string | ReadonlyArray<string> | number
   ) {
-    const oldValue = this.getHeader(name)
+    const oldValue = this.getHeader(name);
     if (isDef(oldValue)) {
       this.setHeader(
         name,
         [oldValue, value]
           .flat()
-          .filter(r => !!r)
-          .join(","),
-      )
+          .filter((r) => !!r)
+          .join(",")
+      );
+    } else {
+      this.setHeader(name, value);
     }
-    else {
-      this.setHeader(name, value)
-    }
-    return this
-  }
+    return this;
+  };
 
   response.json = function (data: any) {
-    this.result = JSON.stringify(data)
-    this.setHeader("Content-Type", "application/json")
-    return this
-  }
+    this.result = JSON.stringify(data);
+    this.setHeader("Content-Type", "application/json");
+    return this;
+  };
 
   response.binary = function (data: any) {
-    this.result = data
-    this.setHeader("Content-Type", "application/octet-stream")
-    return this
-  }
+    this.result = data;
+    this.setHeader("Content-Type", "application/octet-stream");
+    return this;
+  };
 
   response.image = function (data: any) {
-    this.result = data
-    this.setHeader("Content-Type", "image/jpeg")
-    return this
-  }
+    this.result = data;
+    this.setHeader("Content-Type", "image/jpeg");
+    return this;
+  };
 
   response.text = function (data: string) {
-    this.result = data
-    this.setHeader("Content-Type", "text/plain")
-    return this
-  }
+    this.result = data;
+    this.setHeader("Content-Type", "text/plain");
+    return this;
+  };
 
   response.redirect = function (url: string) {
-    this.statusCode = 302
-    this.setHeader("Location", url)
-    return this
-  }
+    this.statusCode = 302;
+    this.setHeader("Location", url);
+    return this;
+  };
 
-  response.setHeader("X-Powered-By", `Fourze Server/v${FOURZE_VERSION}`)
+  response.setHeader("X-Powered-By", `Fourze Server/v${FOURZE_VERSION}`);
 
-  let _result: any
+  let _result: any;
 
   Object.defineProperties(response, {
     [FOURZE_RESPONSE_SYMBOL]: {
       get() {
-        return true
-      },
+        return true;
+      }
     },
     url: {
       get() {
-        return options.url
-      },
+        return options.url;
+      }
     },
     result: {
       set(val) {
-        _result = val
+        _result = val;
       },
       get() {
-        return _result
-      },
+        return _result;
+      }
     },
 
     method: {
       get() {
-        return options.method
-      },
-    },
-  })
+        return options.method;
+      }
+    }
+  });
 
-  return response
+  return response;
 }
 
 export interface FourzeContextOptions {
@@ -539,24 +538,24 @@ export interface FourzeContext {
 }
 
 export function createServiceContext(options: FourzeContextOptions) {
-  const { url, method = "GET", headers = {}, body } = options
+  const { url, method = "GET", headers = {}, body } = options;
   const request = createRequest({
     url,
     method,
     headers: flatHeaders(headers),
     body,
-    request: options.request,
-  })
+    request: options.request
+  });
   const response = createResponse({
     url,
     method,
-    response: options.response,
-  })
+    response: options.response
+  });
 
   return {
     request,
-    response,
-  }
+    response
+  };
 }
 
 export interface FourzeRequestOptions {
@@ -571,109 +570,107 @@ export interface FourzeRequestOptions {
 export function createRequest(options: FourzeRequestOptions) {
   const request = (options?.request ?? {
     url: options.url,
-    method: options.method,
-  }) as FourzeRequest
+    method: options.method
+  }) as FourzeRequest;
 
-  request.url = options.url ?? request.url
-  request.method = request.method ?? "GET"
+  request.url = options.url ?? request.url;
+  request.method = request.method ?? "GET";
 
   const headers = {
     ...flatHeaders(request.headers),
-    ...flatHeaders(options.headers),
-  }
+    ...flatHeaders(options.headers)
+  };
 
-  request.headers = headers
+  request.headers = headers;
 
   const { query = {}, url: path } = qs.parseUrl(request.url, {
-    parseBooleans: true,
-  })
+    parseBooleans: true
+  });
 
   const contentType = getHeaderValue(
     headers,
     "content-type",
-    "application/json",
-  )
+    "application/json"
+  );
 
   const bodyRaw: Buffer | string | Record<string, any>
-    = options.body ?? request.body ?? {}
-  let body: Record<string, any> = {}
+    = options.body ?? request.body ?? {};
+  let body: Record<string, any> = {};
   if (isBuffer(bodyRaw) || isString(bodyRaw)) {
     if (bodyRaw.length > 0) {
       if (contentType.startsWith("application/json")) {
-        body = JSON.parse(bodyRaw.toString("utf-8"))
-      }
-      else if (contentType.startsWith("application/x-www-form-urlencoded")) {
-        body = qs.parse(bodyRaw.toString("utf-8"))
+        body = JSON.parse(bodyRaw.toString("utf-8"));
+      } else if (contentType.startsWith("application/x-www-form-urlencoded")) {
+        body = qs.parse(bodyRaw.toString("utf-8"));
       }
 
       if (contentType.startsWith("multipart/form-data")) {
-        const boundary = contentType.split("=")[1]
-        body = decodeFormData(bodyRaw, boundary)
+        const boundary = contentType.split("=")[1];
+        body = decodeFormData(bodyRaw, boundary);
       }
     }
-  }
-  else {
-    body = { ...bodyRaw }
+  } else {
+    body = { ...bodyRaw };
   }
 
-  body = body ?? {}
+  body = body ?? {};
 
-  const params = { ...options.params }
+  const params = { ...options.params };
 
   Object.defineProperties(request, {
     [FOURZE_REQUEST_SYMBOL]: {
       get() {
-        return true
-      },
+        return true;
+      }
     },
     data: {
       get() {
         return {
           ...query,
           ...body,
-          ...params,
-        }
-      },
+          ...params
+        };
+      }
     },
     body: {
       get() {
-        return body
-      },
+        return body;
+      }
     },
     bodyRaw: {
       get() {
-        return bodyRaw
-      },
+        return bodyRaw;
+      }
     },
     params: {
       get() {
-        return params
-      },
+        return params;
+      }
     },
     query: {
       get() {
-        return query
-      },
+        return query;
+      }
     },
 
     path: {
       get() {
-        return path
-      },
-    },
-  })
+        return path;
+      }
+    }
+  });
 
-  return request
+  return request;
 }
 
 export function isFourzeResponse(obj: any): obj is FourzeResponse {
-  return !!obj && !!obj[FOURZE_RESPONSE_SYMBOL]
+  return !!obj && !!obj[FOURZE_RESPONSE_SYMBOL];
 }
 
 export function isFourzeRequest(obj: any): obj is FourzeRequest {
-  return !!obj && !!obj[FOURZE_REQUEST_SYMBOL]
+  return !!obj && !!obj[FOURZE_REQUEST_SYMBOL];
 }
 
 export function isFourzeHook(hook: any): hook is FourzeHook {
-  return !!hook && !!hook[FOURZE_HOOK_SYMBOL]
+  return !!hook && !!hook[FOURZE_HOOK_SYMBOL];
 }
