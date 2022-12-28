@@ -1,4 +1,3 @@
-import type { FourzeRequest, FourzeResponse } from "../shared";
 import { defineFourzeHook } from "../shared";
 import type { DelayMsType } from "../utils";
 import { delay } from "../utils";
@@ -14,13 +13,22 @@ export function delayHook(ms: DelayMsType) {
 }
 
 export function jsonWrapperHook(
-  fn: (data: any, req: FourzeRequest, res: FourzeResponse) => any
+  resolve: (data: any) => any,
+  reject?: (error: any) => any
 ) {
   return defineFourzeHook(async (req, res, next) => {
     const _json = res.json.bind(res);
     res.json = function (data) {
-      return _json(fn(data, req, res));
+      return _json(resolve(data));
     };
-    await next?.();
+    try {
+      await next?.();
+    } catch (error) {
+      if (reject) {
+        reject(error);
+      } else {
+        throw error;
+      }
+    }
   });
 }
