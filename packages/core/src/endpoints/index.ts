@@ -18,12 +18,24 @@ export function jsonWrapperHook(
   reject?: (error: any) => MaybePromise<any>
 ) {
   return defineFourzeHook(async (req, res, next) => {
+    const _json = res.json.bind(res);
+
+    let catchError = false;
+
+    res.json = function (data) {
+      if (catchError) {
+        return _json(data);
+      }
+      return _json(resolve(data));
+    };
+
     try {
       await next?.();
-      return await resolve(res.result);
     } catch (error) {
       if (reject) {
-        return await reject(error);
+        const rs = reject(error);
+        catchError = true;
+        return rs;
       } else {
         throw error;
       }

@@ -1,4 +1,12 @@
-import { asyncLock, createSingletonPromise, delay, DelayMsType, parseFakerNumber, randomArray, randomInt, randomItem } from "@fourze/core";
+import {
+  createSingletonPromise,
+  delay,
+  DelayMsType,
+  parseFakerNumber,
+  randomArray,
+  randomInt,
+  randomItem,
+} from "@fourze/core";
 import { describe, expect, it } from "vitest";
 
 describe("utils", () => {
@@ -14,7 +22,7 @@ describe("utils", () => {
 
   it("random", () => {
     const array = randomArray(
-      index => {
+      (index) => {
         return {
           name: `item-${index}`,
           count: randomInt("200-500"),
@@ -44,7 +52,9 @@ describe("utils", () => {
 
     fn.reset();
 
-    const [r0, r1] = await Promise.all([delayFn(300), delayFn("200-700")].map(r => r()));
+    const [r0, r1] = await Promise.all(
+      [delayFn(300), delayFn("200-700")].map((r) => r())
+    );
 
     expect(r0).not.toBe(r);
 

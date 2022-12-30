@@ -8,3 +8,4 @@ export * from "./overload";
 export * from "./path";
 export * from "./promise";
 export * from "./random";
+export * from "./storage";
