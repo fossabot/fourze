@@ -33,6 +33,7 @@
         "playgrounds/**/*.d.ts",
         "playgrounds/**/*.tsx",
         "packages/**/**.ts",
+        "test/**/*.ts",
         "playgrounds/vue-cli/vue.config.js"
     ],
     "exclude": ["node_modules", "dist"]

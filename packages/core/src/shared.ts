@@ -3,18 +3,20 @@ import type { MaybePromise } from "maybe-types";
 import qs from "query-string";
 
 import { version } from "../package.json";
-import { overload } from "./utils/overload";
-import { decodeFormData } from "./polyfill/form-data";
-import type { PolyfillHeaderInit } from "./polyfill/header";
-import { flatHeaders, getHeaderValue } from "./polyfill/header";
-import { PolyfillServerResponse } from "./polyfill/response";
 import {
   isDef,
   isFunction,
   isString,
   isUint8Array,
-  isUndefined
+  isUndefined,
+  resolvePath
 } from "./utils";
+import { overload } from "./utils/overload";
+import { decodeFormData } from "./polyfill/form-data";
+import type { PolyfillHeaderInit } from "./polyfill/header";
+import { flatHeaders, getHeaderValue } from "./polyfill/header";
+import { PolyfillServerResponse } from "./polyfill/response";
+import { createLogger } from "./logger";
 
 export const FOURZE_VERSION = version;
 
@@ -409,9 +411,9 @@ export function defineRoute<
   Props extends ObjectProps = ObjectProps,
   Meta = Record<string, any>
 >(
-  route: FourzeBaseRoute<Result, Props, Meta>
+  route: FourzeBaseRoute<Result, Props, Meta> & { base?: string }
 ): FourzeRoute<Result, Props, Meta> {
-  const { handle, meta = {} as Meta, props = {} as Props } = route;
+  const { handle, meta = {} as Meta, props = {} as Props, base } = route;
   let { method, path } = route;
 
   if (REQUEST_PATH_REGEX.test(path)) {
@@ -422,6 +424,8 @@ export function defineRoute<
       path = arr[1].trim();
     }
   }
+
+  path = resolvePath(path, base ?? "/");
 
   return {
     method,
@@ -595,6 +599,8 @@ export function createResponse(options: FourzeResponseOptions) {
   const response = (options?.response
     ?? new PolyfillServerResponse()) as FourzeResponse;
 
+  const logger = createLogger("@fourze/core");
+
   let _data: any;
   let _error: Error;
 
@@ -639,8 +645,10 @@ export function createResponse(options: FourzeResponseOptions) {
 
   response.sendError = function (code = 500, error: Error | string) {
     _error = typeof error === "string" ? new Error(error) : error;
+    const message = _error.message;
     this.statusCode = code;
-    this.statusMessage = _error.message;
+    this.statusMessage = message;
+    logger.error(message);
     return this;
   };
 

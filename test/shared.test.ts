@@ -2,15 +2,6 @@ import { createRouter, isMatch, randomInt, resolvePath } from "@fourze/core";
 import { describe, expect, it } from "vitest";
 
 describe("shared", async () => {
-  it("test-reslovePath", () => {
-    const path = "https://test.com";
-    const base = "/api";
-    const final0 = resolvePath(path, base);
-    expect(final0).toBe(path);
-    const finalPath = resolvePath(final0, base);
-    expect(finalPath).toEqual(path);
-    expect(resolvePath("//api/hello")).toEqual("/api/hello");
-  });
 
   it("test-isMatch", () => {
     expect(isMatch("/api/hello/test", "/api/*", "/api/hello")).toBe(true);

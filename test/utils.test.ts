@@ -7,6 +7,8 @@ import {
   randomInt,
   randomItem,
   relativePath,
+  resolvePath,
+  slash
 } from "@fourze/core";
 import { describe, expect, it } from "vitest";
 
@@ -37,17 +39,36 @@ describe("utils", () => {
     expect(array).include(item);
   });
 
-  it("path", () => {
+  it("test-slash", () => {
+    const path = "/hello/world/"
+    const base = "/api/"
+    expect(slash(base,path))
+  });
+
+  it("test-relativePath", () => {
     const path = "/abc/def/ghi";
     const path2 = "/abc/def/ghi/";
     const path3 = "/abc/";
     const path4 = "/abc"
     const base = "/abc";
+    const normalBase = "/"
     expect(relativePath(path, base)).toBe("/def/ghi");
-    expect(relativePath(path2, base)).toBe("/def/ghi/");
-    expect(relativePath(path3, base)).toBe("/");
+    expect(relativePath(path2, base)).toBe("/def/ghi");
+    expect(relativePath(path3, base)).toBe("");
     expect(relativePath(path4, base)).toBe("");
+    expect(relativePath(path, normalBase)).toBe("/abc/def/ghi");
   });
+
+  it("test-resolvePath", () => {
+    const path = "https://test.com";
+    const base = "/api";
+    const final0 = resolvePath(path, base);
+    expect(final0).toBe(path);
+    const finalPath = resolvePath(final0, base);
+    expect(finalPath).toEqual(path);
+    expect(resolvePath("//api/hello")).toEqual("/api/hello");
+  });
+
 
 
   it("createSingletonPromise", async () => {

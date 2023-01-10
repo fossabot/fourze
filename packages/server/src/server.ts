@@ -143,6 +143,7 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
             404,
             `Cannot ${request.method} ${request.url ?? "/"}`
           );
+          response.end();
         }
       };
       app.emit("request", context);
@@ -151,6 +152,7 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
       app.emit("error", error, context);
       if (!response.writableEnded) {
         response.sendError(500, "Internal Server Error");
+        response.end();
       }
     }
   } as FourzeServer;

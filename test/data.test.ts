@@ -13,13 +13,10 @@ describe("data", async () => {
 
     const server = createFourzeServer({
       host: "localhost",
-      port: 7609,
+      port: 0,
     });
 
-    const router = createRouter({
-      delay: "200-500",
-      external: ["http://localhost:7609"],
-    })
+    const router = createRouter({})
       .route("/hello-1", "get", { name: String }, (req) => {
         return {
           name: req.data.name,
@@ -46,21 +43,25 @@ describe("data", async () => {
           };
         }
       ).get("/avatar.jpg", (req, res) => {
-        res.image(Buffer.from([0,0,0,0]))
+        res.image(Buffer.from([0, 0, 0, 0]))
       });
 
-
+    await router.setup();
 
 
     await server.use(router).listen();
 
-    const { name } = await axios
-      .post<typeof testData>("http://localhost:7609/hello", testData)
+    const axiosInstance =axios.create({
+      baseURL:server.origin
+    })
+
+    const { name } = await axiosInstance
+      .post<typeof testData>("/hello", testData)
       .then((r) => r.data);
 
     expect(name).toEqual(testData.name);
 
-    const contentType = await axios("http://localhost:7609/avatar.jpg").then(r => r.headers["content-type"])
+    const contentType = await axiosInstance("/avatar.jpg").then(r => r.headers["content-type"])
     expect(contentType).toEqual("image/jpeg")
   });
 });

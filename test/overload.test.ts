@@ -63,7 +63,7 @@ describe("overload", async () => {
     const data2 = overload([
       "/test3",
       "post",
-      (req) => req.meta.summary,
+      (req:any) => req.meta.summary,
     ]);
 
     expect(data2?.path).toBe("/test3");

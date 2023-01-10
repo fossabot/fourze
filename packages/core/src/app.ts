@@ -179,7 +179,10 @@ export function defineFourze(
     routes: {
       get() {
         return routes.map((e) => {
-          return defineRoute(e);
+          return defineRoute({
+            ...e,
+            base: _base
+          });
         });
       }
     },

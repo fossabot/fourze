@@ -16,25 +16,20 @@ describe("fetch", async () => {
       delay: "200-500",
       mode: ["fetch"],
       external: ["http://localhost:7609"],
-    }).use(route => {
-      route.hook(async (req, res, next) => {
-        res.setHeader("x-test", "abcd");
-        res.appendHeader("x-test", "test");
-        await next?.();
-      });
-
-      route.get("http://localhost:7609/hello", (req, res) => {
-        return {
-          ...testData,
-        };
-      });
-
-      route.post("http://www.test.com/api/return", req => {
-        return {
-          ...req.data,
-        };
-      });
+    }).hook(async (req, res, next) => {
+      res.setHeader("x-test", "abcd");
+      res.appendHeader("x-test", "test");
+      await next?.();
+    }).get("http://localhost:7609/hello", (req, res) => {
+      return {
+        ...testData,
+      };
+    }).post("http://www.test.com/api/return", req => {
+      return {
+        ...req.data,
+      };
     });
+
 
     await router.setup();
 

@@ -2,20 +2,18 @@ import type { MaybeRegex } from "maybe-types";
 import minimatch from "minimatch";
 import { isRegExp } from "./is";
 
-export function slash(p: string): string {
-  return p.replace(/\\/g, "/").replace(/\/+/g, "/");
+export function slash(...paths: string[]): string {
+  return paths
+    .map((p) => p.replace(/\\/g, "/"))
+    .join("/")
+    .replace(/\/+/g, "/")
+    .replace(/\/$/, "");
 }
-
-export function slashEnd(p: string): string {
-  return p.replace(/\/+$/, "");
-}
-
-export const NOT_NEED_BASE = /^((https?|file):)\/\//i;
 
 export function resolvePath(_path: string, _base?: string): string {
-  if (isRelative(_path)) {
+  if (!hasProtocol(_path)) {
     if (!_path.startsWith("//") && _base) {
-      return slash(`${_base}/${_path}`);
+      return slash(_base, _path);
     }
     return slash(_path);
   }
@@ -23,18 +21,17 @@ export function resolvePath(_path: string, _base?: string): string {
 }
 
 export function relativePath(path: string, base?: string): string {
-  if (base) {
-    path = path.replace(new RegExp(`^${slash(base)}`), "");
+  if (!hasProtocol(path)) {
+    if (base) {
+      path = path.replace(new RegExp(`^${slash(base)}`), "/");
+    }
+    return slash(path);
   }
   return path;
 }
 
-export function isAbsolute(path: string) {
-  return NOT_NEED_BASE.test(path);
-}
-
-export function isRelative(path: string) {
-  return !NOT_NEED_BASE.test(path);
+export function hasProtocol(path: string) {
+  return /^\w+:\/\//i.test(path);
 }
 
 export function isMatch(path: string, ...pattern: MaybeRegex[]) {

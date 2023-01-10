@@ -57,6 +57,10 @@ export interface FourzeRouter
 
   route: FourzeRouteFunction<FourzeRouter>
 
+  hook<R = any>(hook: FourzeHook<R>): this
+  hook<R = any>(handle: FourzeMiddleware<R>): this
+  hook<R = any>(path: string, handle: FourzeMiddleware<R>): this
+
   setup(): MaybePromise<void>
 
   use(module: FourzeInstance): this
@@ -385,6 +389,17 @@ export function createRouter(
         }
       ])
     ),
+    hook: {
+      get() {
+        return function (
+          this: FourzeRouter,
+          ...args: Parameters<Fourze["hook"]>
+        ) {
+          coreModule.hook(...args);
+          return this;
+        };
+      }
+    },
     name: {
       get() {
         return options.name ?? "FourzeRouter";
