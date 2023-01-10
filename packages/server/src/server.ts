@@ -1,4 +1,4 @@
-import EventEmitter from "events";
+import type EventEmitter from "events";
 import type { IncomingMessage, OutgoingMessage, Server } from "http";
 import http from "http";
 import https from "https";
@@ -17,6 +17,7 @@ import type {
   FourzeMiddleware,
   FourzeNext
 } from "@fourze/core";
+import { injectEventEmitter } from "./utils";
 
 export interface FourzeServerOptions {
   host?: string
@@ -39,7 +40,7 @@ export interface FourzeServer extends EventEmitter {
   readonly origin: string
 
   readonly server?: Server
-  readonly serverMode: "http" | "https"
+  readonly protocol: "http" | "https"
 
   use(middleware: CommonMiddleware): this
   use(middleware: FourzeMiddleware): this
@@ -57,7 +58,7 @@ export interface FourzeServer extends EventEmitter {
 
   listen(port?: number, host?: string): Promise<Server>
 
-  close(): void
+  close(): this
 }
 
 export function createServerContext(
@@ -86,48 +87,6 @@ export function createServerContext(
 
     req.on("error", reject);
   });
-}
-
-function injectEventEmitter(app: FourzeServer) {
-  const _emitter = new EventEmitter();
-  app.addListener = function (
-    event: string,
-    listener: (...args: any[]) => void
-  ) {
-    _emitter.addListener(event, listener);
-    return this;
-  };
-
-  app.on = function (event: string, listener: (...args: any[]) => void) {
-    _emitter.on(event, listener);
-    return this;
-  };
-
-  app.emit = function (event: string, ...args: any[]) {
-    return _emitter.emit(event, ...args);
-  };
-
-  app.once = function (event: string, listener: (...args: any[]) => void) {
-    _emitter.once(event, listener);
-    return this;
-  };
-
-  app.removeListener = function (
-    event: string,
-    listener: (...args: any[]) => void
-  ) {
-    _emitter.removeListener(event, listener);
-    return this;
-  };
-
-  app.removeAllListeners = function (event?: string) {
-    _emitter.removeAllListeners(event);
-    return this;
-  };
-
-  app.listeners = function (event: string) {
-    return _emitter.listeners(event);
-  };
 }
 
 function normalizeAddress(address?: AddressInfo | string | null): string {
@@ -167,12 +126,23 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
       const fn = async () => {
         const middleware = middlewares[i++];
         if (middleware) {
+          Object.defineProperties(request, {
+            contextPath: {
+              get() {
+                return middleware.base;
+              },
+              configurable: true
+            }
+          });
+
           await middleware(request, response, fn);
         } else if (isFunction(next)) {
           await next();
         } else if (!response.writableEnded) {
-          response.statusCode = 404;
-          response.end(`Cannot ${request.method} ${request.url ?? "/"}`);
+          response.sendError(
+            404,
+            `Cannot ${request.method} ${request.url ?? "/"}`
+          );
         }
       };
       app.emit("request", context);
@@ -180,8 +150,7 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
     } catch (error) {
       app.emit("error", error, context);
       if (!response.writableEnded) {
-        response.statusCode = 500;
-        response.end("Internal Server Error");
+        response.sendError(500, "Internal Server Error");
       }
     }
   } as FourzeServer;
@@ -208,6 +177,9 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
           value: `anonymous@${Math.random().toString(36).slice(2, 8)}`
         });
       }
+      Object.defineProperty(middleware, "base", {
+        get: () => base
+      });
 
       app.emit(`use:${middleware.name}`, middleware);
       logger.info(
@@ -282,6 +254,7 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
 
   app.close = function () {
     this.server?.close();
+    return this;
   };
 
   Object.defineProperties(app, {
@@ -304,7 +277,7 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
         return _server;
       }
     },
-    serverMode: {
+    protocol: {
       get() {
         return _protocol;
       }

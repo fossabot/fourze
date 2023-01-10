@@ -3,15 +3,18 @@ import type { MaybePromise } from "maybe-types";
 import qs from "query-string";
 
 import { version } from "../package.json";
+import { overload } from "./utils/overload";
 import { decodeFormData } from "./polyfill/form-data";
 import type { PolyfillHeaderInit } from "./polyfill/header";
-import {
-  flatHeaders,
-  getHeaderRawValue,
-  getHeaderValue
-} from "./polyfill/header";
+import { flatHeaders, getHeaderValue } from "./polyfill/header";
 import { PolyfillServerResponse } from "./polyfill/response";
-import { isBuffer, isDef, isString, resolvePath } from "./utils";
+import {
+  isDef,
+  isFunction,
+  isString,
+  isUint8Array,
+  isUndefined
+} from "./utils";
 
 export const FOURZE_VERSION = version;
 
@@ -22,8 +25,86 @@ const FOURZE_RESPONSE_SYMBOL = Symbol("FourzeResponse");
 
 export type DefaultData = Record<string, unknown>;
 
+export interface FourzeRouteFunction<This> {
+  <
+    Method extends RequestMethod,
+    Result = any,
+    Props extends ObjectProps = ObjectProps,
+    Meta = Record<string, any>
+  >(
+    path: string,
+    method: Method,
+    meta: Meta,
+    props: Props,
+    handle: FourzeHandle<Result, Props, Meta>
+  ): This
+  <
+    Method extends RequestMethod,
+    Result = any,
+    Props extends ObjectProps = ObjectProps
+  >(
+    path: string,
+    method: Method,
+    props: Props,
+    handle: FourzeHandle<Result, Props>
+  ): This
+  <
+    Result = any,
+    Props extends ObjectProps = ObjectProps,
+    Meta = Record<string, any>
+  >(
+    path: string,
+    props: Props,
+    meta: Meta,
+    handle: FourzeHandle<Result, Props, Meta>
+  ): This
+
+  <Method extends RequestMethod, Result = any>(
+    path: string,
+    method: Method,
+    handle: FourzeHandle<Result>
+  ): This
+
+  <Result = any>(path: string, handle: FourzeHandle<Result>): This
+  <Result, Props extends ObjectProps = ObjectProps>(
+    path: string,
+    props: Props,
+    handle: FourzeHandle<Result, Props>
+  ): This
+  <Result = any>(path: string, handle: FourzeHandle<Result>): this
+  <
+    Result = any,
+    Props extends ObjectProps = ObjectProps,
+    Meta = Record<string, any>
+  >(
+    route: FourzeBaseRoute<Result, Props, Meta>
+  ): This
+}
+
+export type FourzeRouteGenerator<This> = {
+  [K in RequestMethod]: {
+    <
+      Result = any,
+      Props extends ObjectProps = ObjectProps,
+      Meta = Record<string, any>
+    >(
+      path: string,
+      props: Props,
+      meta: Meta,
+      handle: FourzeHandle<Result, Props, Meta>
+    ): This
+    <Result = any, Props extends ObjectProps = ObjectProps>(
+      path: string,
+      props: Props,
+      handle: FourzeHandle<Result, Props>
+    ): This
+    <Result>(path: string, handle: FourzeHandle<Result>): This
+  };
+};
+
 export interface FourzeRequest<
   Props extends ObjectProps = ObjectProps,
+  Meta = Record<string, any>,
   Data = ExtractPropTypes<Props>,
   Query = ExtractPropTypes<Props, "query">,
   Body = ExtractPropTypes<Props, "body">,
@@ -34,11 +115,9 @@ export interface FourzeRequest<
   headers: Record<string, string | string[] | undefined>
 
   route: FourzeRoute
-  relativePath: string
+  meta: Meta
 
   readonly params: Params
-
-  meta: Record<string, any>
 
   readonly query: Query
 
@@ -52,22 +131,25 @@ export interface FourzeRequest<
 
   readonly path: string
 
+  readonly relativePath: string
+
+  readonly contextPath: string
+
   readonly [FOURZE_REQUEST_SYMBOL]: true
 }
 
 export interface FourzeBaseResponse extends ServerResponse {
-  result?: any
   method?: string
   matched?: boolean
 }
 export interface FourzeResponse extends FourzeBaseResponse {
-  json(data?: any): this
+  json(data: any): this
 
-  image(data?: any): this
+  image(data: Buffer): this
 
-  text(data?: string): this
+  text(data: string): this
 
-  binary(data?: any): this
+  binary(data: Buffer): this
 
   redirect(url: string): this
 
@@ -75,17 +157,32 @@ export interface FourzeResponse extends FourzeBaseResponse {
 
   removeHeader(key: string): this
 
+  send(data: any, contentType?: string): this
+
+  getContentType(data?: any): string | undefined
+
+  setContentType(contentType: string): this
+
+  sendError(code: number, error?: string | Error): this
+
   readonly url: string
+
+  readonly data: any
+
+  readonly error: Error | undefined
 
   readonly [FOURZE_RESPONSE_SYMBOL]: true
 }
 
-export interface FourzeBaseRoute<Props extends ObjectProps = ObjectProps> {
+export interface FourzeBaseRoute<
+  Result = any,
+  Props extends ObjectProps = ObjectProps,
+  Meta = Record<string, any>
+> {
   path: string
-  base?: string
   method?: RequestMethod
-  handle: FourzeHandle<Props>
-  meta?: Record<string, any>
+  handle: FourzeHandle<Result, Props, Meta>
+  meta?: Meta
   props?: Props
 }
 
@@ -190,6 +287,10 @@ export type ObjectProps<P = Record<string, unknown>> = {
   [K in keyof P]: Prop<P[K]> | null;
 };
 
+export type NormalizedObjectProps<P = Record<string, unknown>> = {
+  [K in keyof P]: NormalizedProps<P[K]> | null;
+};
+
 type Prop<T, D = T> = PropOptions<T, D> | PropType<T>;
 
 type PropConstructor<T = any> =
@@ -211,13 +312,23 @@ type PropMethod<T, TConstructor = any> = [T] extends [
     }
   : never;
 
-interface PropOptions<T = any, D = T> {
-  type: PropType<T>
+interface PropOptions<Type = any, Default = Type> {
+  type: PropType<Type>
   required?: boolean
-  default?: D | DefaultFactory<D> | null | undefined | object
+  default?: Default | DefaultFactory<Default> | null | undefined | object
   validator?(value: unknown): boolean
-  transform?(value: unknown): T
+  transform?(value: unknown): Type
+  meta?: Record<string, any>
   in?: PropIn
+}
+
+export interface NormalizedProps<Type = any, Default = Type>
+  extends PropOptions<Type, Default> {
+  meta: Record<string, any>
+  in?: PropIn
+  required: boolean
+  type: PropType<any>
+  default?: Default | DefaultFactory<Default> | null | undefined | object
 }
 
 declare type DefaultFactory<T> = (props: DefaultData) => T | null | undefined;
@@ -226,12 +337,15 @@ export type PropType<T> = PropConstructor<T> | PropConstructor<T>[];
 
 // #endregion
 
-export interface FourzeRoute<Props extends ObjectProps = ObjectProps>
-  extends FourzeBaseRoute<Props> {
+export interface FourzeRoute<
+  Result = any,
+  Props extends ObjectProps = ObjectProps,
+  Meta = Record<string, any>
+> extends FourzeBaseRoute<Result, Props, Meta> {
   readonly [FOURZE_ROUTE_SYMBOL]: true
-  readonly pathParams: RegExpMatchArray
-  meta: Record<string, any>
-  props: Props
+  readonly pathParams: RegExpMatchArray | string[]
+  readonly props: Props
+  readonly meta: Meta
   match: (
     url: string,
     method?: string,
@@ -239,10 +353,14 @@ export interface FourzeRoute<Props extends ObjectProps = ObjectProps>
   ) => RegExpMatchArray | null
 }
 
-export type FourzeNext = (rs?: boolean) => MaybePromise<void>;
+export type FourzeNext<T = void> = (rs?: boolean) => MaybePromise<T>;
 
-export type FourzeHandle<Props extends ObjectProps = ObjectProps, R = any> = (
-  request: FourzeRequest<Props>,
+export type FourzeHandle<
+  R = any,
+  Props extends ObjectProps = ObjectProps,
+  Meta = Record<string, any>
+> = (
+  request: FourzeRequest<Props, Meta>,
   response: FourzeResponse
 ) => MaybePromise<R>;
 
@@ -280,11 +398,20 @@ const REQUEST_PATH_REGEX = new RegExp(
 
 const PARAM_KEY_REGEX = /\{[\w_-]+\}/g;
 
-export function defineRoute<Props extends ObjectProps = ObjectProps>(
-  route: FourzeBaseRoute<Props>
-): FourzeRoute<Props> {
-  /* eslint @typescript-eslint/ban-types:"off" */
-  const { handle, meta = {}, base, props = {} as Props } = route;
+export function defineRouteProps<Props extends ObjectProps = ObjectProps>(
+  props: Props
+) {
+  return props;
+}
+
+export function defineRoute<
+  Result = any,
+  Props extends ObjectProps = ObjectProps,
+  Meta = Record<string, any>
+>(
+  route: FourzeBaseRoute<Result, Props, Meta>
+): FourzeRoute<Result, Props, Meta> {
+  const { handle, meta = {} as Meta, props = {} as Props } = route;
   let { method, path } = route;
 
   if (REQUEST_PATH_REGEX.test(path)) {
@@ -295,8 +422,6 @@ export function defineRoute<Props extends ObjectProps = ObjectProps>(
       path = arr[1].trim();
     }
   }
-
-  path = resolvePath(path, base);
 
   return {
     method,
@@ -309,10 +434,14 @@ export function defineRoute<Props extends ObjectProps = ObjectProps>(
         || !method
         || this.method.toLowerCase() === method.toLowerCase()
       ) {
-        const regex = new RegExp(
-          `^${path.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?")}$`,
-          "i"
-        );
+        let pattern = path.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?");
+        if (!pattern.startsWith("*")) {
+          pattern = `^${pattern}`;
+        }
+        if (!pattern.endsWith("*")) {
+          pattern = `${pattern}$`;
+        }
+        const regex = new RegExp(pattern, "i");
         return url.match(regex);
       }
       return null;
@@ -329,50 +458,77 @@ export function defineRoute<Props extends ObjectProps = ObjectProps>(
   };
 }
 
-export interface FourzeBaseHook extends FourzeMiddleware<any> {
-  path?: string
+export interface FourzeBaseHook<R = any> {
+  path: string
+  handle: FourzeMiddleware<R>
 }
 
-export interface FourzeHook {
-  handle: FourzeMiddleware<any>
-  path: string
+export interface FourzeHook<R = any> extends FourzeBaseHook<R> {
   readonly [FOURZE_HOOK_SYMBOL]: true
 }
 
-export function defineFourzeHook(
-  base: string,
-  interceptor: FourzeBaseHook
-): FourzeHook;
+export function defineFourzeHook<R = any>(
+  path: string,
+  handle: FourzeMiddleware<R>
+): FourzeHook<R>;
 
-export function defineFourzeHook(interceptor: FourzeBaseHook): FourzeHook;
+export function defineFourzeHook<R>(hook: FourzeBaseHook<R>): FourzeHook<R>;
 
-export function defineFourzeHook(interceptor: DefineFourzeHook): FourzeHook;
+export function defineFourzeHook<R>(hook: FourzeMiddleware<R>): FourzeHook<R>;
 
-export function defineFourzeHook(
-  param0: string | DefineFourzeHook | FourzeBaseHook,
-  param1?: FourzeBaseHook
+export function defineFourzeHook<R>(
+  ...args:
+  | [string, FourzeMiddleware<R>]
+  | [FourzeMiddleware<R>]
+  | [FourzeBaseHook<R>]
 ) {
-  const isStr = isString(param0);
-  const path = isStr ? param0 : param0.path ?? "";
+  const arg0 = args[0];
+
+  const { path, handle }
+    = isString(arg0) || isFunction(arg0)
+      ? overload<FourzeHook<R>>(
+        [
+          {
+            name: "path",
+            type: "string",
+            default: ""
+          },
+          {
+            name: "handle",
+            type: "function",
+            required: true
+          }
+        ],
+        args
+      )
+      : (arg0 as FourzeBaseHook<R>);
 
   const hook = {
     path,
-    handle:
-      param1 ?? isStr
-        ? param1
-        : typeof param0 === "function"
-          ? param0
-          : async (
-            request: FourzeRequest,
-            response: FourzeResponse,
-            handle: FourzeHandle
-          ) => {
-            await param0.before?.(request, response);
-            const result = await handle(request, response);
-            await param0.after?.(request, response);
-            return result;
-          }
-  } as FourzeHook;
+    handle: async (
+      request: FourzeRequest,
+      response: FourzeResponse,
+      _next?: FourzeNext<R>
+    ) => {
+      let nextResult: any;
+      let isNexted = false;
+      async function next(rs = true) {
+        if (isNexted) {
+          return nextResult;
+        }
+        if (rs) {
+          nextResult = await _next?.();
+        }
+        isNexted = true;
+        return nextResult;
+      }
+      const hookResult = await handle(request, response, next);
+      if (isUndefined(hookResult)) {
+        return await next();
+      }
+      return hookResult;
+    }
+  } as FourzeHook<R>;
 
   Object.defineProperty(hook, FOURZE_HOOK_SYMBOL, {
     get() {
@@ -382,14 +538,8 @@ export function defineFourzeHook(
   return hook;
 }
 
-export interface DefineFourzeHook {
-  path?: string
-  before?: FourzeHandle
-  handle?: FourzeHandle<any>
-  after?: FourzeHandle
-}
-
 export interface FourzeInstance {
+  name?: string
   base?: string
   routes: FourzeRoute[]
   hooks: FourzeHook[]
@@ -404,8 +554,13 @@ export interface CommonMiddleware {
 }
 
 export interface FourzeMiddleware<T = void> {
-  (req: FourzeRequest, res: FourzeResponse, next?: FourzeNext): MaybePromise<T>
+  (
+    req: FourzeRequest,
+    res: FourzeResponse,
+    next?: FourzeNext<T>
+  ): MaybePromise<T>
   name?: string
+  base?: string
   setup?: () => MaybePromise<void>
 }
 
@@ -415,28 +570,87 @@ export interface FourzeResponseOptions {
   response?: OutgoingMessage
 }
 
+export function normalizeProps<T>(
+  props: ObjectProps<T>
+): NormalizedObjectProps<T> {
+  const result = {} as NormalizedObjectProps<T>;
+  for (const name in props) {
+    const key = name;
+    const prop = props[name];
+    if (!isFunction(prop) && !Array.isArray(prop) && !!prop) {
+      result[key] = {
+        type: prop.type,
+        meta: {
+          ...prop.meta
+        },
+        default: prop.default,
+        required: prop.default ? false : prop.required ?? false
+      };
+    }
+  }
+  return result;
+}
+
 export function createResponse(options: FourzeResponseOptions) {
   const response = (options?.response
     ?? new PolyfillServerResponse()) as FourzeResponse;
 
-  const _end = response.end.bind(response);
+  let _data: any;
+  let _error: Error;
 
-  response.end = (data: any) => {
-    response.result = data ?? response.result;
+  response.setContentType = function (contentType) {
+    if (!response.headersSent) {
+      response.setHeader("Content-Type", contentType);
+    }
+    return this;
+  };
 
-    if (response.result) {
-      let contentType = getHeaderRawValue(response.getHeader("content-type"));
-
-      if (!contentType) {
+  response.getContentType = function (data) {
+    let contentType: string = getHeaderValue(this.getHeaders(), "Content-Type");
+    if (!contentType && isDef(data)) {
+      if (isUint8Array(data)) {
+        contentType = "application/octet-stream";
+      } else {
         contentType = "application/json";
-        response.setHeader("content-type", contentType);
-      }
-      if (contentType.startsWith("application/json")) {
-        response.json(response.result);
       }
     }
+    return contentType;
+  };
 
-    _end(response.result);
+  response.send = function (data: any, contentType?: string) {
+    contentType = contentType ?? this.getContentType(data);
+    switch (contentType) {
+      case "application/json":
+        data = JSON.stringify(data);
+        break;
+      case "text/plain":
+      case "text/html":
+        data = data.toString();
+        break;
+      default:
+        break;
+    }
+    if (contentType) {
+      response.setContentType(contentType);
+    }
+    _data = data;
+    return this;
+  };
+
+  response.sendError = function (code = 500, error: Error | string) {
+    _error = typeof error === "string" ? new Error(error) : error;
+    this.statusCode = code;
+    this.statusMessage = _error.message;
+    return this;
+  };
+
+  const _end = response.end.bind(response);
+
+  response.end = function (data: any) {
+    if (data) {
+      this.send(data);
+    }
+    _end(_data);
     return response;
   };
 
@@ -460,27 +674,19 @@ export function createResponse(options: FourzeResponseOptions) {
   };
 
   response.json = function (data: any) {
-    this.result = JSON.stringify(data);
-    this.setHeader("Content-Type", "application/json");
-    return this;
+    return this.send(data, "application/json");
   };
 
-  response.binary = function (data: any) {
-    this.result = data;
-    this.setHeader("Content-Type", "application/octet-stream");
-    return this;
+  response.binary = function (data: Buffer) {
+    return this.send(data, "application/octet-stream");
   };
 
-  response.image = function (data: any) {
-    this.result = data;
-    this.setHeader("Content-Type", "image/jpeg");
-    return this;
+  response.image = function (data: Buffer) {
+    return this.send(data, "image/jpeg");
   };
 
   response.text = function (data: string) {
-    this.result = data;
-    this.setHeader("Content-Type", "text/plain");
-    return this;
+    return this.send(data, "text/plain");
   };
 
   response.redirect = function (url: string) {
@@ -490,8 +696,6 @@ export function createResponse(options: FourzeResponseOptions) {
   };
 
   response.setHeader("X-Powered-By", `Fourze Server/v${FOURZE_VERSION}`);
-
-  let _result: any;
 
   Object.defineProperties(response, {
     [FOURZE_RESPONSE_SYMBOL]: {
@@ -504,12 +708,14 @@ export function createResponse(options: FourzeResponseOptions) {
         return options.url;
       }
     },
-    result: {
-      set(val) {
-        _result = val;
-      },
+    data: {
       get() {
-        return _result;
+        return _data;
+      }
+    },
+    error: {
+      get() {
+        return _error;
       }
     },
 
@@ -530,6 +736,7 @@ export interface FourzeContextOptions {
   body?: any
   request?: IncomingMessage
   response?: OutgoingMessage
+  contextPath?: string
 }
 
 export interface FourzeContext {
@@ -589,14 +796,14 @@ export function createRequest(options: FourzeRequestOptions) {
 
   const contentType = getHeaderValue(
     headers,
-    "content-type",
+    "Content-Type",
     "application/json"
   );
 
   const bodyRaw: Buffer | string | Record<string, any>
     = options.body ?? request.body ?? {};
   let body: Record<string, any> = {};
-  if (isBuffer(bodyRaw) || isString(bodyRaw)) {
+  if (isUint8Array(bodyRaw) || isString(bodyRaw)) {
     if (bodyRaw.length > 0) {
       if (contentType.startsWith("application/json")) {
         body = JSON.parse(bodyRaw.toString("utf-8"));

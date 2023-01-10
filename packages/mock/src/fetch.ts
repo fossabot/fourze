@@ -37,7 +37,7 @@ class ProxyFetchResponse implements Response {
     this.url = response.url;
     this.status = response.statusCode;
     this.statusText = response.statusMessage;
-    this.data = response.result;
+    this.data = response.data;
     this.headers = new PolyfillHeaders(response.getHeaders());
     this._response = response;
   }
@@ -59,7 +59,10 @@ class ProxyFetchResponse implements Response {
   }
 
   async json() {
-    return isString(this.data) ? JSON.parse(this.data) : this.data;
+    if (isString(this.data)) {
+      return JSON.parse(this.data);
+    }
+    return this.data;
   }
 
   clone(): Response {

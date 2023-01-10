@@ -5,6 +5,8 @@ import { createUnplugin } from "unplugin";
 import type { FourzeMockRouterOptions } from "@fourze/mock";
 import type { FourzeHotRouter, FourzeProxyOption } from "@fourze/server";
 import { createFourzeServer, createHotRouter } from "@fourze/server";
+import { createSwaggerRouter } from "@fourze/swagger";
+
 import { defaultMockCode as defaultTransformCode } from "./mock";
 
 const PLUGIN_NAME = "unplugin-fourze";
@@ -71,6 +73,8 @@ export interface UnpluginFourzeOptions {
 
   allow?: string[]
 
+  deny?: string[]
+
   transformCode?: (
     router: FourzeHotRouter,
     options?: FourzeMockRouterOptions
@@ -84,6 +88,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
   const delay = options.delay ?? 0;
   const allow = options.allow ?? [];
+  const deny = options.deny ?? [];
 
   const port = options.server?.port ?? 7609;
   const host = options.server?.host ?? "localhost";
@@ -92,7 +97,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
   const hmr = options.hmr ?? true;
   const injectScript = options.injectScript ?? true;
 
-  const logger = createLogger("@fourze/vite");
+  const logger = createLogger("@fourze/unplugin");
 
   setLoggerLevel(options.logLevel ?? "info");
 
@@ -108,24 +113,30 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
     );
 
   const router = createHotRouter({
-    base,
     dir,
     pattern,
     delay,
-    allow
+    allow,
+    deny
   });
+
+  const swaggerRouter = createSwaggerRouter(router);
 
   proxy.forEach(router.proxy);
 
   const transformCode = options.transformCode ?? defaultTransformCode;
 
-  logger.info("Fourze Plugin is starting...");
-
   return {
     name: PLUGIN_NAME,
 
     async buildStart() {
-      await router.setup();
+      try {
+        await router.setup();
+
+        logger.info("Fourze plugin is ready.");
+      } catch (error) {
+        logger.error("Fourze plugin is not ready.", error);
+      }
     },
 
     resolveId(id) {
@@ -186,6 +197,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
         }
         const app = createFourzeServer();
         app.use(base, router);
+        app.use("/v2", swaggerRouter);
 
         if (options.server?.port) {
           try {
@@ -195,7 +207,6 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
           }
         } else {
           middlewares.use(app);
-          logger.info("Fourze middleware was installed!");
         }
       }
     }

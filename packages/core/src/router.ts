@@ -13,12 +13,15 @@ import type {
   FourzeRequest,
   FourzeResponse,
   FourzeRoute,
+  FourzeRouteFunction,
+  FourzeRouteGenerator,
   ObjectProps,
   PropType
 } from "./shared";
-import { createServiceContext, defineRoute } from "./shared";
+import { FOURZE_METHODS, createServiceContext } from "./shared";
 import type { DelayMsType } from "./utils";
 import {
+  createQuery,
   createSingletonPromise,
   isConstructor,
   isFunction,
@@ -26,11 +29,12 @@ import {
   isString,
   isUndef,
   normalizeRoute,
-  relativePath,
-  unique
+  relativePath
 } from "./utils";
 
-export interface FourzeRouter extends FourzeMiddleware {
+export interface FourzeRouter
+  extends FourzeMiddleware,
+  FourzeRouteGenerator<FourzeRouter> {
   /**
    * 根据url匹配路由
    * @param url
@@ -51,6 +55,8 @@ export interface FourzeRouter extends FourzeMiddleware {
 
   refresh(): void
 
+  route: FourzeRouteFunction<FourzeRouter>
+
   setup(): MaybePromise<void>
 
   use(module: FourzeInstance): this
@@ -59,23 +65,27 @@ export interface FourzeRouter extends FourzeMiddleware {
 
   service(context: FourzeContextOptions): Promise<FourzeContext>
 
+  allow(...rules: MaybeRegex[]): this
+  deny(...rules: MaybeRegex[]): this
+
+  readonly base: string
+
+  readonly name: string
+
   readonly routes: FourzeRoute[]
   readonly hooks: FourzeHook[]
 
-  readonly options: Required<FourzeRouterOptions>
+  readonly modules: FourzeInstance[]
 }
 
 export interface FourzeRouterOptions {
+  name?: string
   /**
    * @example localhost
    */
   host?: string
   port?: string
 
-  /**
-   *  根路径
-   */
-  base?: string
   /**
    *  路由模块
    */
@@ -125,13 +135,13 @@ export function createRouter(
   const isOptions = !isFunc && !isArray;
   const setup: MaybeAsyncFunction<FourzeInstance[] | FourzeRouterOptions>
     = isFunc ? params : () => params;
-  const modules = new Set<FourzeInstance>();
+  const modules = createQuery<FourzeInstance>();
 
   const options = isOptions ? params : {};
 
-  const routes = new Set<FourzeRoute>();
+  const routes = createQuery<FourzeRoute>();
 
-  const hooks = new Set<FourzeHook>();
+  const hooks = createQuery<FourzeHook>();
 
   const logger = createLogger("@fourze/core");
 
@@ -140,7 +150,24 @@ export function createRouter(
     response: FourzeResponse,
     next?: FourzeNext
   ) {
-    const { path, method } = request;
+    const { method } = request;
+
+    const path = relativePath(request.path, router.base);
+
+    Object.defineProperties(request, {
+      relativePath: {
+        get() {
+          return path;
+        },
+        configurable: true
+      },
+      contextPath: {
+        get() {
+          return router.base;
+        },
+        configurable: true
+      }
+    });
 
     const isAllowed = router.isAllow(path);
 
@@ -148,6 +175,7 @@ export function createRouter(
       await router.setup();
 
       const [route, matches] = router.match(path, method, true);
+      const activeHooks = router.hooks.filter((e) => isMatch(path, e.path));
 
       if (route && matches) {
         for (let i = 0; i < route.pathParams.length; i++) {
@@ -161,42 +189,46 @@ export function createRouter(
         try {
           validateProps(route.props, request.data);
         } catch (error: any) {
-          response.statusCode = 400;
-          response.end(error.message);
+          response.sendError(400, error.message);
           return;
-        }
-
-        if (matches.length > route.pathParams.length) {
-          request.relativePath = matches[matches.length - 2];
         }
 
         request.meta = {
           ...request.meta,
           ...route.meta
         };
+      }
 
-        const activeHooks = router.hooks.filter((e) => isMatch(path, e.path));
+      const handle = async (): Promise<any> => {
+        let _result: any;
+        const hook = activeHooks.shift();
 
-        const handle = async () => {
-          const hook = activeHooks.shift();
-
-          if (hook) {
-            const hookReturn = await hook.handle(request, response, handle);
-            response.result = hookReturn ?? response.result;
-          } else {
-            response.result
-              = (await route.handle(request, response)) ?? response.result;
+        if (hook) {
+          const hookReturn = await hook.handle(request, response, handle);
+          _result = hookReturn ?? _result;
+        } else {
+          if (route) {
+            const routeReturn = await route.handle(request, response);
+            _result = routeReturn ?? _result;
           }
-          return response.result;
-        };
-
-        await handle();
-        response.matched = true;
+        }
+        return _result;
+      };
+      response.matched = !!route;
+      try {
+        const result = await handle();
+        if (result) {
+          response.send(result);
+        }
+      } catch (error: any) {
+        response.sendError(500, error.message);
       }
     }
 
     if (response.matched) {
-      logger.info(`Request matched -> ${normalizeRoute(path, method)}.`);
+      logger.info(
+        `Request matched -> ${normalizeRoute(request.path, method)}.`
+      );
       if (!response.writableEnded) {
         response.end();
       }
@@ -204,7 +236,7 @@ export function createRouter(
       if (isAllowed) {
         logger.warn(
           `Request is allowed but not matched -> ${normalizeRoute(
-            path,
+            request.path,
             method
           )}.`
         );
@@ -214,22 +246,20 @@ export function createRouter(
   } as FourzeRouter;
 
   router.isAllow = function (url: string) {
-    const { allow, deny, external, base = "" } = options;
-    // 是否在base域下
-    let rs = url.startsWith(base);
-    const relativeUrl = relativePath(url, base);
+    const { allow, deny, external } = options;
+    let rs = true;
 
     if (allow?.length) {
-      // 有允许规则,必须在base域下
-      rs &&= isMatch(relativeUrl, ...allow);
+      // 有允许规则
+      rs &&= isMatch(url, ...allow);
     }
     if (external?.length) {
-      // 有外部规则,允许不在base域下
+      // 有外部规则
       rs ||= isMatch(url, ...external);
     }
     if (deny?.length) {
       // 有拒绝规则,优先级最高
-      rs &&= !isMatch(relativeUrl, ...deny);
+      rs &&= !isMatch(url, ...deny);
     }
     return rs;
   };
@@ -260,6 +290,18 @@ export function createRouter(
     return { request, response };
   };
 
+  router.allow = function (...rules: MaybeRegex[]) {
+    options.allow = options.allow ?? [];
+    options.allow.push(...rules);
+    return this;
+  };
+
+  router.deny = function (...rules: MaybeRegex[]) {
+    options.deny = options.deny ?? [];
+    options.deny.push(...rules);
+    return this;
+  };
+
   router.use = function (
     module: FourzeInstance | FourzeSetup | string,
     setup?: FourzeSetup
@@ -273,7 +315,7 @@ export function createRouter(
       module = defineFourze(module);
     }
 
-    modules.add(module);
+    modules.append(module);
     this.refresh();
 
     return this;
@@ -284,7 +326,6 @@ export function createRouter(
     const isArray = Array.isArray(rs);
 
     if (!isArray) {
-      options.base = rs.base ?? options.base;
       options.allow = rs.allow ?? options.allow;
       options.delay = rs.delay ?? options.delay;
       options.modules = rs.modules ?? options.modules;
@@ -294,13 +335,15 @@ export function createRouter(
       options.modules = rs;
     }
 
-    const newModules = unique([...(options.modules ?? []), ...modules]);
+    modules.append(...(options.modules ?? []));
+
+    modules.distinct();
 
     const newRoutes: FourzeRoute[] = [];
     const newHooks: FourzeHook[] = [];
 
     await Promise.all(
-      newModules.map(async (e) => {
+      modules.select(async (e) => {
         if (isFourze(e)) {
           await e.setup();
         }
@@ -308,31 +351,45 @@ export function createRouter(
         newHooks.push(...e.hooks);
       })
     );
-    routes.clear();
-    hooks.clear();
+    hooks.reset(newHooks);
 
     if (options.delay) {
-      hooks.add(delayHook(options.delay));
+      hooks.append(delayHook(options.delay));
     }
 
-    for (const route of newRoutes) {
-      routes.add(
-        defineRoute({
-          ...route,
-          base: options.base
-        })
-      );
-    }
-
-    for (const hook of newHooks) {
-      hooks.add({
-        ...hook,
-        path: relativePath(hook.path, options.base)
-      });
-    }
+    routes.reset(newRoutes);
   });
 
+  const coreModule = defineFourze();
+
   Object.defineProperties(router, {
+    ...Object.fromEntries(
+      [...FOURZE_METHODS, "route"].map((method) => [
+        method,
+        {
+          get() {
+            return function (
+              this: FourzeRouter,
+              path: string,
+              ...others: any[]
+            ) {
+              const args = [
+                path,
+                method === "route" ? undefined : method,
+                ...others
+              ] as unknown as Parameters<Fourze>;
+              coreModule(...args);
+              return this;
+            };
+          }
+        }
+      ])
+    ),
+    name: {
+      get() {
+        return options.name ?? "FourzeRouter";
+      }
+    },
     setup: {
       get() {
         return setupRouter;
@@ -341,12 +398,8 @@ export function createRouter(
     options: {
       get() {
         const opt = {} as Required<FourzeRouterOptions>;
-        opt.base = options.base ?? "";
         opt.delay = options.delay ?? 0;
         opt.allow = options.allow ?? [];
-        if (opt.base) {
-          opt.allow = unique([...(options.allow ?? []), opt.base]);
-        }
         opt.deny = options.deny ?? [];
         opt.modules = options.modules ?? [];
         return opt;
@@ -367,8 +420,15 @@ export function createRouter(
       get() {
         return Array.from(hooks);
       }
+    },
+    modules: {
+      get() {
+        return Array.from(modules);
+      }
     }
   });
+
+  router.use(coreModule);
 
   return router;
 }

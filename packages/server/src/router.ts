@@ -1,5 +1,5 @@
 import fs from "fs";
-import { join, resolve } from "path";
+import path, { join, resolve } from "path";
 import type {
   DelayMsType,
   Fourze,
@@ -22,12 +22,6 @@ import { createRenderer } from "./renderer";
 import { defineEnvs, normalizePath } from "./utils";
 
 export interface FourzeHotRouterOptions extends FourzeRouterOptions {
-  /**
-   * 根路径
-   * @default "/"
-   */
-  base?: string
-
   /**
    * 路由模块目录
    * @default "routes"
@@ -61,7 +55,6 @@ export interface FourzeHotRouterOptions extends FourzeRouterOptions {
 }
 
 export interface FourzeHotRouter extends FourzeRouter {
-  name: string
   load(): Promise<boolean>
   load(moduleName: string): Promise<boolean>
   remove(moduleName: string): this
@@ -95,7 +88,6 @@ export interface FourzeProxyOption extends Omit<FourzeBaseRoute, "handle"> {
 export function createHotRouter(
   options: FourzeHotRouterOptions = {}
 ): FourzeHotRouter {
-  const base = (options.base = options.base ?? "/");
   const delay = options.delay ?? 0;
   const rootDir = resolve(process.cwd(), options.dir ?? "routes");
 
@@ -115,8 +107,8 @@ export function createHotRouter(
     );
 
     return {
+      name: "FourzeHotRouter",
       ...options,
-      base,
       modules: allModules,
       delay
     };
@@ -142,8 +134,14 @@ export function createHotRouter(
         const extraRoutes: FourzeBaseRoute[] = [];
         const extraHooks: FourzeBaseHook[] = [];
 
-        const fn = async (ins: any) => {
+        const fn = async (ins: unknown) => {
           if (isFourze(ins)) {
+            if (!ins.name) {
+              ins.setMeta(
+                "name",
+                path.basename(f).replace(/\.(tmp\.)?js$/g, "")
+              );
+            }
             extras.push(ins);
           } else if (Array.isArray(ins)) {
             await Promise.all(ins.map(fn));
@@ -308,7 +306,7 @@ export function createHotRouter(
     }
 
     const module = defineFourze({
-      base,
+      base: this.base,
       routes: [
         {
           path,
@@ -341,16 +339,6 @@ export function createHotRouter(
   };
 
   return Object.defineProperties(router, {
-    name: {
-      get() {
-        return "FourzeRouter";
-      }
-    },
-    base: {
-      get() {
-        return base;
-      }
-    },
     delay: {
       get() {
         return delay;

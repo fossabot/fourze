@@ -1,13 +1,12 @@
 import type { MaybePromise } from "maybe-types";
 import type {
-  DefineFourzeHook,
   FourzeBaseHook,
   FourzeBaseRoute,
-  FourzeHandle,
   FourzeHook,
   FourzeInstance,
-  ObjectProps,
-  RequestMethod
+  FourzeMiddleware,
+  FourzeRouteFunction,
+  FourzeRouteGenerator
 } from "./shared";
 import {
   FOURZE_METHODS,
@@ -17,12 +16,15 @@ import {
 } from "./shared";
 import {
   createSingletonPromise,
+  isDef,
   isFunction,
+  isObject,
   isString,
   overload,
   resolvePath
 } from "./utils";
 export interface FourzeOptions {
+  name?: string
   base?: string
   setup?: FourzeSetup
   routes?: FourzeBaseRoute[]
@@ -30,50 +32,29 @@ export interface FourzeOptions {
 }
 
 export type FourzeSetup = (
-  fourze: Fourze
+  route: Fourze
 ) => MaybePromise<void | FourzeBaseRoute[] | FourzeInstance>;
 
-export type FourzeRequestFunctions = {
-  [K in RequestMethod]: {
-    <P extends ObjectProps = ObjectProps>(
-      path: string,
-      data: P,
-      handle: FourzeHandle<P>
-    ): Fourze
-    (path: string, handle: FourzeHandle): Fourze
-  };
-};
-
 const FOURZE_SYMBOL = Symbol("FourzeInstance");
-export interface Fourze extends FourzeRequestFunctions, FourzeInstance {
-  <M extends RequestMethod, P extends ObjectProps = ObjectProps>(
-    path: string,
-    method: M,
-    props: P,
-    handle: FourzeHandle<P>
-  ): this
-  <M extends RequestMethod>(
-    path: string,
-    method: M,
-    handle: FourzeHandle
-  ): this
-  <P extends ObjectProps = ObjectProps>(
-    path: string,
-    data: P,
-    handle: FourzeHandle<P>
-  ): this
-  <P extends ObjectProps = ObjectProps>(route: FourzeBaseRoute<P>): this
-  (path: string, handle: FourzeHandle): this
-
+export interface Fourze
+  extends FourzeRouteGenerator<Fourze>,
+  FourzeRouteFunction<Fourze>,
+  FourzeInstance {
   (routes: FourzeBaseRoute<any>[]): this
 
-  hook(hook: FourzeHook): this
-  hook(hook: FourzeBaseHook): this
-  hook(hook: DefineFourzeHook): this
-  hook(base: string, hook: FourzeBaseHook): this
+  hook<R = any>(hook: FourzeHook<R>): this
+  hook<R = any>(handle: FourzeMiddleware<R>): this
+  hook<R = any>(path: string, handle: FourzeMiddleware<R>): this
   apply(fourze: FourzeInstance): this
 
   setup(): Promise<void>
+
+  setMeta(name: string, value: any): this
+  setMeta(meta: Record<string, any>): this
+  getMeta<T = any>(name: string): T | undefined
+
+  readonly meta: Record<string, any>
+  readonly name?: string
   readonly [FOURZE_SYMBOL]: true
 }
 
@@ -104,6 +85,9 @@ export function defineFourze(
       : isSetup
         ? options
         : undefined;
+
+  const _name = isOption ? options.name : undefined;
+
   const routes = Array.from(
     (isOption ? options.routes : isRoutes ? options : []) ?? []
   );
@@ -119,46 +103,47 @@ export function defineFourze(
       hooks.push(...param0.hooks);
     } else if (Array.isArray(param0)) {
       routes.push(...param0.map(defineRoute));
-    } else if (typeof param0 === "object") {
+    } else if (isObject(param0)) {
       routes.push(param0);
     } else {
-      routes.push(
-        overload(
-          [
-            {
-              type: "string",
-              name: "path",
-              required: true
-            },
-            {
-              type: "string",
-              name: "method"
-            },
-            {
-              type: "object",
-              name: "props"
-            },
-            {
-              type: "function",
-              name: "handle",
-              required: true
-            }
-          ],
-          [param0, ...args]
-        )
+      const route = overload(
+        [
+          {
+            type: "string",
+            name: "path",
+            required: true
+          },
+          {
+            type: "string",
+            name: "method"
+          },
+          {
+            type: "object",
+            name: "props"
+          },
+          {
+            type: "object",
+            name: "meta"
+          },
+          {
+            type: "function",
+            name: "handle",
+            required: true
+          }
+        ],
+        [param0, ...args]
       );
+      if (isDef(route)) {
+        routes.push(route);
+      }
     }
-    return this;
+    return fourze;
   } as Fourze;
 
   fourze.hook = function (
-    ...args:
-      | [string, FourzeBaseHook]
-      | [FourzeBaseHook]
-      | [DefineFourzeHook]
-      | [FourzeHook]
+    ...args: [string, FourzeMiddleware] | [FourzeMiddleware] | [FourzeHook]
   ) {
-    if (args.length === 1 && isFourzeHook(args[0])) {
+    if (isFourzeHook(args[0])) {
       hooks.push(args[0]);
     } else {
       const hook = defineFourzeHook(
@@ -175,14 +160,26 @@ export function defineFourze(
     return this;
   };
 
+  const _meta: Record<string, any> = {};
+
+  fourze.setMeta = function (name: string | Record<string, any>, value?: any) {
+    if (isString(name)) {
+      _meta[name] = value;
+    } else {
+      Object.assign(_meta, value ?? {});
+    }
+    return this;
+  };
+
+  fourze.getMeta = function<T>(name: string) {
+    return _meta[name] as T;
+  };
+
   Object.defineProperties(fourze, {
     routes: {
       get() {
         return routes.map((e) => {
-          return defineRoute({
-            ...e,
-            base: _base
-          });
+          return defineRoute(e);
         });
       }
     },
@@ -206,22 +203,34 @@ export function defineFourze(
     },
 
     ...Object.fromEntries(
-      FOURZE_METHODS.map((method) => [
+      [...FOURZE_METHODS, "all" as const].map((method) => [
         method,
         {
           get() {
-            return function (
-              this: Fourze,
-              path: string,
-              data: ObjectProps,
-              handle: FourzeHandle
-            ) {
-              return this(path, method, data, handle);
+            return function (this: Fourze, path: string, ...others: any[]) {
+              const args = [
+                path,
+                method === "all" ? undefined : method,
+                ...others
+              ] as unknown as Parameters<Fourze>;
+              return this(...args);
             };
           }
         }
       ])
     ),
+    name: {
+      get() {
+        return _name ?? _meta.name;
+      },
+      configurable: true
+    },
+
+    meta: {
+      get() {
+        return _meta;
+      }
+    },
 
     [FOURZE_SYMBOL]: {
       get() {

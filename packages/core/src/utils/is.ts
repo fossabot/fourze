@@ -10,7 +10,7 @@ export function isBoolean(value: unknown): value is boolean {
   return typeof value === "boolean";
 }
 
-export function isObject(value: unknown): value is Record<string, unknown> {
+export function isObject(value: unknown): value is object {
   return value !== null && typeof value === "object";
 }
 
@@ -18,12 +18,16 @@ export function isFunction<T extends Function>(value: unknown): value is T {
   return typeof value === "function" || value instanceof Function;
 }
 
-export function isConstructor<T extends Function>(value: unknown): value is T {
+export function isConstructor<T>(value: unknown): value is Constructor<T> {
   return isFunction(value) && value.prototype !== undefined;
 }
 
 export function isBuffer(value: unknown): value is Buffer {
-  return isObject(value) && "length" in value;
+  return isObject(value) && !!globalThis.Buffer && Buffer.isBuffer(value);
+}
+
+export function isUint8Array(value: unknown): value is Uint8Array {
+  return value instanceof Uint8Array;
 }
 
 export function isPromise<R = unknown>(value: unknown): value is Promise<R> {
@@ -35,7 +39,7 @@ export function isRegExp(value: unknown): value is RegExp {
 }
 
 export function isFormData(value: unknown): value is FormData {
-  return value != null && globalThis.FormData && value instanceof FormData;
+  return value != null && !!globalThis.FormData && value instanceof FormData;
 }
 
 export function isURL(value: unknown): value is URL {
@@ -89,3 +93,11 @@ export function isTruthy<T>(value: T): value is NonNullable<T> {
 export const isNode = () => typeof window === "undefined";
 
 export const isBrowser = () => !isNode();
+
+export type Constructor<T> =
+  | {
+    new (...args: any[]): T & {}
+  }
+  | {
+    (): T
+  };
