@@ -1,8 +1,8 @@
-import { existsSync } from "fs";
-import { readFile } from "fs/promises";
-import { defineRoute, relativePath, resolvePath, slash } from "@fourze/core";
+import fs from "fs";
+import path from "path";
+import { defineRoute, resolvePath, slash } from "@fourze/core";
 import { getAbsoluteFSPath } from "swagger-ui-dist";
-import mime from "mime";
+import { staticFile } from "@fourze/server";
 import type { SwaggerUIInitOptions } from "./types";
 
 const htmlTemplateString = `
@@ -161,14 +161,21 @@ export interface SwaggerUIServiceOptions {
   documentUrl?: string
 }
 
+export async function build(distPath = "dist") {
+  distPath = path.resolve(distPath);
+  const swaggerUIPath = getAbsoluteFSPath();
+  await fs.promises.copyFile(swaggerUIPath, distPath);
+}
+
 export function service(
   routePath = "/swagger-ui/",
   options: SwaggerUIServiceOptions = {}
 ) {
-  if (!routePath.endsWith("/*")) {
-    routePath = `${slash(routePath.concat("/"))}*`;
+  if (!routePath.endsWith("*")) {
+    routePath = slash(routePath, "*");
   }
   const swaggerUIPath = getAbsoluteFSPath();
+  const render = staticFile(swaggerUIPath, routePath);
   return defineRoute({
     path: routePath,
     handle: async (req, res) => {
@@ -176,19 +183,14 @@ export function service(
         options.documentUrl ?? "/api-docs",
         req.contextPath
       );
-      const filename = relativePath(req.relativePath, routePath);
-      const filePath = resolvePath(filename, swaggerUIPath);
-      if (existsSync(filePath)) {
-        const data = await readFile(filePath, "utf-8");
-        res.send(data, mime.getType(filePath) ?? "text/plain");
-        return;
-      }
-      const htmlString = generateHtmlString({
-        initOptions: {
-          url: documentUrl
-        }
+      render(req, res, () => {
+        const htmlString = generateHtmlString({
+          initOptions: {
+            url: documentUrl
+          }
+        });
+        res.send(htmlString, "text/html");
       });
-      res.send(htmlString, "text/html");
     }
   });
 }

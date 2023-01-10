@@ -126,15 +126,7 @@ export function createFourzeServer(options: FourzeServerOptions = {}) {
       const fn = async () => {
         const middleware = middlewares[i++];
         if (middleware) {
-          Object.defineProperties(request, {
-            contextPath: {
-              get() {
-                return middleware.base;
-              },
-              configurable: true
-            }
-          });
-
+          request.contextPath = middleware.base ?? "/";
           await middleware(request, response, fn);
         } else if (isFunction(next)) {
           await next();

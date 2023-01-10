@@ -29,7 +29,8 @@ import {
   isString,
   isUndef,
   normalizeRoute,
-  relativePath
+  relativePath,
+  resolvePath
 } from "./utils";
 
 export interface FourzeRouter
@@ -71,6 +72,10 @@ export interface FourzeRouter
 
   allow(...rules: MaybeRegex[]): this
   deny(...rules: MaybeRegex[]): this
+
+  relative(path: string): string
+
+  resolve(path: string): string
 
   readonly base: string
 
@@ -154,24 +159,9 @@ export function createRouter(
     response: FourzeResponse,
     next?: FourzeNext
   ) {
-    const { method } = request;
+    request.contextPath = router.base;
 
-    const path = relativePath(request.path, router.base);
-
-    Object.defineProperties(request, {
-      relativePath: {
-        get() {
-          return path;
-        },
-        configurable: true
-      },
-      contextPath: {
-        get() {
-          return router.base;
-        },
-        configurable: true
-      }
-    });
+    const { path, method, relativePath } = request;
 
     const isAllowed = router.isAllow(path);
 
@@ -179,7 +169,9 @@ export function createRouter(
       await router.setup();
 
       const [route, matches] = router.match(path, method, true);
-      const activeHooks = router.hooks.filter((e) => isMatch(path, e.path));
+      const activeHooks = router.hooks.filter((e) =>
+        isMatch(relativePath, e.path)
+      );
 
       if (route && matches) {
         for (let i = 0; i < route.pathParams.length; i++) {
@@ -251,19 +243,19 @@ export function createRouter(
 
   router.isAllow = function (url: string) {
     const { allow, deny, external } = options;
-    let rs = true;
-
+    const path = this.relative(url);
+    let rs = url.startsWith(this.base);
     if (allow?.length) {
       // 有允许规则
-      rs &&= isMatch(url, ...allow);
+      rs &&= isMatch(path, ...allow);
     }
     if (external?.length) {
       // 有外部规则
-      rs ||= isMatch(url, ...external);
+      rs ||= isMatch(path, ...external);
     }
     if (deny?.length) {
       // 有拒绝规则,优先级最高
-      rs &&= !isMatch(url, ...deny);
+      rs &&= !isMatch(path, ...deny);
     }
     return rs;
   };
@@ -275,8 +267,9 @@ export function createRouter(
     allowed = false
   ): [FourzeRoute, RegExpMatchArray] | [] {
     if (allowed || this.isAllow(url)) {
+      const path = this.relative(url);
       for (const route of this.routes) {
-        const matches = route.match(url, method);
+        const matches = route.match(path, method);
         if (matches) {
           return [route, matches];
         }
@@ -292,6 +285,14 @@ export function createRouter(
     const { request, response } = createServiceContext(options);
     await this(request, response);
     return { request, response };
+  };
+
+  router.relative = function (this: FourzeRouter, url: string) {
+    return relativePath(url, this.base);
+  };
+
+  router.resolve = function (this: FourzeRouter, url: string) {
+    return resolvePath(url, this.base);
   };
 
   router.allow = function (...rules: MaybeRegex[]) {
@@ -326,42 +327,47 @@ export function createRouter(
   };
 
   const setupRouter = createSingletonPromise(async () => {
-    const rs = await setup();
-    const isArray = Array.isArray(rs);
+    try {
+      const rs = await setup();
+      const isArray = Array.isArray(rs);
 
-    if (!isArray) {
-      options.allow = rs.allow ?? options.allow;
-      options.delay = rs.delay ?? options.delay;
-      options.modules = rs.modules ?? options.modules;
-      options.deny = rs.deny ?? options.deny;
-      options.external = rs.external ?? options.external;
-    } else {
-      options.modules = rs;
+      if (!isArray) {
+        options.allow = rs.allow ?? options.allow;
+        options.delay = rs.delay ?? options.delay;
+        options.modules = rs.modules ?? options.modules;
+        options.deny = rs.deny ?? options.deny;
+        options.external = rs.external ?? options.external;
+      } else {
+        options.modules = rs;
+      }
+
+      modules.append(...(options.modules ?? []));
+
+      modules.distinct();
+
+      const newRoutes: FourzeRoute[] = [];
+      const newHooks: FourzeHook[] = [];
+
+      await Promise.all(
+        modules.select(async (e) => {
+          if (isFourze(e)) {
+            await e.setup();
+          }
+          newRoutes.push(...e.routes);
+          newHooks.push(...e.hooks);
+        })
+      );
+      hooks.reset(newHooks);
+
+      if (options.delay) {
+        hooks.append(delayHook(options.delay));
+      }
+
+      routes.reset(newRoutes);
+    } catch (error) {
+      logger.error(error);
+      throw error;
     }
-
-    modules.append(...(options.modules ?? []));
-
-    modules.distinct();
-
-    const newRoutes: FourzeRoute[] = [];
-    const newHooks: FourzeHook[] = [];
-
-    await Promise.all(
-      modules.select(async (e) => {
-        if (isFourze(e)) {
-          await e.setup();
-        }
-        newRoutes.push(...e.routes);
-        newHooks.push(...e.hooks);
-      })
-    );
-    hooks.reset(newHooks);
-
-    if (options.delay) {
-      hooks.append(delayHook(options.delay));
-    }
-
-    routes.reset(newRoutes);
   });
 
   const coreModule = defineFourze();
@@ -404,6 +410,13 @@ export function createRouter(
       get() {
         return options.name ?? "FourzeRouter";
       }
+    },
+    base: {
+      // default base
+      get() {
+        return "/";
+      },
+      configurable: true
     },
     setup: {
       get() {

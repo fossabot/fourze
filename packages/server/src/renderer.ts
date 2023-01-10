@@ -12,7 +12,8 @@ import type {
 import {
   createLogger,
   defineFourzeComponent,
-  isFourzeComponent
+  isFourzeComponent,
+  relativePath
 } from "@fourze/core";
 import { build } from "esbuild";
 import mime from "mime";
@@ -59,6 +60,20 @@ export interface FourzeRendererContext {
   dir: string
 
   logger: FourzeLogger
+}
+
+export function staticFile(dir: string, contextPath = "/"): FourzeMiddleware {
+  return function (req: FourzeRequest, res: FourzeResponse, next?: FourzeNext) {
+    const _path = relativePath(req.relativePath, contextPath);
+    const filePath = path.join(dir, _path);
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      res.send(fs.readFileSync(filePath), mime.getType(filePath));
+    } else if (next) {
+      next();
+    } else {
+      res.sendError(404);
+    }
+  };
 }
 
 export function renderFile(

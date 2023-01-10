@@ -9,6 +9,7 @@ import {
   isString,
   isUint8Array,
   isUndefined,
+  relativePath,
   resolvePath
 } from "./utils";
 import { overload } from "./utils/overload";
@@ -119,6 +120,12 @@ export interface FourzeRequest<
   route: FourzeRoute
   meta: Meta
 
+  relative(path: string): string
+
+  resolve(path: string): string
+
+  contextPath: string
+
   readonly params: Params
 
   readonly query: Query
@@ -134,8 +141,6 @@ export interface FourzeRequest<
   readonly path: string
 
   readonly relativePath: string
-
-  readonly contextPath: string
 
   readonly [FOURZE_REQUEST_SYMBOL]: true
 }
@@ -159,7 +164,7 @@ export interface FourzeResponse extends FourzeBaseResponse {
 
   removeHeader(key: string): this
 
-  send(data: any, contentType?: string): this
+  send(data: any, contentType?: string | null): this
 
   getContentType(data?: any): string | undefined
 
@@ -648,7 +653,7 @@ export function createResponse(options: FourzeResponseOptions) {
     const message = _error.message;
     this.statusCode = code;
     this.statusMessage = message;
-    logger.error(message);
+    logger.error(error);
     return this;
   };
 
@@ -832,6 +837,16 @@ export function createRequest(options: FourzeRequestOptions) {
 
   const params = { ...options.params };
 
+  let _contextPath = "/";
+
+  request.relative = function (path: string) {
+    return relativePath(path, this.contextPath);
+  };
+
+  request.resolve = function (path: string) {
+    return resolvePath(path, this.contextPath);
+  };
+
   Object.defineProperties(request, {
     [FOURZE_REQUEST_SYMBOL]: {
       get() {
@@ -867,10 +882,22 @@ export function createRequest(options: FourzeRequestOptions) {
         return query;
       }
     },
-
     path: {
       get() {
         return path;
+      }
+    },
+    contextPath: {
+      get() {
+        return _contextPath ?? "/";
+      },
+      set(val) {
+        _contextPath = val;
+      }
+    },
+    relativePath: {
+      get() {
+        return relativePath(this.path, this.contextPath);
       }
     }
   });

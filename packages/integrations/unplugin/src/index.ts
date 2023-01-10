@@ -135,7 +135,8 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
         logger.info("Fourze plugin is ready.");
       } catch (error) {
-        logger.error("Fourze plugin is not ready.", error);
+        logger.error("Fourze plugin is not ready.");
+        logger.error(error);
       }
     },
 
