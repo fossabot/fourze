@@ -8,7 +8,7 @@ import {
   isURL,
   normalizeRoute
 } from "@fourze/core";
-import type { FourzeMockRouter } from "./shared";
+import type { FourzeMockApp } from "./shared";
 
 class ProxyFetchResponse implements Response {
   readonly url: string;
@@ -37,7 +37,7 @@ class ProxyFetchResponse implements Response {
     this.url = response.url;
     this.status = response.statusCode;
     this.statusText = response.statusMessage;
-    this.data = response.data;
+    this.data = response.payload;
     this.headers = new PolyfillHeaders(response.getHeaders());
     this._response = response;
   }
@@ -59,10 +59,7 @@ class ProxyFetchResponse implements Response {
   }
 
   async json() {
-    if (isString(this.data)) {
-      return JSON.parse(this.data);
-    }
-    return this.data;
+    return JSON.parse(String(this.data));
   }
 
   clone(): Response {
@@ -78,9 +75,9 @@ class ProxyFetchResponse implements Response {
   }
 }
 
-export function createProxyFetch(router: FourzeMockRouter) {
+export function createProxyFetch(app: FourzeMockApp) {
   const logger = createLogger("@fourze/mock");
-  const originalFetch = router.originalFetch;
+  const originalFetch = app.originalFetch;
 
   if (!originalFetch) {
     logger.warn("globalThis.fetch is not defined");
@@ -105,23 +102,23 @@ export function createProxyFetch(router: FourzeMockRouter) {
 
     async function mockRequest() {
       headers["X-Request-With"] = "Fourze Fetch Proxy";
-      const { response } = await router.service({
+      let isMatched = true;
+      const { response } = await app.service({
         url,
         method,
         body,
         headers
+      }, async () => {
+        isMatched = false;
       });
-      if (response.matched) {
-        logger.success(`Found route by -> ${normalizeRoute(url, method)}.`);
-        return new ProxyFetchResponse(response);
+
+      if (!isMatched) {
+        logger.debug(
+          `No matched mock for ${normalizeRoute(url, method)}, fallback to original.`
+        );
+        return originalFetch(input, init);
       }
-      logger.debug(
-        `Not found route, fallback to original -> ${normalizeRoute(
-          url,
-          method
-        )}.`
-      );
-      return originalFetch(input, init);
+      return new ProxyFetchResponse(response);
     }
 
     if (useMock === "off") {

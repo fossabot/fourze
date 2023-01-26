@@ -1,4 +1,4 @@
-import { createRouter, isMatch, randomInt, resolvePath } from "@fourze/core";
+import { createApp, defineRouter, isMatch, randomInt, resolvePath } from "@fourze/core";
 import { describe, expect, it } from "vitest";
 
 describe("shared", async () => {
@@ -8,76 +8,20 @@ describe("shared", async () => {
     expect(isMatch("http://www.test.com", "http://**.test.com")).toBe(true);
   });
 
-  it("test-route", async () => {
-    const testData = {
-      name: "test",
-      count: randomInt(200),
-    };
+  it("test-isAllow", async () => {
 
-    const router = createRouter(() => {
-      return {
-        delay: "200-500",
-        allow: ["/api/**", "/hello", "/add"],
-        deny: ["/api/deny"],
-        external: ["http://www.test.com"],
-      };
-    }).use("/api/", route => {
-      route.get("/test", () => {
-        return {
-          ...testData,
-        };
-      });
+    const app = createApp({
+      base:'/api',
+      delay: "200-500",
+      allow: ["/api/test", "/api/hello", "/api/add"],
+      deny: ["/api/deny"],
+    })
 
-      route.get("/hello", () => {
-        return {
-          ...testData,
-        };
-      });
 
-      route.get("/noallow", () => {
-        return "not-allow";
-      });
+    expect(app.isAllow("/api/test")).toBe(true);
+    expect(app.isAllow("/api/deny")).toBe(false);
+    expect(app.isAllow("/api/noallow")).toBe(false);
+    expect(app.isAllow("/api/hello")).toBe(true);
 
-      route("get http://test.com/hello", () => {
-        return {
-          ...testData,
-        };
-      });
-
-      route("GET http://www.test.com/hello", () => {
-        return {
-          ...testData,
-        };
-      });
-
-      route.get("/deny", () => {
-        return "deny";
-      });
-
-      route("POST //add", () => {
-        return {
-          ...testData,
-        };
-      });
-    });
-
-    await router.setup();
-
-    // has not base
-    expect(router.match("/api/test")).not.length(0);
-
-    // in external
-    expect(router.match("http://www.test.com/hello")).not.length(0);
-    // not in external
-    expect(router.match("http://test.com/hello")).length(0);
-
-    // not in allow
-    expect(router.match("/api/hello")).not.length(0);
-    expect(router.match("/v1/noallow")).length(0);
-    // allow,but not matched
-    expect(router.match("/hello")).length(0);
-
-    // in deny
-    expect(router.match("/api/deny")).length(0);
   });
 });

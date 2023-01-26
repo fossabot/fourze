@@ -1,5 +1,5 @@
-import { createRouter, randomInt, setLoggerLevel } from "@fourze/core";
-import { createFourzeServer } from "@fourze/server";
+import { createApp, defineRouter, randomInt, setLoggerLevel } from "@fourze/core";
+import { createServer } from "@fourze/server";
 import axios from "axios";
 import { describe, expect, it } from "vitest";
 
@@ -11,13 +11,19 @@ describe("data", async () => {
     };
     setLoggerLevel("debug");
 
-    const server = createFourzeServer({
+
+
+    const server = createServer({
       host: "localhost",
       port: 0,
     });
 
-    const router = createRouter({})
-      .route("/hello-1", "get", { name: String }, (req) => {
+    const router = defineRouter({})
+      .route("/hello-1", "get", {
+        props: {
+          name: String
+        }
+      }, (req) => {
         return {
           name: req.data.name,
         };
@@ -25,17 +31,23 @@ describe("data", async () => {
       .route("/hello-2", "get", () => {
         return testData;
       })
-      .route("GET /hello-3", { test: String }, () => {
+      .route("GET /hello-3", {
+        props: {
+          test: String
+        }
+      }, () => {
         return testData;
       })
       .post(
         "/hello",
         {
-          name: {
-            type: String,
-            required: true,
-            in: "body",
-          },
+          props: {
+            name: {
+              type: String,
+              required: true,
+              in: "body",
+            },
+          }
         },
         (req) => {
           return {
@@ -46,13 +58,13 @@ describe("data", async () => {
         res.image(Buffer.from([0, 0, 0, 0]))
       });
 
-    await router.setup();
 
+    server.use(router);
 
-    await server.use(router).listen();
+    await server.listen();
 
-    const axiosInstance =axios.create({
-      baseURL:server.origin
+    const axiosInstance = axios.create({
+      baseURL: server.origin
     })
 
     const { name } = await axiosInstance

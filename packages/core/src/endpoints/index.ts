@@ -1,10 +1,11 @@
 import type { MaybePromise } from "maybe-types";
-import { defineFourzeHook } from "../shared";
+import type { FourzeMiddleware } from "../shared";
+import { defineMiddleware } from "../shared";
 import type { DelayMsType } from "../utils";
 import { delay } from "../utils";
 
-export function delayHook(ms: DelayMsType) {
-  return defineFourzeHook(async (req, res, next) => {
+export function delayHook(ms: DelayMsType): FourzeMiddleware {
+  return defineMiddleware("Delay", async (req, res, next) => {
     await next?.();
     const delayMs
       = res.getHeader("Fourze-Delay") ?? req.headers["Fourze-Delay"] ?? ms;
@@ -16,41 +17,29 @@ export function delayHook(ms: DelayMsType) {
 export function jsonWrapperHook(
   resolve: (data: any) => MaybePromise<any>,
   reject?: (error: any) => MaybePromise<any>
-) {
-  const JSON_WRAPPER_MARK = Symbol("JSON_WRAPPER_MARK");
-  function hasMark(value: any) {
-    return value && value[JSON_WRAPPER_MARK];
-  }
+): FourzeMiddleware {
+  return defineMiddleware("JsonWrapper", -1, async (req, res, next) => {
+    const _send = res.send.bind(res);
 
-  function mark(value: any) {
-    Object.defineProperty(value, JSON_WRAPPER_MARK, {
-      get() {
-        return true;
+    res.send = function (payload, contentType) {
+      contentType = contentType ?? res.getContentType(payload);
+      if (contentType?.startsWith("application/json")) {
+        payload = resolve(payload);
       }
-    });
-  }
+      _send(payload, contentType);
+      return res;
+    };
 
-  return defineFourzeHook(async (req, res) => {
-    if (!hasMark(res)) {
-      const _send = res.send.bind(res);
-
-      res.send = function (data, contentType) {
-        contentType = contentType ?? res.getContentType(data);
-        if (contentType?.startsWith("application/json")) {
-          data = resolve(data);
-        }
-        return _send(data, contentType);
+    if (reject) {
+      const _sendError = res.sendError.bind(res);
+      res.sendError = function (code, message) {
+        _sendError(code, message);
+        _send(reject(message), "application/json");
+        return this;
       };
-
-      if (reject) {
-        const _sendError = res.sendError.bind(res);
-        res.sendError = function (code, message) {
-          _sendError(code, message);
-          _send(reject(message), "application/json");
-          return this;
-        };
-      }
-      mark(res);
     }
+
+    await next();
   });
 }
+

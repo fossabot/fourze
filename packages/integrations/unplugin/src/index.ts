@@ -2,10 +2,13 @@ import type { DelayMsType, FourzeLogLevelKey } from "@fourze/core";
 import { createLogger, setLoggerLevel } from "@fourze/core";
 import { createUnplugin } from "unplugin";
 
-import type { FourzeMockRouterOptions } from "@fourze/mock";
-import type { FourzeHotRouter, FourzeProxyOption } from "@fourze/server";
-import { createFourzeServer, createHotRouter } from "@fourze/server";
-import { createSwaggerRouter } from "@fourze/swagger";
+import type { FourzeMockAppOptions } from "@fourze/mock";
+import type {
+  FourzeHmrApp,
+  FourzeHmrOptions,
+  FourzeProxyOption
+} from "@fourze/server";
+import { createHmrApp, createServer } from "@fourze/server";
 
 import { defaultMockCode as defaultTransformCode } from "./mock";
 
@@ -40,7 +43,7 @@ export interface UnpluginFourzeOptions {
   /**
    *  mock mode
    */
-  mode?: FourzeMockRouterOptions["mode"]
+  mode?: FourzeMockAppOptions["mode"]
 
   /**
    *  @default true
@@ -75,10 +78,7 @@ export interface UnpluginFourzeOptions {
 
   deny?: string[]
 
-  transformCode?: (
-    router: FourzeHotRouter,
-    options?: FourzeMockRouterOptions
-  ) => string
+  transformCode?: (router: FourzeHmrApp, options?: FourzeHmrOptions) => string
 }
 
 export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
@@ -101,18 +101,19 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
   setLoggerLevel(options.logLevel ?? "info");
 
-  const proxy = Array.isArray(options.proxy)
-    ? options.proxy
-    : Object.entries(options.proxy ?? {}).map<FourzeProxyOption>(
-      ([path, target]) => {
-        return {
-          path,
-          target
-        };
-      }
-    );
+  // const proxy = Array.isArray(options.proxy)
+  //   ? options.proxy
+  //   : Object.entries(options.proxy ?? {}).map<FourzeProxyOption>(
+  //     ([path, target]) => {
+  //       return {
+  //         path,
+  //         target
+  //       };
+  //     }
+  //   );
 
-  const router = createHotRouter({
+  const app = createHmrApp({
+    base,
     dir,
     pattern,
     delay,
@@ -120,9 +121,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
     deny
   });
 
-  const swaggerRouter = createSwaggerRouter(router);
-
-  proxy.forEach(router.proxy);
+  // proxy.forEach(router.proxy);
 
   const transformCode = options.transformCode ?? defaultTransformCode;
 
@@ -131,7 +130,7 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
     async buildStart() {
       try {
-        await router.setup();
+        await app.ready();
 
         logger.info("Fourze plugin is ready.");
       } catch (error) {
@@ -148,13 +147,12 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
 
     async load(id) {
       if (isClientID(id)) {
-        return transformCode(router, options);
+        return transformCode(app, options);
       }
     },
     async webpack() {
-      const app = createFourzeServer();
-      app.use(base, router);
-      await app.listen(port, host);
+      const server = createServer(app);
+      await server.listen(port, host);
       logger.info("Webpack Server listening on port", options.server?.port);
     },
 
@@ -189,25 +187,24 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
         };
       },
       async configResolved(config) {
-        router.define(config.env);
+        app.define(config.env);
       },
 
       configureServer({ middlewares, watcher }) {
         if (hmr) {
-          router.watch(watcher);
+          app.watch(watcher);
         }
-        const app = createFourzeServer();
-        app.use(base, router);
-        app.use("/v2", swaggerRouter);
+        const service = createServer(app);
+        // app.use("/v2", swaggerRouter);
 
         if (options.server?.port) {
           try {
-            app.listen(port, host);
+            service.listen(port, host);
           } catch (error) {
             logger.error("Server listen failed.", error);
           }
         } else {
-          middlewares.use(app);
+          middlewares.use(service);
         }
       }
     }

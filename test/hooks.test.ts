@@ -1,56 +1,60 @@
-import { createMockRouter } from "@fourze/mock";
+import { defineRouter } from '@fourze/core';
+import { createMockApp } from "@fourze/mock";
 import { describe, expect, it } from "vitest";
+import nodeFetch from "node-fetch";
 
 describe("hooks", async () => {
   it("test-hooks", async () => {
+
+    globalThis.fetch = nodeFetch as typeof globalThis.fetch;
+
     const data = {
       token: "test-token",
     };
 
-    const router = createMockRouter({
+    const app = createMockApp({
       delay: "200-500",
       mode: ["fetch"],
+
     })
-      .use("/api", route => {
-        route("GET /test", req => {
+      .use("/api", async (req, res, next) => {
+        if (req.headers["token"]) {
+          req.meta.token = req.headers["token"].toString().toUpperCase();
+        }
+        res.setHeader("token", data.token);
+        await next();
+      }).use("/api/test", async (req, res, next) => {
+        if (req.method == "delete") {
+          res.send("delete");
+          return;
+        }
+        await next();
+      }).use("/api/test", async (req, res, next) => {
+        if (req.method == "post") {
+          res.send("post");
+          return;
+        }
+        await next();
+      }).use("/api/test", async(req, res, next) => {
+        if (req.method == "post") {
+          res.send("post");
+          return
+        }
+        await next?.();
+      })
+      .use("/api", defineRouter(router => {
+        router.route("GET /test", req => {
           return {
             token: req.meta.token,
           };
         });
-        route("POST /test", req => {
+        router.route("POST /test", req => {
           return "anything";
         });
-      })
-      .use("/", route => {
-        route.hook("/api", async (req, res, next) => {
-          if (req.headers["token"]) {
-            req.meta.token = req.headers["token"].toString().toUpperCase();
-          }
-          res.setHeader("token", data.token);
-        });
+      }))
 
-        route.hook("/api/test", async (req, res, next) => {
-          if (req.method == "delete") {
-             return "delete";
-          }
-        });
 
-        route.hook("/api/test", (req, res, next) => {
-          if (req.method == "post") {
-            return "post";
-          }
-          return next?.();
-        });
-
-        route.hook("/api/test", (req, res, next) => {
-          if (req.method == "post") {
-            return "unknown";
-          }
-          return next?.();
-        });
-      });
-
-    await router.setup();
+    await app.ready();
 
     const res = await fetch("/api/test", {
       headers: {
@@ -64,9 +68,15 @@ describe("hooks", async () => {
 
     const resToken = res2.headers.get("token");
 
+    // 请求一个swagger示例的json接口
+    const res3 = await fetch("https://petstore.swagger.io/v2/pet/findByStatus?status=available").then(r=>r.json())
+
+    expect(res3).toBeInstanceOf(Array);
+
+
     expect(resToken).toEqual(data.token);
 
-    const text = await res2.json();
+    const text = await res2.text();
 
     expect(text).toEqual("post");
   });

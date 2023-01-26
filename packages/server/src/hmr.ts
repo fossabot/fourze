@@ -1,30 +1,20 @@
 import fs from "fs";
-import path, { join, resolve } from "path";
+import { join, resolve } from "path";
+import { createApp, createLogger, defineMiddleware, isFourzePlugin, isFunction, isString } from "@fourze/core";
 import type {
   DelayMsType,
-  Fourze,
-  FourzeBaseHook,
-  FourzeBaseRoute,
-  FourzeRoute,
-  FourzeRouter,
-  FourzeRouterOptions
-} from "@fourze/core";
-import {
-  createLogger,
-  createRouter,
-  defineFourze,
-  isFourze,
-  isRoute,
-  isString
+  FourzeApp,
+  FourzeAppOptions,
+  FourzeBaseRoute
+
 } from "@fourze/core";
 import type { FSWatcher } from "chokidar";
-import { createRenderer } from "./renderer";
 import { defineEnvs, normalizePath } from "./utils";
 
-export interface FourzeHotRouterOptions extends FourzeRouterOptions {
+export interface FourzeHmrOptions extends Exclude<FourzeAppOptions, "setup"> {
   /**
    * 路由模块目录
-   * @default "routes"
+   * @default "router"
    */
   dir?: string
   /**
@@ -38,11 +28,6 @@ export interface FourzeHotRouterOptions extends FourzeRouterOptions {
   pattern?: (string | RegExp)[]
 
   /**
-   * 路由模块
-   */
-  modules?: Fourze[]
-
-  /**
    * 模块文件路径
    */
   moduleNames?: string[]
@@ -54,10 +39,7 @@ export interface FourzeHotRouterOptions extends FourzeRouterOptions {
   delay?: DelayMsType
 }
 
-export interface FourzeHotRouter extends FourzeRouter {
-  load(): Promise<boolean>
-  load(moduleName: string): Promise<boolean>
-  remove(moduleName: string): this
+export interface FourzeHmrApp extends FourzeApp {
   watch(watcher?: FSWatcher): this
   watch(dir?: string, watcher?: FSWatcher): this
   proxy(p: string | FourzeProxyOption): this
@@ -66,7 +48,6 @@ export interface FourzeHotRouter extends FourzeRouter {
   delay?: DelayMsType
   readonly env: Record<string, any>
   readonly base: string
-  readonly routes: FourzeRoute[]
   readonly moduleNames: string[]
 }
 
@@ -85,41 +66,25 @@ export interface FourzeProxyOption extends Omit<FourzeBaseRoute, "handle"> {
   target?: string
 }
 
-export function createHotRouter(
-  options: FourzeHotRouterOptions = {}
-): FourzeHotRouter {
+export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
   const delay = options.delay ?? 0;
-  const rootDir = resolve(process.cwd(), options.dir ?? "routes");
+  const rootDir = resolve(process.cwd(), options.dir ?? "router");
 
   const pattern = transformPattern(options.pattern ?? [".ts", ".js"]);
   const moduleNames = new Set(Array.from(options.moduleNames ?? []));
 
-  const modules: Fourze[] = Array.from(options.modules ?? []);
-
   const logger = createLogger("@fourze/server");
 
-  const extraModuleMap = new Map<string, Fourze[]>();
-
-  const router = createRouter(async () => {
-    await router.load();
-    const allModules = modules.concat(
-      Array.from(extraModuleMap.values()).flat()
-    );
-
-    return {
-      name: "FourzeHotRouter",
-      ...options,
-      modules: allModules,
-      delay
-    };
-  }) as FourzeHotRouter;
+  const app = createApp({
+    ...options,
+    async setup() {
+      await load();
+    }
+  }) as FourzeHmrApp;
 
   const env: Record<string, any> = {};
 
-  router.load = async function (
-    this: FourzeHotRouter,
-    moduleName: string = rootDir
-  ) {
+  async function load(moduleName: string = rootDir): Promise<boolean> {
     if (!fs.existsSync(moduleName)) {
       return false;
     }
@@ -129,46 +94,18 @@ export function createHotRouter(
         delete require.cache[f];
         const mod = require(f);
         const instance = mod?.default ?? mod;
-        const extras: Fourze[] = [];
-
-        const extraRoutes: FourzeBaseRoute[] = [];
-        const extraHooks: FourzeBaseHook[] = [];
-
-        const fn = async (ins: unknown) => {
-          if (isFourze(ins)) {
-            if (!ins.name) {
-              ins.setMeta(
-                "name",
-                path.basename(f).replace(/\.(tmp\.)?js$/g, "")
-              );
-            }
-            extras.push(ins);
-          } else if (Array.isArray(ins)) {
-            await Promise.all(ins.map(fn));
-          } else if (isRoute(ins)) {
-            extraRoutes.push(ins);
-          }
-        };
-
-        await fn(instance);
-
-        if (extraRoutes.length > 0 || extraHooks.length > 0) {
-          const extraModule = defineFourze({
-            routes: extraRoutes,
-            hooks: extraHooks
-          });
-
-          extras.push(extraModule);
-        }
-
-        extraModuleMap.set(f, extras);
-
-        moduleNames.add(f);
-
-        if (extras.length > 0) {
+        if (isFunction(instance)) {
+          app.use(defineMiddleware(f, instance));
+          moduleNames.add(f);
           return true;
         }
-        logger.error(`find not route with "${f}" `);
+
+        if (isFourzePlugin(instance)) {
+          app.use(instance);
+          moduleNames.add(f);
+          return true;
+        }
+        logger.warn(`find not route with "${f}" `);
       } catch (e) {
         logger.error(e);
       }
@@ -217,22 +154,35 @@ export function createHotRouter(
       }
     };
 
-    const stat = await fs.promises.stat(moduleName);
-    if (stat.isDirectory()) {
-      const files = await fs.promises.readdir(moduleName);
-      const tasks = files.map((name) => this.load(join(moduleName, name)));
-      return await Promise.all(tasks).then((r) => r.some((f) => f));
-    } else if (stat.isFile()) {
-      if (!pattern.some((e) => e.test(moduleName))) {
-        return false;
+    if (fs.existsSync(moduleName)) {
+      const stat = await fs.promises.stat(moduleName);
+      if (stat.isDirectory()) {
+        const files = await fs.promises.readdir(moduleName);
+        const tasks = files.map((name) => load(join(moduleName, name)));
+        return await Promise.all(tasks).then((r) => r.some((f) => f));
+      } else if (stat.isFile()) {
+        if (!pattern.some((e) => e.test(moduleName))) {
+          return false;
+        }
+        return loadModule(moduleName);
       }
-      return loadModule(moduleName);
+    } else {
+      logger.warn(`load file ${moduleName} not found`);
     }
     return false;
+  }
+
+  const _remove = app.remove;
+
+  app.remove = function (this: FourzeHmrApp, moduleName: string) {
+    _remove(moduleName);
+    moduleNames.delete(moduleName);
+    delete require.cache[moduleName];
+    return this;
   };
 
-  router.watch = function (
-    this: FourzeHotRouter,
+  app.watch = function (
+    this: FourzeHmrApp,
     dir?: string | FSWatcher,
     customWatcher?: FSWatcher
   ) {
@@ -261,15 +211,16 @@ export function createHotRouter(
 
       switch (event) {
         case "add": {
-          const load = await this.load(path);
-          if (load) {
+          const isLoaded = await load(path);
+          if (isLoaded) {
             logger.info(`load module ${path}`);
           }
           break;
         }
         case "change": {
-          const load = await this.load(path);
-          if (load) {
+          this.remove(path);
+          const isLoaded = await load(path);
+          if (isLoaded) {
             logger.info(`reload module ${normalizePath(path)}`);
           }
           break;
@@ -279,54 +230,12 @@ export function createHotRouter(
           logger.info(`remove module ${path}`);
           break;
       }
-      router.refresh();
     });
     return this;
   };
 
-  router.remove = function (this: FourzeHotRouter, moduleName: string) {
-    moduleNames.delete(moduleName);
-    extraModuleMap.delete(moduleName);
-    delete require.cache[moduleName];
-    return this;
-  };
-
-  router.proxy = function (
-    this: FourzeHotRouter,
-    p: string | FourzeProxyOption
-  ) {
-    let path: string;
-    let dir: string;
-    if (isString(p)) {
-      path = p;
-      dir = join(rootDir, "/", path);
-    } else {
-      path = p.path;
-      dir = p.target ?? join(rootDir, "/", path);
-    }
-
-    const module = defineFourze({
-      base: this.base,
-      routes: [
-        {
-          path,
-          handle: createRenderer(dir)
-        }
-      ]
-    });
-
-    const proxyName = "FourzeProxyModule";
-
-    const modules = extraModuleMap.get(proxyName) ?? [];
-    modules.push(module);
-
-    extraModuleMap.set(proxyName, modules);
-
-    return this;
-  };
-
-  router.define = function (
-    this: FourzeHotRouter,
+  app.define = function (
+    this: FourzeHmrApp,
     name: string | Record<string, any>,
     value?: any
   ) {
@@ -338,7 +247,14 @@ export function createHotRouter(
     return this;
   };
 
-  return Object.defineProperties(router, {
+  const _getMiddlewares = app.getMiddlewares;
+
+  app.getMiddlewares = function (this: FourzeHmrApp) {
+    const middlewares = _getMiddlewares.call(this);
+    return [...middlewares];
+  };
+
+  return Object.defineProperties(app, {
     delay: {
       get() {
         return delay;
