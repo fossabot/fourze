@@ -4,6 +4,10 @@ import { defineMiddleware } from "../shared";
 import type { DelayMsType } from "../utils";
 import { delay } from "../utils";
 
+export const DELAY_HEADER = "Fourze-Delay";
+
+export const DISABLE_JSON_WRAPPER_HEADER = "Fourze-Disable-Json-Wrapper";
+
 export function delayHook(ms: DelayMsType): FourzeMiddleware {
   return defineMiddleware("Delay", async (req, res, next) => {
     await next?.();
@@ -19,24 +23,26 @@ export function jsonWrapperHook(
   reject?: (error: any) => MaybePromise<any>
 ): FourzeMiddleware {
   return defineMiddleware("JsonWrapper", -1, async (req, res, next) => {
-    const _send = res.send.bind(res);
-
-    res.send = function (payload, contentType) {
-      contentType = contentType ?? res.getContentType(payload);
-      if (contentType?.startsWith("application/json")) {
-        payload = resolve(payload);
-      }
-      _send(payload, contentType);
-      return res;
-    };
-
-    if (reject) {
-      const _sendError = res.sendError.bind(res);
-      res.sendError = function (code, message) {
-        _sendError(code, message);
-        _send(reject(message), "application/json");
-        return this;
+    const disableJsonWrapper = res.getHeader(DISABLE_JSON_WRAPPER_HEADER);
+    if (disableJsonWrapper) {
+      const _send = res.send.bind(res);
+      res.send = function (payload, contentType) {
+        contentType = contentType ?? res.getContentType(payload);
+        if (contentType?.startsWith("application/json")) {
+          payload = resolve(payload);
+        }
+        _send(payload, contentType);
+        return res;
       };
+
+      if (reject) {
+        const _sendError = res.sendError.bind(res);
+        res.sendError = function (code, message) {
+          _sendError(code, message);
+          _send(reject(message), "application/json");
+          return this;
+        };
+      }
     }
 
     await next();

@@ -158,6 +158,8 @@ export function generateHtmlString(options: GenerateHtmlOptions = {}) {
 }
 
 export interface SwaggerUIServiceOptions {
+  routePath?: string
+  base?: string
   documentUrl?: string
 }
 
@@ -168,22 +170,22 @@ export async function build(distPath = "dist") {
 }
 
 export function service(
-  routePath = "/swagger-ui/",
   options: SwaggerUIServiceOptions = {}
 ) {
-  if (!routePath.endsWith("*")) {
-    routePath = slash(routePath, "*");
-  }
+  const base = options.base ?? "/";
+  const routePath = options.routePath ?? "/swagger-ui/";
+  const contextPath = resolvePath(routePath, base);
   const swaggerUIPath = getAbsoluteFSPath();
-  const render = staticFile(swaggerUIPath, routePath);
+  const render = staticFile(swaggerUIPath, contextPath);
+
   return defineRoute({
-    path: routePath,
+    path: slash(routePath, "*"),
     handle: async (req, res) => {
       const documentUrl = resolvePath(
         options.documentUrl ?? "/api-docs",
         req.contextPath
       );
-      render(req, res, () => {
+      await render(req, res, () => {
         const htmlString = generateHtmlString({
           initOptions: {
             url: documentUrl

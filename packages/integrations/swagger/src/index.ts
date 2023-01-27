@@ -1,4 +1,4 @@
-import { createQuery, defineRouter, normalizeProps } from "@fourze/core";
+import { DISABLE_JSON_WRAPPER_HEADER, createQuery, definePlugin, defineRouter, isRouter, normalizeProps } from "@fourze/core";
 import type {
   FourzeRouter,
   ObjectProps,
@@ -48,16 +48,31 @@ export interface SwaggerOptions {
   produces?: string[]
 }
 
+export function createSwaggerPlugin(options: SwaggerOptions = {}) {
+  return definePlugin(async (app) => {
+    const router = createSwaggerRouter(options);
+    app.use(router);
+  });
+}
+
 export function createSwaggerRouter(
-  baseRouter: FourzeRouter,
   options: SwaggerOptions = {}
 ): FourzeRouter {
   return defineRouter({
     name: "SwaggerRouter",
-    setup(router) {
-      router.route(service());
-      router.get<SwaggerDocument>("/api-docs", async (req) => {
-        const routes = createQuery(baseRouter.routes)
+    setup(router, app) {
+      router.route(service({
+        routePath: "/swagger-ui/",
+        documentUrl: "/api-docs",
+        base: app.base
+      }));
+      router.get<SwaggerDocument>("/api-docs", async (req, res) => {
+        const routes = createQuery(app.middlewares).select(r => {
+          if (isRouter(r) && r !== router) {
+            return r.routes;
+          }
+          return [];
+        }).flat()
           .select((r) => {
             return {
               ...r,
@@ -109,11 +124,13 @@ export function createSwaggerRouter(
           return Object.fromEntries(paths.entries());
         }
 
+        res.setHeader(DISABLE_JSON_WRAPPER_HEADER, "true");
+
         return {
           swagger: "2.0",
           info: options.info,
           host: req.headers.Hosta as string,
-          basePath: baseRouter.base,
+          basePath: app.base,
           schemes: options.schemas ?? ["http"],
           consumes: options.consumes ?? ["application/json"],
           produces: options.produces ?? ["application/json"],

@@ -80,12 +80,12 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
 
   const logger = createLogger("@fourze/server");
 
-  const app = createApp(async () => {
-    await load();
-    return {
-      modules: [...moduleMap.values()],
-      ...options
-    };
+  const app = createApp({
+    ...options,
+    setup: async () => {
+      await load();
+      return Array.from(moduleMap.values());
+    }
   }) as FourzeHmrApp;
 
   const env: Record<string, any> = {};
@@ -234,6 +234,7 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
           logger.info(`remove module ${path}`);
           break;
       }
+      await this.reset();
     });
     return this;
   };

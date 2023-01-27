@@ -26,7 +26,7 @@ import {
   resolvePath
 } from "./utils";
 
-export type FourzeAppSetup = (app: FourzeApp) => MaybePromise<void | FourzeMiddleware[] | FourzeAppOptions>;
+export type FourzeAppSetup = (app: FourzeApp) => MaybePromise<void | FourzeModule[] | FourzeAppOptions>;
 
 export interface FourzeAppOptions {
   base?: string
@@ -87,9 +87,9 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
   const app = (async (request, response, next?: FourzeNext) => {
     next = next ?? fallback;
     const { url } = request;
+
     if (app.isAllow(url)) {
       const ms = app.match(url);
-
       async function doNext() {
         const middleware = ms.shift();
         if (middleware) {
@@ -233,7 +233,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
   Object.defineProperties(app, {
     middlewares: {
       get() {
-        return middlewareStore.toArray();
+        return middlewareStore.select(r => r.middleware).toArray();
       }
     },
     base: {

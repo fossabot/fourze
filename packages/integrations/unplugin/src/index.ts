@@ -10,6 +10,8 @@ import type {
 } from "@fourze/server";
 import { createHmrApp, createServer } from "@fourze/server";
 
+import type { SwaggerOptions } from "@fourze/swagger";
+import { createSwaggerRouter } from "@fourze/swagger";
 import { defaultMockCode as defaultTransformCode } from "./mock";
 
 const PLUGIN_NAME = "unplugin-fourze";
@@ -77,6 +79,8 @@ export interface UnpluginFourzeOptions {
   allow?: string[]
 
   deny?: string[]
+
+  swagger?: SwaggerOptions
 
   transformCode?: (router: FourzeHmrApp, options?: FourzeHmrOptions) => string
 }
@@ -194,9 +198,11 @@ export default createUnplugin((options: UnpluginFourzeOptions = {}) => {
         if (hmr) {
           app.watch(watcher);
         }
-        const service = createServer(app);
-        // app.use("/v2", swaggerRouter);
 
+        const swaggerRouter = createSwaggerRouter(options.swagger);
+        app.use(swaggerRouter);
+
+        const service = createServer(app);
         if (options.server?.port) {
           try {
             service.listen(port, host);

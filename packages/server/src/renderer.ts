@@ -64,7 +64,7 @@ export interface FourzeRendererContext {
 
 export function staticFile(dir: string, contextPath = "/"): FourzeMiddleware {
   return function (req: FourzeRequest, res: FourzeResponse, next?: FourzeNext) {
-    const _path = relativePath(req.relativePath, contextPath) ?? "";
+    const _path = relativePath(req.path, contextPath) ?? "";
     const filePath = path.join(dir, _path);
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       res.send(fs.readFileSync(filePath), mime.getType(filePath));
@@ -196,7 +196,7 @@ export function createRenderer(
     response: FourzeResponse,
     next?: FourzeNext
   ) {
-    const url = request.relativePath ?? request.url;
+    const url = request.path ?? request.url;
     if (url.startsWith(base)) {
       const context = { file: path.join(dir, url), logger, dir };
 

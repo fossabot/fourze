@@ -50,8 +50,6 @@ export interface FourzeRouter
 
   route: FourzeRouteFunction<FourzeRouter>
 
-  setup(): MaybePromise<void>
-
   relative(path: string): string | null
 
   resolve(path: string): string
@@ -111,8 +109,6 @@ export function defineRouter(
     request.contextPath = router.base;
 
     const { path, method } = request;
-
-    await router.setup();
 
     const [route, matches] = router.match(path, method);
 

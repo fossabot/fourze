@@ -111,8 +111,6 @@ export interface FourzeRequest<
 
   readonly path: string
 
-  readonly relativePath: string
-
   readonly [FOURZE_REQUEST_SYMBOL]: true
 }
 
@@ -661,11 +659,6 @@ export function createRequest(options: FourzeRequestOptions) {
       },
       set(val) {
         _contextPath = val;
-      }
-    },
-    relativePath: {
-      get() {
-        return relativePath(this.path, this.contextPath);
       }
     }
   });
