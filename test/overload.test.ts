@@ -2,31 +2,26 @@ import { defineOverload } from "@fourze/core";
 import { describe, expect, it } from "vitest";
 
 describe("overload", async () => {
-  const overload = defineOverload([
-    {
-      name: "path",
-      type: "string",
+  const overload = defineOverload({
+    path:{
+      type: String,
       required: true,
     },
-    {
-      name: "method",
-      type: "string",
+    method:{
+      type: String,
       default:()=> "get",
     },
-    {
-      name: "props",
-      type: "object",
+    props:{
+      type: Object,
     },
-    {
-      name: "meta",
-      type: "object",
+    meta:{
+      type: Object,
     },
-    {
-      name: "handle",
-      type: "function",
+    handle:{
+      type: Function,
       required: true,
-    },
-  ]);
+    }
+});
 
   it("should overload", () => {
     const data = overload([

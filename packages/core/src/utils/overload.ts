@@ -1,66 +1,79 @@
-import { isUndef } from "./is";
+import type { ExtractPropTypes, PropType } from "../props";
+import { isInstanceOf } from "../props";
+import { isFunction, isUndef } from "./is";
 
-export type OverloadConfig<T = object, V = T[keyof T], D = V> = {
-  name: keyof T
+type OverloadConfig<P = Record<string, unknown>> = {
+  [K in keyof P]: OverloadProp<P[K]> | null;
+};
+
+type OverloadProp<T = any, D = T> = OverloadOptions<T, D> | PropType<T>;
+
+export interface OverloadOptions<Type = any, Default = Type> {
+  type: PropType<Type>
   required?: boolean
-  type: "string" | "number" | "boolean" | "array" | "object" | "function"
-  default?: () => D
-  transform?: (value: V) => any
-  match?: (value: V) => boolean
+  default?: () => Default
+  transform?: (value: Type) => any
+  match?: (value: Type) => boolean
   rest?: boolean
-}[];
+}
 
-export function defineOverload<T extends Record<string, any>>(
-  ...configs: OverloadConfig<T>[]
+export function defineOverload<Config extends OverloadConfig>(
+  config: Config
 ) {
-  return (args: any[]) => {
-    const result = {} as T;
-
-    for (const config of configs) {
-      const parameters = Array.from(args);
-
-      for (const {
-        name,
-        required = false,
-        type,
-        default: defaultValue,
-        match,
-        transform
-      } of config) {
-        function matchValue(value: any) {
-          if (match) {
-            return match(value);
-          }
-          if (isUndef(value)) {
-            return !required;
-          }
-          if (type === "array") {
-            return Array.isArray(value);
-          }
-          return typeof value === type;
+  return (args: any[]): ExtractPropTypes<Config> => {
+    const result: any = {};
+    const parameters = Array.from(args);
+    for (const name in config) {
+      const props = config[name];
+      const types: PropType<any>[] = [];
+      let required = false;
+      let transform: ((value: any) => any) | undefined;
+      let match: (value: any) => boolean | undefined;
+      let defaultValue: any;
+      if (isFunction(props)) {
+        types.push(props);
+      } else if (props != null) {
+        if (Array.isArray(props)) {
+          types.push(...props);
+        } else {
+          types.push(props.type);
+          required = !!props.required;
+          transform = props.transform;
+          defaultValue = props.default;
         }
+      }
 
-        const value = parameters.shift();
-
-        if (matchValue(value)) {
-          result[name] = transform ? transform(value) : value;
-          continue;
-        } else if (defaultValue) {
-          result[name] = defaultValue();
+      function matchValue(value: any) {
+        if (match) {
+          return match(value);
         }
+        if (isUndef(value)) {
+          return !required;
+        }
+        return isInstanceOf(types, value);
+      }
 
-        parameters.unshift(value);
+      const value = parameters.shift();
+
+      if (matchValue(value)) {
+        result[name] = transform ? transform(value) : value;
+        continue;
+      } else {
+        result[name] = isFunction(defaultValue) ? defaultValue(result) : defaultValue;
       }
-      if (Object.keys(result).length === config.length) {
-        return result;
-      }
+
+      parameters.unshift(value);
     }
-    return result;
+    if (Object.keys(result).length === Object.keys(config).length) {
+      return result;
+    }
+
+    return result as ExtractPropTypes<Config>;
   };
 }
 
-export function overload<T extends Record<string, any>>(
-  config: OverloadConfig<T>,
+export function overload<Config extends OverloadConfig = OverloadConfig>(
+  config: Config,
   args: any[]
 ) {
   const overloadFn = defineOverload(config);

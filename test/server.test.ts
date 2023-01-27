@@ -11,7 +11,6 @@ describe("server", async () => {
     const server = createServer({
       host,
       port,
-
     });
 
     const testData = {

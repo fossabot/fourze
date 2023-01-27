@@ -17,6 +17,8 @@ import type {
   FourzeLogger,
   FourzeMiddleware,
   FourzeNext
+  ,
+  PropType
 } from "@fourze/core";
 import { injectEventEmitter } from "./utils";
 
@@ -99,15 +101,20 @@ export function createServer(options: FourzeServerOptions): FourzeServer;
 export function createServer(app: FourzeApp, options: FourzeServerOptions): FourzeServer;
 
 export function createServer(...args: [FourzeApp, FourzeServerOptions] | [FourzeApp] | [FourzeServerOptions]): FourzeServer {
-  const { app = createApp(), options = {} } = overload<{ app?: FourzeApp; options?: FourzeServerOptions }>([
-    {
-      name: "app",
-      type: "function"
-    }, {
-      name: "options",
-      type: "object"
+  const { app, options } = overload({
+    app: {
+      type: Function as PropType<FourzeApp>,
+      default() {
+        return createApp();
+      }
+    },
+    options: {
+      type: Object as PropType<FourzeServerOptions>,
+      default() {
+        return {};
+      }
     }
-  ], args);
+  }, args);
 
   let _host = options.host ?? "localhost";
   let _port = options.port ?? 7609;

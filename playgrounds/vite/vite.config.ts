@@ -13,8 +13,8 @@ export default defineConfig({
     port: 8000,
     host: "0.0.0.0",
     fs: {
-      strict: false,
-    },
+      strict: false
+    }
   },
   plugins: [
     vue(),
@@ -25,15 +25,15 @@ export default defineConfig({
       filePattern: [".ts$", ".js$"],
       hmr: true,
       mock: true,
-      delay: "200-500",
+      delay: "200-500"
     }),
     visualizer({
       open: false,
       gzipSize: true,
-      brotliSize: true,
+      brotliSize: true
     }) as Plugin,
     uncomponents.vite({
-      resolvers: [],
-    }),
-  ],
+      resolvers: []
+    })
+  ]
 });

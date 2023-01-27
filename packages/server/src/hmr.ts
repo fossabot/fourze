@@ -1,6 +1,7 @@
 import fs from "fs";
 import { join, resolve } from "path";
-import { createApp, createLogger, defineMiddleware, isFourzePlugin, isFunction, isString } from "@fourze/core";
+import type { PropType } from "vue";
+import { createApp, createLogger, defineMiddleware, isFourzePlugin, isFunction, isString, overload } from "@fourze/core";
 import type {
   DelayMsType,
   FourzeApp,
@@ -28,11 +29,6 @@ export interface FourzeHmrOptions extends Exclude<FourzeAppOptions, "setup"> {
   pattern?: (string | RegExp)[]
 
   /**
-   * 模块文件路径
-   */
-  moduleNames?: string[]
-
-  /**
    * 响应延迟时间
    * @default 0
    */
@@ -40,8 +36,10 @@ export interface FourzeHmrOptions extends Exclude<FourzeAppOptions, "setup"> {
 }
 
 export interface FourzeHmrApp extends FourzeApp {
-  watch(watcher?: FSWatcher): this
-  watch(dir?: string, watcher?: FSWatcher): this
+  watch(): this
+  watch(dir: string): this
+  watch(watcher: FSWatcher): this
+  watch(dir: string, watcher: FSWatcher): this
   proxy(p: string | FourzeProxyOption): this
   define(key: string, value: string): this
   define(env: Record<string, any>): this
@@ -71,7 +69,7 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
   const rootDir = resolve(process.cwd(), options.dir ?? "router");
 
   const pattern = transformPattern(options.pattern ?? [".ts", ".js"]);
-  const moduleNames = new Set(Array.from(options.moduleNames ?? []));
+  const moduleNames = new Set<string>();
 
   const logger = createLogger("@fourze/server");
 
@@ -183,29 +181,26 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
 
   app.watch = function (
     this: FourzeHmrApp,
-    dir?: string | FSWatcher,
-    customWatcher?: FSWatcher
+    ...args: [] | [string, FSWatcher] | [string] | [FSWatcher]
   ) {
-    let watchDir: string;
-    let watcher: FSWatcher | undefined;
+    const { dir, watcher } = overload({
+      dir: {
+        type: String,
+        default: () => rootDir
+      },
+      watcher: {
+        type: Object as PropType<FSWatcher>,
+        default: (): FSWatcher => {
+          const chokidar = require("chokidar") as typeof import("chokidar");
+          return chokidar.watch([]);
+        }
+      }
+    }, args);
 
-    if (isString(dir)) {
-      watchDir = dir;
-      watcher = customWatcher;
-    } else {
-      watchDir = rootDir;
-      watcher = dir;
-    }
-
-    if (!watcher) {
-      const chokidar = require("chokidar") as typeof import("chokidar");
-      watcher = chokidar.watch(watchDir);
-    }
-
-    watcher.add(watchDir);
+    watcher.add(dir);
 
     watcher.on("all", async (event, path) => {
-      if (!path.startsWith(watchDir) || path.endsWith(TEMPORARY_FILE_SUFFIX)) {
+      if (!path.startsWith(dir) || path.endsWith(TEMPORARY_FILE_SUFFIX)) {
         return;
       }
 

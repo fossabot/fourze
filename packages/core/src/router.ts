@@ -1,8 +1,10 @@
 import type { MaybePromise } from "maybe-types";
 import { createLogger } from "./logger";
+import type { ObjectProps, PropType } from "./props";
 import type {
   FourzeApp,
   FourzeBaseRoute,
+  FourzeHandle,
   FourzeMiddleware,
   FourzeNext,
   FourzeRequest,
@@ -10,8 +12,8 @@ import type {
   FourzeRoute,
   FourzeRouteFunction,
   FourzeRouteGenerator,
-  ObjectProps,
-  PropType
+  FourzeRouteOptions,
+  RequestMethod
 } from "./shared";
 import {
   FOURZE_METHODS
@@ -186,26 +188,22 @@ export function defineRouter(
       routes.push(defineRoute(param0) as FourzeRoute);
     } else {
       const { path, method, options, handle } = overload(
-        [
-          {
-            type: "string",
-            name: "path",
+        {
+          path: {
+            type: String,
             required: true
           },
-          {
-            type: "string",
-            name: "method"
+          method: {
+            type: String as PropType<RequestMethod>
           },
-          {
-            type: "object",
-            name: "options"
+          options: {
+            type: Object as PropType<FourzeRouteOptions>
           },
-          {
-            type: "function",
-            name: "handle",
+          handle: {
+            type: Function as PropType<FourzeHandle>,
             required: true
           }
-        ],
+        },
         [...args]
       );
 
@@ -306,7 +304,7 @@ export function isRouter(value: any): value is FourzeRouter {
   return !!value && !!value[FourzeRouterSymbol];
 }
 
-function isExtends<D>(types: PropType<D>, type: PropType<D>): boolean {
+export function isExtends<D>(types: PropType<D>, type: PropType<D>): boolean {
   if (Array.isArray(types)) {
     return types.some((e) => isExtends(e, type));
   }
@@ -315,7 +313,7 @@ function isExtends<D>(types: PropType<D>, type: PropType<D>): boolean {
 
 export function validateProps(
   props: ObjectProps,
-  data: Record<string, any>
+  data: Record<string, unknown>
 ) {
   for (const [key, propsOption] of Object.entries(props)) {
     let value = data[key];

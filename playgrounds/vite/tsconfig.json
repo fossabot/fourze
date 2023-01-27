@@ -2,6 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "baseUrl": "./",
+    "jsx": "preserve",
     "paths": {
       "@fourze/core": ["../../packages/core/src/index.ts"],
       "@fourze/mock": ["../../packages/mock/src/index.ts"],
@@ -13,5 +14,6 @@
       "@fourze/swagger": ["../../packages/integrations/swagger/src/index.ts"],
       "@/*": ["src/*"]
     }
-  }
+  },
+  "include": ["./**.ts", "./**.tsx", "./**.d.ts", "./**.vue"],
 }

@@ -19,6 +19,7 @@ import { flatHeaders, getHeaderValue } from "./polyfill/header";
 import { PolyfillServerResponse } from "./polyfill/response";
 import { createLogger } from "./logger";
 import type { FourzeMiddlewareNode } from "./app";
+import type { ExtractPropTypes, NormalizedObjectProps, ObjectProps, PropType } from "./props";
 
 export const FOURZE_VERSION = version;
 
@@ -165,148 +166,6 @@ export interface FourzeBaseRoute<
 /**
  *  inspired by vue props
  */
-
-export type PropIn = "body" | "query" | "path";
-
-export type ExtractPropTypes<
-  P extends Record<string, any>, In extends PropIn | "any" = "any", O = In extends PropIn ? Pick<P, InKeys<P, In>> : P
-> = {
-  [K in keyof Pick<O, RequiredKeys<O>>]: InferPropType<O[K]>;
-} & {
-  [K in keyof Pick<O, OptionalKeys<O>>]?: InferPropType<O[K]>;
-} & DefaultData;
-
-export type LooseRequired<T> = {
-  [P in string & keyof T]: T[P];
-};
-
-type RequiredKeys<T> = {
-  [K in keyof T]: T[K] extends
-  | {
-    required: true
-  }
-  | {
-    default: any
-  }
-  | BooleanConstructor
-  | {
-    type: BooleanConstructor
-  }
-    ? T[K] extends {
-      default: undefined | (() => undefined)
-    }
-      ? never
-      : K
-    : never;
-}[keyof T];
-
-type OptionalKeys<T> = Exclude<keyof T, RequiredKeys<T>>;
-
-type InKeys<T, In extends PropIn> = {
-  [K in keyof T]: T[K] extends {
-    in: In
-  }
-    ? K
-    : never;
-}[keyof T];
-
-type IfAny<T, Y, N> = 0 extends 1 & T ? Y : N;
-
-type InferPropType<T> = [T] extends [null]
-  ? any
-  : [T] extends [
-      {
-        type: null | true
-      }
-    ]
-      ? any
-      : [T] extends [
-          | ObjectConstructor
-          | {
-            type: ObjectConstructor
-          }
-        ]
-          ? Record<string, any>
-          : [T] extends [
-              | BooleanConstructor
-              | {
-                type: BooleanConstructor
-              }
-            ]
-              ? boolean
-              : [T] extends [
-                  | DateConstructor
-                  | {
-                    type: DateConstructor
-                  }
-                ]
-                  ? Date
-                  : [T] extends [
-                      | (infer U)[]
-                      | {
-                        type: (infer U)[]
-                      }
-                    ]
-                      ? U extends DateConstructor
-                        ? Date | InferPropType<U>
-                        : InferPropType<U>
-                      : [T] extends [Prop<infer V, infer D>]
-                          ? unknown extends V
-                            ? IfAny<V, V, D>
-                            : V
-                          : T;
-
-export type ObjectProps<P = Record<string, unknown>> = {
-  [K in keyof P]: Prop<P[K]> | null;
-};
-
-export type NormalizedObjectProps<P = Record<string, unknown>> = {
-  [K in keyof P]: NormalizedProps<P[K]> | null;
-};
-
-type Prop<T, D = T> = PropOptions<T, D> | PropType<T>;
-
-type PropConstructor<T = any> =
-  | {
-    new(...args: any[]): T & {}
-  }
-  | {
-    (): T
-  }
-  | PropMethod<T>;
-
-type PropMethod<T, TConstructor = any> = [T] extends [
-  ((...args: any) => any) | undefined
-]
-  ? {
-      new(): TConstructor
-      (): T
-      readonly prototype: TConstructor
-    }
-  : never;
-
-interface PropOptions<Type = any, Default = Type> {
-  type: PropType<Type>
-  required?: boolean
-  default?: Default | DefaultFactory<Default> | null | undefined | object
-  validator?(value: unknown): boolean
-  transform?(value: unknown): Type
-  meta?: Record<string, any>
-  in?: PropIn
-}
-
-export interface NormalizedProps<Type = any, Default = Type>
-  extends PropOptions<Type, Default> {
-  meta: Record<string, any>
-  in?: PropIn
-  required: boolean
-  type: PropType<any>
-  default?: Default | DefaultFactory<Default> | null | undefined | object
-}
-
-declare type DefaultFactory<T> = (props: DefaultData) => T | null | undefined;
-
-export type PropType<T> = PropConstructor<T> | PropConstructor<T>[];
 
 // #endregion
 
@@ -826,21 +685,14 @@ export function defineMiddleware(name: string, handler: FourzeMiddlewareHandler)
 export function defineMiddleware(handler: FourzeMiddlewareHandler): FourzeMiddleware;
 
 export function defineMiddleware(...args: [string, number, FourzeMiddlewareHandler] | [string, FourzeMiddlewareHandler] | [FourzeMiddlewareHandler]): FourzeMiddleware {
-  const { name, order, handler } = overload([
-    {
-      name: "name",
-      type: "string"
-    },
-    {
-      name: "order",
-      type: "number"
-    },
-    {
-      name: "handler",
-      type: "function",
+  const { name, order, handler } = overload({
+    name: String,
+    order: Number,
+    handler: {
+      type: Function as PropType<FourzeMiddlewareHandler>,
       required: true
     }
-  ], args);
+  }, args);
 
   Object.defineProperties(handler, {
     name: {
@@ -871,7 +723,7 @@ export interface FourzePluginInstall {
 }
 
 export interface FourzePlugin {
-  name: string
+  name?: string
   install: FourzePluginInstall
   readonly [FOURZE_PLUGIN_SYMBOL]: boolean
 }
@@ -880,18 +732,16 @@ export function definePlugin(install: FourzePluginInstall): FourzePlugin;
 export function definePlugin(name: string, install: FourzePluginInstall): FourzePlugin;
 
 export function definePlugin(...args: [FourzePluginInstall] | [string, FourzePluginInstall]): FourzePlugin {
-  const { name, install } = overload([
-    {
-      name: "name",
-      type: "string",
+  const { name, install } = overload({
+    name: {
+      type: String,
       required: false
     },
-    {
-      name: "install",
-      type: "function",
+    install: {
+      type: Function as PropType<FourzePluginInstall>,
       required: true
     }
-  ], args);
+  }, args);
   return {
     name,
     install,
@@ -912,3 +762,5 @@ export function isFourzeResponse(obj: any): obj is FourzeResponse {
 export function isFourzeRequest(obj: any): obj is FourzeRequest {
   return !!obj && !!obj[FOURZE_REQUEST_SYMBOL];
 }
+
+export { PropType, ObjectProps };
