@@ -12,9 +12,9 @@ export function delayHook(ms: DelayMsType): FourzeMiddleware {
   return defineMiddleware("Delay", async (req, res, next) => {
     await next?.();
     const delayMs
-      = res.getHeader("Fourze-Delay") ?? req.headers["Fourze-Delay"] ?? ms;
+      = res.getHeader(DELAY_HEADER) ?? req.headers[DELAY_HEADER] ?? ms;
     const time = await delay(delayMs);
-    res.setHeader("Fourze-Delay", time);
+    res.setHeader(DELAY_HEADER, time);
   });
 }
 
