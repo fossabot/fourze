@@ -17,6 +17,8 @@ describe("shared", async () => {
       deny: ["/api/deny"],
     })
 
+    await app.ready();
+
 
     expect(app.isAllow("/api/test")).toBe(true);
     expect(app.isAllow("/api/deny")).toBe(false);
