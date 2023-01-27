@@ -23,8 +23,8 @@ export function jsonWrapperHook(
   reject?: (error: any) => MaybePromise<any>
 ): FourzeMiddleware {
   return defineMiddleware("JsonWrapper", -1, async (req, res, next) => {
-    const disableJsonWrapper = res.getHeader(DISABLE_JSON_WRAPPER_HEADER);
-    if (disableJsonWrapper) {
+    const disableJsonWrapper = res.getHeader(DISABLE_JSON_WRAPPER_HEADER) as string;
+    if (!disableJsonWrapper || ["false", "0", "off"].includes(disableJsonWrapper)) {
       const _send = res.send.bind(res);
       res.send = function (payload, contentType) {
         contentType = contentType ?? res.getContentType(payload);
