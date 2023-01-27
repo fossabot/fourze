@@ -14,7 +14,7 @@ export function defaultMockCode(
   const names: string[] = [];
   for (let i = 0; i < app.moduleNames.length; i++) {
     let modName = app.moduleNames[i];
-    names[i] = `fourze_middleware_${i}`;
+    names[i] = `fourze_module_${i}`;
     modName = modName.replace(TEMPORARY_FILE_SUFFIX, "");
     modName = normalizePath(modName);
 
@@ -25,7 +25,7 @@ export function defaultMockCode(
   code += dedent`
   createMockApp({
     base:"${app.base}",
-    middlewares:[${names.join(",")}].flat(),
+    modules:[${names.join(",")}].flat(),
     delay:${JSON.stringify(options.delay)},
     mode:${JSON.stringify(options.mode)},
     allow:${JSON.stringify(options.allow)},

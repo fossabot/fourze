@@ -46,7 +46,7 @@ export interface FourzeRouter
     method?: string,
   ): [FourzeRoute, RegExpMatchArray] | []
 
-  refresh(): void
+  reset(): void
 
   route: FourzeRouteFunction<FourzeRouter>
 
@@ -280,8 +280,7 @@ export function defineRouter(
         return setupRouter;
       }
     },
-
-    refresh: {
+    reset: {
       get() {
         return setupRouter.reset;
       }

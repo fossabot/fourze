@@ -1,13 +1,21 @@
 import fs from "fs";
 import { join, resolve } from "path";
 import type { PropType } from "vue";
-import { createApp, createLogger, defineMiddleware, isFourzePlugin, isFunction, isString, overload } from "@fourze/core";
+import {
+  createApp,
+  createLogger,
+  defineMiddleware,
+  isFourzePlugin,
+  isFunction,
+  isString,
+  overload
+} from "@fourze/core";
 import type {
   DelayMsType,
   FourzeApp,
   FourzeAppOptions,
-  FourzeBaseRoute
-
+  FourzeBaseRoute,
+  FourzeModule
 } from "@fourze/core";
 import type { FSWatcher } from "chokidar";
 import { defineEnvs, normalizePath } from "./utils";
@@ -65,19 +73,19 @@ export interface FourzeProxyOption extends Omit<FourzeBaseRoute, "handle"> {
 }
 
 export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
-  const delay = options.delay ?? 0;
   const rootDir = resolve(process.cwd(), options.dir ?? "router");
 
   const pattern = transformPattern(options.pattern ?? [".ts", ".js"]);
-  const moduleNames = new Set<string>();
+  const moduleMap = new Map<string, FourzeModule>();
 
   const logger = createLogger("@fourze/server");
 
-  const app = createApp({
-    ...options,
-    async setup() {
-      await load();
-    }
+  const app = createApp(async () => {
+    await load();
+    return {
+      modules: [...moduleMap.values()],
+      ...options
+    };
   }) as FourzeHmrApp;
 
   const env: Record<string, any> = {};
@@ -93,14 +101,12 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
         const mod = require(f);
         const instance = mod?.default ?? mod;
         if (isFunction(instance)) {
-          app.use(defineMiddleware(f, instance));
-          moduleNames.add(f);
+          moduleMap.set(f, defineMiddleware(f, instance));
           return true;
         }
 
         if (isFourzePlugin(instance)) {
-          app.use(instance);
-          moduleNames.add(f);
+          moduleMap.set(f, instance);
           return true;
         }
         logger.warn(`find not route with "${f}" `);
@@ -174,7 +180,7 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
 
   app.remove = function (this: FourzeHmrApp, moduleName: string) {
     _remove(moduleName);
-    moduleNames.delete(moduleName);
+    moduleMap.delete(moduleName);
     delete require.cache[moduleName];
     return this;
   };
@@ -183,19 +189,22 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
     this: FourzeHmrApp,
     ...args: [] | [string, FSWatcher] | [string] | [FSWatcher]
   ) {
-    const { dir, watcher } = overload({
-      dir: {
-        type: String,
-        default: () => rootDir
-      },
-      watcher: {
-        type: Object as PropType<FSWatcher>,
-        default: (): FSWatcher => {
-          const chokidar = require("chokidar") as typeof import("chokidar");
-          return chokidar.watch([]);
+    const { dir, watcher } = overload(
+      {
+        dir: {
+          type: String,
+          default: () => rootDir
+        },
+        watcher: {
+          type: Object as PropType<FSWatcher>,
+          default: (): FSWatcher => {
+            const chokidar = require("chokidar") as typeof import("chokidar");
+            return chokidar.watch([]);
+          }
         }
-      }
-    }, args);
+      },
+      args
+    );
 
     watcher.add(dir);
 
@@ -242,19 +251,7 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
     return this;
   };
 
-  const _getMiddlewares = app.getMiddlewares;
-
-  app.getMiddlewares = function (this: FourzeHmrApp) {
-    const middlewares = _getMiddlewares.call(this);
-    return [...middlewares];
-  };
-
   return Object.defineProperties(app, {
-    delay: {
-      get() {
-        return delay;
-      }
-    },
     env: {
       get() {
         return env;
@@ -262,7 +259,7 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
     },
     moduleNames: {
       get() {
-        return Array.from(moduleNames);
+        return [...moduleMap.keys()];
       }
     }
   });

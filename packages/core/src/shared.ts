@@ -18,7 +18,6 @@ import type { PolyfillHeaderInit } from "./polyfill/header";
 import { flatHeaders, getHeaderValue } from "./polyfill/header";
 import { PolyfillServerResponse } from "./polyfill/response";
 import { createLogger } from "./logger";
-import type { FourzeMiddlewareNode } from "./app";
 import type { ExtractPropTypes, NormalizedObjectProps, ObjectProps, PropType } from "./props";
 
 export const FOURZE_VERSION = version;
@@ -295,9 +294,7 @@ export interface FourzeInstance {
 export interface FourzeApp extends FourzeMiddleware {
   use(path: string, ...middlewares: FourzeMiddleware[]): this
 
-  use(...middleware: FourzeMiddleware[]): this
-
-  use(plugin: FourzePlugin): this
+  use(...modules: FourzeModule[]): this
 
   remove(name: string): this
 
@@ -313,13 +310,13 @@ export interface FourzeApp extends FourzeMiddleware {
 
   relative(url: string): string | null
 
-  getMiddlewares(): FourzeMiddlewareNode[]
-
   match(url: string): FourzeMiddleware[]
 
   service(context: FourzeContextOptions, fallback?: FourzeHandle): Promise<FourzeContext>
 
   ready(): Promise<void>
+
+  reset(): Promise<void>
 
   readonly base: string
 
@@ -716,6 +713,8 @@ export function defineMiddleware(...args: [string, number, FourzeMiddlewareHandl
 export function isFourzeMiddleware(obj: any): obj is FourzeMiddleware {
   return obj && obj[FOURZE_MIDDLEWARE_SYMBOL];
 }
+
+export type FourzeModule = FourzePlugin | FourzeMiddleware;
 
 const FOURZE_PLUGIN_SYMBOL = Symbol("FOURZE_PLUGIN_SYMBOL");
 export interface FourzePluginInstall {

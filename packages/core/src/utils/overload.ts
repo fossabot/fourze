@@ -11,7 +11,7 @@ type OverloadProp<T = any, D = T> = OverloadOptions<T, D> | PropType<T>;
 export interface OverloadOptions<Type = any, Default = Type> {
   type: PropType<Type>
   required?: boolean
-  default?: () => Default
+  default?: (value: Type) => Default
   transform?: (value: Type) => any
   match?: (value: Type) => boolean
   rest?: boolean
@@ -29,7 +29,7 @@ export function defineOverload<Config extends OverloadConfig>(
       let required = false;
       let transform: ((value: any) => any) | undefined;
       let match: (value: any) => boolean | undefined;
-      let defaultValue: any;
+      let defaultValue: ((value: any) => any) | undefined;
       if (isFunction(props)) {
         types.push(props);
       } else if (props != null) {
@@ -37,7 +37,7 @@ export function defineOverload<Config extends OverloadConfig>(
           types.push(...props);
         } else {
           types.push(props.type);
-          required = !!props.required;
+          required = !!props.required || !!props.default;
           transform = props.transform;
           defaultValue = props.default;
         }
@@ -58,8 +58,8 @@ export function defineOverload<Config extends OverloadConfig>(
       if (matchValue(value)) {
         result[name] = transform ? transform(value) : value;
         continue;
-      } else {
-        result[name] = isFunction(defaultValue) ? defaultValue(result) : defaultValue;
+      } else if (defaultValue) {
+        result[name] = defaultValue(result);
       }
 
       parameters.unshift(value);
