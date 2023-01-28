@@ -27,7 +27,7 @@ export function jsonWrapperHook(
     if (!disableJsonWrapper || ["false", "0", "off"].includes(disableJsonWrapper)) {
       const _send = res.send.bind(res);
       res.send = function (payload, contentType) {
-        contentType = contentType ?? res.getContentType(payload);
+        contentType = contentType ?? req.meta.contentType ?? res.getContentType(payload);
         if (contentType?.startsWith("application/json")) {
           payload = resolve(payload);
         }

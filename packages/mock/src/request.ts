@@ -59,7 +59,7 @@ export function createProxyRequest(app: FourzeMockApp) {
     method?: string;
     statusCode = 200;
     completed = false;
-    data: Buffer | Uint8Array | string;
+    payload: Buffer | Uint8Array | string;
     _offset = 0;
     _maxLength = 0;
 
@@ -75,8 +75,8 @@ export function createProxyRequest(app: FourzeMockApp) {
       this.headers = flatHeaders(res.getHeaders());
       this.method = res.method;
       this.statusCode = res.statusCode;
-      this.data = res.data ?? [];
-      this._maxLength = this.data.length;
+      this.payload = res.payload ?? "";
+      this._maxLength = this.payload.length;
     }
 
     read(size = 1024) {
@@ -90,7 +90,7 @@ export function createProxyRequest(app: FourzeMockApp) {
       }
       const start = this._offset;
       const end = (this._offset = Math.min(this._maxLength, start + size));
-      const chunk = this.data.slice(start, end);
+      const chunk = this.payload.slice(start, end);
       this.emit("data", Buffer.from(chunk));
       return chunk;
     }

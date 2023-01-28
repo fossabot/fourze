@@ -26,6 +26,7 @@ import {
   isFunction,
   isObject,
   isUndef,
+  isUndefined,
   normalizeRoute,
   overload,
   relativePath,
@@ -135,7 +136,7 @@ export function defineRouter(
 
       try {
         const _result = await route.handle(request, response);
-        if (_result) {
+        if (!isUndefined(_result)) {
           response.send(_result);
         }
       } catch (error: any) {

@@ -88,19 +88,23 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     next = next ?? fallback;
     const { url } = request;
 
-    if (app.isAllow(url)) {
-      const ms = app.match(url);
-      async function doNext() {
-        const middleware = ms.shift();
-        if (middleware) {
-          await middleware(request, response, doNext);
-        } else {
-          return await next?.();
+    try {
+      if (app.isAllow(url)) {
+        const ms = app.match(url);
+        async function doNext() {
+          const middleware = ms.shift();
+          if (middleware) {
+            await middleware(request, response, doNext);
+          } else {
+            return await next?.();
+          }
         }
+        await doNext();
+      } else {
+        await next?.();
       }
-      await doNext();
-    } else {
-      await next?.();
+    } catch (error: any) {
+      response.sendError(500, error);
     }
   }) as FourzeApp;
 

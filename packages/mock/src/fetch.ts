@@ -23,7 +23,7 @@ class ProxyFetchResponse implements Response {
 
   readonly body: ReadableStream<Uint8Array> | null = null;
 
-  readonly data: any;
+  readonly payload: any;
 
   bodyUsed = false;
 
@@ -37,29 +37,29 @@ class ProxyFetchResponse implements Response {
     this.url = response.url;
     this.status = response.statusCode;
     this.statusText = response.statusMessage;
-    this.data = response.payload;
+    this.payload = response.payload ?? "";
     this.headers = new PolyfillHeaders(response.getHeaders());
     this._response = response;
   }
 
   async arrayBuffer() {
-    return new Blob([this.data]).arrayBuffer();
+    return new Blob([this.payload]).arrayBuffer();
   }
 
   async blob(): Promise<Blob> {
-    return new Blob([this.data]);
+    return new Blob([this.payload]);
   }
 
   async formData() {
     const formData = new FormData();
-    for (const [key, value] of Object.entries(this.data)) {
+    for (const [key, value] of Object.entries(this.payload)) {
       formData.append(key, value as any);
     }
     return formData;
   }
 
   async json() {
-    return JSON.parse(String(this.data));
+    return JSON.parse(String(this.payload));
   }
 
   clone(): Response {
@@ -67,11 +67,11 @@ class ProxyFetchResponse implements Response {
   }
 
   async text() {
-    return String(this.data);
+    return String(this.payload);
   }
 
   async raw() {
-    return this.data;
+    return this.payload;
   }
 }
 
