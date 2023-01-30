@@ -1,5 +1,7 @@
 import type { MaybePromise } from "maybe-types";
 import { createLogger } from "./logger";
+import type { MetaInstance } from "./meta";
+import { injectMeta } from "./meta";
 import type { ObjectProps, PropType } from "./props";
 import type {
   FourzeApp,
@@ -13,6 +15,7 @@ import type {
   FourzeRouteFunction,
   FourzeRouteGenerator,
   FourzeRouteOptions,
+  FourzeRouterMeta,
   RequestMethod
 } from "./shared";
 import {
@@ -35,7 +38,7 @@ import {
 
 export interface FourzeRouter
   extends FourzeMiddleware,
-  FourzeRouteGenerator<FourzeRouter> {
+  FourzeRouteGenerator<FourzeRouter>, MetaInstance<FourzeRouter, FourzeRouterMeta> {
   /**
    * 根据url匹配路由
    * @param url
@@ -55,6 +58,8 @@ export interface FourzeRouter
 
   resolve(path: string): string
 
+  readonly meta: Record<string, any>
+
   readonly base: string
 
   readonly name: string
@@ -72,6 +77,7 @@ export type FourzeRouterSetup = (
 export interface FourzeRouterOptions {
   name?: string
   base?: string
+  meta?: FourzeRouterMeta
   routes?: FourzeBaseRoute[]
   setup?: FourzeRouterSetup
 }
@@ -97,6 +103,8 @@ export function defineRouter(
     : isFunc
       ? params
       : () => params;
+
+  const meta: Record<string, any> = { ...options.meta };
 
   const routes: FourzeRoute[] = [];
 
@@ -131,6 +139,7 @@ export function defineRouter(
 
       request.meta = {
         ...request.meta,
+        ...router.meta,
         ...route.meta
       };
 
@@ -156,6 +165,8 @@ export function defineRouter(
 
     return response.payload;
   }) as FourzeRouter;
+
+  injectMeta(router, meta);
 
   router.match = function (
     this: FourzeRouter,
