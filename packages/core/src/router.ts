@@ -36,6 +36,8 @@ import {
   resolvePath
 } from "./utils";
 
+const FourzeRouterSymbol = Symbol("FourzeRouter");
+
 export interface FourzeRouter
   extends FourzeMiddleware,
   FourzeRouteGenerator<FourzeRouter>, MetaInstance<FourzeRouter, FourzeRouterMeta> {
@@ -58,6 +60,8 @@ export interface FourzeRouter
 
   resolve(path: string): string
 
+  info?: string
+
   readonly meta: Record<string, any>
 
   readonly base: string
@@ -65,9 +69,9 @@ export interface FourzeRouter
   readonly name: string
 
   readonly routes: FourzeRoute[]
-}
 
-const FourzeRouterSymbol = Symbol("FourzeRouter");
+  [FourzeRouterSymbol]: true
+}
 
 export type FourzeRouterSetup = (
   router: FourzeRouter,
@@ -255,7 +259,7 @@ export function defineRouter(
     }
   });
 
-  Object.defineProperties(router, {
+  return Object.defineProperties(router, {
     ...Object.fromEntries(
       [...FOURZE_METHODS].map((method) => [
         method,
@@ -272,7 +276,8 @@ export function defineRouter(
               router.route(...args);
               return this;
             };
-          }
+          },
+          enumerable: true
         }
       ])
     ),
@@ -281,30 +286,33 @@ export function defineRouter(
       get() {
         return "/";
       },
-      configurable: true
+      configurable: true,
+      enumerable: true
     },
     setup: {
       get() {
         return setupRouter;
-      }
+      },
+      enumerable: true
     },
     reset: {
       get() {
         return setupRouter.reset;
-      }
+      },
+      enumerable: true
     },
     routes: {
       get() {
         return Array.from(routes);
-      }
+      },
+      enumerable: true
     },
     [FourzeRouterSymbol]: {
       value: true,
+      enumerable: true,
       writable: false
     }
   });
-
-  return router;
 }
 
 export function isRouter(value: any): value is FourzeRouter {

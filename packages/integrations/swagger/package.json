@@ -27,7 +27,6 @@
         "vite": "^4.0.4"
     },
     "devDependencies": {
-        "@types/fs-extra": "^11.0.1",
         "@types/swagger-ui-dist": "^3.30.1"
     }
 }

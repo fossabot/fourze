@@ -75,15 +75,18 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
 
   // 打包接口文档 这里会有更好的方案吗???
 
-  await vite.build(vite.mergeConfig(vite.defineConfig({
+  await vite.build(vite.mergeConfig(options.vite ?? {}, vite.defineConfig({
     base: "./",
     root: tmpDir,
     build: {
       outDir: distPath,
       emptyOutDir: true,
       sourcemap: true
+    },
+    esbuild: {
+
     }
-  }), options.vite ?? {}));
+  })));
   await fs.outputFile(path.resolve(distPath, documentUrl), JSON.stringify(createApiDocs(app)));
   await fs.remove(tmpDir);
 }

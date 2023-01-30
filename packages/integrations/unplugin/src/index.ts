@@ -9,7 +9,10 @@ import type {
   FourzeHmrOptions,
   FourzeProxyOption
 } from "@fourze/server";
-import { createHmrApp, createServer } from "@fourze/server";
+import {
+  createHmrApp
+  , createServer, defineEnvs
+} from "@fourze/server";
 
 import type { SwaggerRouterOptions } from "@fourze/swagger";
 import { createSwaggerRouter } from "@fourze/swagger";
@@ -92,7 +95,7 @@ export interface UnpluginFourzeOptions {
   transformCode?: (router: FourzeHmrApp, options?: FourzeHmrOptions) => string
 }
 
-export const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) => {
+const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) => {
   const dir = options.dir ?? "./src/mock";
 
   const base = options.base ?? "/api";
@@ -142,7 +145,7 @@ export const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions
 
   return [
     {
-      name: `${PLUGIN_NAME}-swagger-builder`,
+      name: PLUGIN_NAME,
       async writeBundle() {
         if (generateDocument) {
           await build(app, {
@@ -152,11 +155,7 @@ export const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions
             }
           });
         }
-      }
-    },
-    {
-      name: PLUGIN_NAME,
-
+      },
       async buildStart() {
         try {
           await app.ready();
@@ -215,10 +214,15 @@ export const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions
           };
         },
         async configResolved(config) {
-          app.define(config.env);
+          app.configure({
+            define: {
+              ...defineEnvs(config.env, "import.meta.env."),
+              ...defineEnvs(config.define ?? {})
+            }
+          });
           viteConfig.base = config.base;
           viteConfig.envDir = path.resolve(config.root, config.envDir ?? "");
-          viteConfig.envPrefix = config.envPrefix ?? "VITE_";
+          viteConfig.envPrefix = config.envPrefix;
           viteConfig.resolve = config.resolve;
         },
 
@@ -253,4 +257,4 @@ export const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions
   ];
 });
 
-export default createFourzePlugin;
+export { createFourzePlugin, createFourzePlugin as default };

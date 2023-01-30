@@ -1,7 +1,5 @@
 import { UnpluginFourzeOptions, createFourzePlugin } from "@fourze/unplugin";
 
-export const createFourzeWebpackPlugin = createFourzePlugin.webpack;
+const createFourzeWebpackPlugin = createFourzePlugin.webpack;
 
-export default createFourzeWebpackPlugin;
-
-export { UnpluginFourzeOptions };
+export { UnpluginFourzeOptions, createFourzeWebpackPlugin, createFourzeWebpackPlugin as default };

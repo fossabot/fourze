@@ -18,7 +18,9 @@
         "@fourze/core": "workspace:*",
         "chokidar": "^3.5.3",
         "esbuild": "^0.17.5",
-        "mime": "^3.0.0"
+        "fs-extra": "^11.1.0",
+        "mime": "^3.0.0",
+        "mlly": "^1.1.0"
     },
     "devDependencies": {
         "@types/mime": "^2.0.3",

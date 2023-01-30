@@ -146,6 +146,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
         Object.defineProperty(middleware, "base", {
           value: resolvePath(path, this.base),
           writable: false,
+          enumerable: true,
           configurable: true
         });
         const node = { path, middleware, order: middleware.order ?? middlewareStore.length };
@@ -264,23 +265,27 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     middlewares: {
       get() {
         return middlewareStore.select(r => r.middleware).toArray();
-      }
+      },
+      enumerable: true
     },
     base: {
       get() {
         return options.base ?? "/";
       },
-      configurable: true
+      configurable: true,
+      enumerable: true
     },
     isReady: {
       get() {
         return _isReady;
-      }
+      },
+      enumerable: true
     },
     isReadying: {
       get() {
         return _isReadying;
-      }
+      },
+      enumerable: true
     }
   });
 

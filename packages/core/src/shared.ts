@@ -489,28 +489,33 @@ export function createResponse(options: FourzeResponseOptions) {
     [FOURZE_RESPONSE_SYMBOL]: {
       get() {
         return true;
-      }
+      },
+      enumerable: true
     },
     url: {
       get() {
         return options.url;
-      }
+      },
+      enumerable: true
     },
     payload: {
       get() {
         return _payload;
-      }
+      },
+      enumerable: true
     },
     error: {
       get() {
         return _error;
-      }
+      },
+      enumerable: true
     },
 
     method: {
       get() {
         return options.method;
-      }
+      },
+      enumerable: true
     }
   });
 
@@ -628,7 +633,8 @@ export function createRequest(options: FourzeRequestOptions) {
     [FOURZE_REQUEST_SYMBOL]: {
       get() {
         return true;
-      }
+      },
+      enumerable: true
     },
     data: {
       get() {
@@ -637,32 +643,38 @@ export function createRequest(options: FourzeRequestOptions) {
           ...body,
           ...params
         };
-      }
+      },
+      enumerable: true
     },
     body: {
       get() {
         return body;
-      }
+      },
+      enumerable: true
     },
     bodyRaw: {
       get() {
         return bodyRaw;
-      }
+      },
+      enumerable: true
     },
     params: {
       get() {
         return params;
-      }
+      },
+      enumerable: true
     },
     query: {
       get() {
         return query;
-      }
+      },
+      enumerable: true
     },
     path: {
       get() {
         return path;
-      }
+      },
+      enumerable: true
     },
     contextPath: {
       get() {
@@ -670,7 +682,8 @@ export function createRequest(options: FourzeRequestOptions) {
       },
       set(val) {
         _contextPath = val;
-      }
+      },
+      enumerable: true
     }
   });
 
@@ -698,17 +711,20 @@ export function defineMiddleware(...args: [string, number, FourzeMiddlewareHandl
   Object.defineProperties(handler, {
     name: {
       value: name,
-      configurable: true
+      configurable: true,
+      enumerable: true
     },
     order: {
       value: order,
-      configurable: true
+      configurable: true,
+      enumerable: true
     },
     [FOURZE_MIDDLEWARE_SYMBOL]: {
       get() {
         return true;
       },
-      configurable: true
+      configurable: true,
+      enumerable: true
     }
   });
   return handler;

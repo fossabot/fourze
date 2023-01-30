@@ -1,5 +1,5 @@
 import fs from "fs";
-import { join, resolve } from "path";
+import { basename, extname, join, resolve } from "path";
 import type { PropType } from "vue";
 import {
   createApp,
@@ -18,7 +18,8 @@ import type {
   FourzeModule
 } from "@fourze/core";
 import type { FSWatcher } from "chokidar";
-import { defineEnvs, normalizePath } from "./utils";
+import { normalizePath } from "./utils";
+import { createImporter } from "./importer";
 
 export interface FourzeHmrOptions extends Exclude<FourzeAppOptions, "setup"> {
   /**
@@ -41,6 +42,13 @@ export interface FourzeHmrOptions extends Exclude<FourzeAppOptions, "setup"> {
    * @default 0
    */
   delay?: DelayMsType
+
+  alias?: Record<string, string>
+}
+
+export interface FourzeHmrBuildConfig {
+  define?: Record<string, any>
+  alias?: Record<string, string>
 }
 
 export interface FourzeHmrApp extends FourzeApp {
@@ -49,10 +57,8 @@ export interface FourzeHmrApp extends FourzeApp {
   watch(watcher: FSWatcher): this
   watch(dir: string, watcher: FSWatcher): this
   proxy(p: string | FourzeProxyOption): this
-  define(key: string, value: string): this
-  define(env: Record<string, any>): this
+  configure(config: FourzeHmrBuildConfig): this
   delay?: DelayMsType
-  readonly env: Record<string, any>
   readonly base: string
   readonly moduleNames: string[]
 }
@@ -80,6 +86,11 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
 
   const logger = createLogger("@fourze/server");
 
+  const buildConfig: FourzeHmrBuildConfig = {
+    define: {},
+    alias: {}
+  };
+
   const app = createApp({
     ...options,
     setup: async () => {
@@ -88,74 +99,47 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
     }
   }) as FourzeHmrApp;
 
-  const env: Record<string, any> = {};
+  app.configure = function (this: FourzeHmrApp, newConfig: FourzeHmrBuildConfig) {
+    buildConfig.define = {
+      ...buildConfig.define,
+      ...newConfig.define
+    };
+
+    buildConfig.alias = {
+      ...buildConfig.alias,
+      ...newConfig.alias
+    };
+    return this;
+  };
+
+  const _import = createImporter({
+    get define() {
+      return buildConfig.define;
+    },
+    external: ["@fourze/*"],
+    interopDefault: true
+  });
 
   async function load(moduleName: string = rootDir): Promise<boolean> {
     if (!fs.existsSync(moduleName)) {
       return false;
     }
 
-    const loadJsModule = async (f: string) => {
-      try {
-        delete require.cache[f];
-        const mod = require(f);
-        const instance = mod?.default ?? mod;
-        if (isFunction(instance)) {
-          moduleMap.set(f, defineMiddleware(f, instance));
-          return true;
-        }
-
-        if (isFourzePlugin(instance)) {
-          moduleMap.set(f, instance);
-          return true;
-        }
-        logger.warn(`find not route with "${f}" `);
-      } catch (e) {
-        logger.error(e);
-      }
-      return false;
-    };
-
-    const loadTsModule = async (mod: string) => {
-      if (!fs.existsSync(mod)) {
-        return false;
-      }
-      const modName = mod.replace(".ts", TEMPORARY_FILE_SUFFIX);
-
-      const { build } = require("esbuild") as typeof import("esbuild");
-      try {
-        await build({
-          entryPoints: [mod],
-          external: ["@fourze/core"],
-          outfile: modName,
-          write: true,
-          platform: "node",
-          bundle: true,
-          format: "cjs",
-          metafile: true,
-          allowOverwrite: true,
-          target: "es6",
-          define: defineEnvs(env, "import.meta.env.")
-        });
-        return loadJsModule(modName);
-      } catch (err) {
-        logger.error(`load file ${modName}`, err);
-      } finally {
-        try {
-          await fs.promises.unlink(modName);
-        } catch (err) {
-          logger.error(`delete file ${modName} error`, err);
-        }
-      }
-      return false;
-    };
-
     const loadModule = async (mod: string) => {
-      if (mod.endsWith(".ts")) {
-        return loadTsModule(mod);
-      } else {
-        return loadJsModule(mod);
+      logger.info(`load module "${mod}" `);
+
+      const instance = await _import(mod);
+
+      if (isFunction(instance)) {
+        moduleMap.set(mod, defineMiddleware(basename(mod, extname(mod)), instance));
+        return true;
       }
+      if (isFourzePlugin(instance)) {
+        moduleMap.set(mod, instance);
+        return true;
+      }
+      logger.warn(`load module "${mod}" is not a valid module`);
+      return false;
     };
 
     if (fs.existsSync(moduleName)) {
@@ -239,29 +223,12 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
     return this;
   };
 
-  app.define = function (
-    this: FourzeHmrApp,
-    name: string | Record<string, any>,
-    value?: any
-  ) {
-    if (isString(name)) {
-      env[name] = value;
-    } else {
-      Object.assign(env, name);
-    }
-    return this;
-  };
-
   return Object.defineProperties(app, {
-    env: {
-      get() {
-        return env;
-      }
-    },
     moduleNames: {
       get() {
         return [...moduleMap.keys()];
-      }
+      },
+      enumerable: true
     }
   });
 }

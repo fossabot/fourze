@@ -122,17 +122,20 @@ export function createMockApp(
     activeModes: {
       get() {
         return Array.from(activeMode);
-      }
+      },
+      enumerable: true
     },
     enabled: {
       get() {
         return app.activeModes.length > 0;
-      }
+      },
+      enumerable: true
     },
     [FOURZE_MOCK_APP_SYMBOL]: {
       get() {
         return true;
-      }
+      },
+      enumerable: true
     }
   });
 

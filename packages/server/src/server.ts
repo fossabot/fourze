@@ -250,23 +250,27 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
       },
       set(port: string | number) {
         _port = Number(port);
-      }
+      },
+      enumerable: true
     },
     origin: {
       get() {
         return `${_protocol}://${_host}:${_port}`;
-      }
+      },
+      enumerable: true
     },
 
     server: {
       get() {
         return _server;
-      }
+      },
+      enumerable: true
     },
     protocol: {
       get() {
         return _protocol;
-      }
+      },
+      enumerable: true
     }
   });
 

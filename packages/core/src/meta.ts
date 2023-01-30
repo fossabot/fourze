@@ -22,7 +22,8 @@ export function injectMeta<This extends MetaInstance<This>>(instance: This, meta
   Object.defineProperty(instance, "meta", {
     get() {
       return meta;
-    }
+    },
+    enumerable: true
   });
   return instance;
 }

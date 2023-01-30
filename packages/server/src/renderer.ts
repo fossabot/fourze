@@ -240,13 +240,15 @@ export function createRenderer(
   Object.defineProperty(renderer, "name", {
     get() {
       return "FourzeRenderer";
-    }
+    },
+    enumerable: true
   });
 
   Object.defineProperty(renderer, "templates", {
     get() {
       return templates;
-    }
+    },
+    enumerable: true
   });
 
   renderer.use = function (
