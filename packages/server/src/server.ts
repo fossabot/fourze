@@ -8,7 +8,6 @@ import {
   createLogger,
   createServiceContext,
   isMatch,
-  isString,
   overload
 } from "@fourze/core";
 import type {
@@ -180,26 +179,14 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
       if (server) {
         if (!server.listening) {
           server.listen(_port, _host, () => {
-            const address = server.address();
-            let rawAddress = "unknown";
-            if (address) {
-              if (isString(address)) {
-                rawAddress = address;
-              } else {
-                rawAddress = `${address.address}:${address.port}`;
-                _port = address.port;
-              }
-            }
-            logger.info(`Fourze Server v${FOURZE_VERSION} listening on ${_protocol}://${rawAddress}.`);
+            logger.info(`Fourze Server v${FOURZE_VERSION} listening on ${normalizeAddress(server.address(), _protocol)}}.`);
             resolve(server);
             serverApp.emit("ready");
           });
         } else {
           reject(
             new Error(
-              `Server is already listening on ${_protocol}://${normalizeAddress(
-                server.address()
-              )}`
+              `Server is already listening on ${normalizeAddress(server.address(), _protocol)}`
             )
           );
         }

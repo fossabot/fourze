@@ -67,12 +67,27 @@ export function defineEnvs(
   );
 }
 
-export function normalizeAddress(address?: AddressInfo | string | null): string {
-  if (address) {
-    if (isString(address)) {
-      return address;
-    }
-    return `${address.address}:${address.port}`;
+/**
+ *  格式化服务器地址
+ * @param address
+ * @returns
+ */
+export function normalizeAddress(address?: AddressInfo | string | null, protocol: "http" | "https" | false = "http"): string {
+  if (address === null) {
+    return "closed";
   }
-  return "unknown";
+
+  if (isString(address)) {
+    return address;
+  }
+
+  if (address) {
+    const { address: host, port } = address;
+    if (protocol) {
+      return `${protocol}://${host}:${port}`;
+    }
+    return `${host}:${port}`;
+  }
+
+  return "unavailable";
 }

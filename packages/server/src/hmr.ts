@@ -113,11 +113,10 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
     return this;
   };
 
-  const _import = createImporter({
+  const _import = createImporter(__filename, {
     get define() {
       return buildConfig.define;
     },
-    external: ["@fourze/*"],
     interopDefault: true
   });
 
@@ -127,7 +126,7 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
     }
 
     const loadModule = async (mod: string) => {
-      const instance = await _import(mod);
+      const instance = _import(mod);
 
       if (isFourzeModule(instance)) {
         moduleMap.set(mod, instance);

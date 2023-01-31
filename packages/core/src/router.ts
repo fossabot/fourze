@@ -76,7 +76,7 @@ export interface FourzeRouter
 export type FourzeRouterSetup = (
   router: FourzeRouter,
   app: FourzeApp
-) => MaybePromise<FourzeBaseRoute[] | FourzeRouterOptions | void>;
+) => MaybePromise<FourzeBaseRoute[] | FourzeRouterOptions | FourzeRouter | void>;
 
 export interface FourzeRouterOptions {
   name?: string
@@ -250,7 +250,7 @@ export function defineRouter(
       const rs = await setup?.(router, app);
       if (Array.isArray(rs)) {
         routes.push(...rs.map((r) => defineRoute(r)));
-      } else if (isObject(rs)) {
+      } else if (!isRouter(rs) && isObject(rs)) {
         options.name = rs.name ?? options.name;
         options.base = rs.base ?? options.base;
         if (rs.routes) {

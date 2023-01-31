@@ -1,5 +1,5 @@
 import { Server } from 'http';
-import { defineRouter, randomInt } from "@fourze/core";
+import { defineRouter, delay, randomInt } from "@fourze/core";
 import { connect, createServer, normalizeAddress } from "@fourze/server";
 import express from "connect";
 import axios from "axios";
@@ -39,7 +39,7 @@ describe("server", async () => {
   });
 
   it("run-connect", async () => {
-    const host = "localhost";
+    const host = "127.0.0.1";
     const port = 0;
 
     const app = express();
@@ -66,9 +66,10 @@ describe("server", async () => {
       });
     })
 
+    const url = `${normalizeAddress(server.address())}/api/test`;
 
     const returnData = await axios
-      .get<typeof testData>(`http://${normalizeAddress(server.address())}/api/test`)
+      .get<typeof testData>(url)
       .then((r) => r.data);
 
     expect(returnData).toEqual(testData);

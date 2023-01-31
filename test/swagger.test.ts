@@ -46,11 +46,9 @@ describe("shared", async () => {
       });
     })
 
-    const base = `http://${normalizeAddress(server.address())}`;
+    const url = `${normalizeAddress(server.address())}/swagger-ui/index.html`;
 
-
-    const response = await axios
-      .get(`${base}/swagger-ui/index.html`)
+    const response = await axios.get(url)
 
     expect(response.status).toEqual(200);
 
