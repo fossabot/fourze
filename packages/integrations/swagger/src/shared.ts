@@ -116,3 +116,4 @@ export function createApiDocs(app: FourzeApp, options: SwaggerOptions = {}): Swa
     tags
   };
 }
+

@@ -2,25 +2,31 @@ import type EventEmitter from "events";
 import type { IncomingMessage, OutgoingMessage, Server } from "http";
 import http from "http";
 import https from "https";
-import type { AddressInfo } from "net";
 import {
   FOURZE_VERSION,
   createApp,
   createLogger,
   createServiceContext,
+  isMatch,
   isString,
   overload
 } from "@fourze/core";
 import type {
+  CommonMiddleware,
   FourzeApp,
   FourzeContext,
   FourzeLogger,
-  FourzeMiddleware,
-  FourzeNext
+  FourzeMiddleware
   ,
+  FourzeMiddlewareHandler
+  ,
+  FourzeNext,
+  FourzeRequest
+  ,
+  FourzeResponse,
   PropType
 } from "@fourze/core";
-import { injectEventEmitter } from "./utils";
+import { injectEventEmitter, normalizeAddress } from "./utils";
 
 export interface FourzeServerOptions {
   host?: string
@@ -82,16 +88,6 @@ export function createServerContext(
   });
 }
 
-function normalizeAddress(address?: AddressInfo | string | null): string {
-  if (address) {
-    if (isString(address)) {
-      return address;
-    }
-    return `${address.address}:${address.port}`;
-  }
-  return "unknown";
-}
-
 export function createServer(): FourzeServer;
 
 export function createServer(app: FourzeApp): FourzeServer;
@@ -124,15 +120,11 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
 
   const logger = options.logger ?? createLogger("@fourze/server");
 
-  const serverApp = async function (
-    req: IncomingMessage,
-    res: OutgoingMessage,
+  const serverApp = connect(async (
+    request: FourzeRequest,
+    response: FourzeResponse,
     next?: FourzeNext
-  ) {
-    await app.ready();
-    const context = await createServerContext(req, res);
-    const { request, response } = context;
-
+  ) => {
     try {
       await app(request, response, async () => {
         if (next) {
@@ -146,15 +138,15 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
         }
       });
 
-      serverApp.emit("request", context);
+      serverApp.emit("request", { request, response });
     } catch (error) {
-      serverApp.emit("error", error, context);
+      serverApp.emit("error", error, { request, response });
       if (!response.writableEnded) {
         response.sendError(500, "Internal Server Error");
         response.end();
       }
     }
-  } as FourzeServer;
+  }) as FourzeServer;
 
   injectEventEmitter(serverApp);
 
@@ -198,10 +190,7 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
                 _port = address.port;
               }
             }
-            logger.info(`Server listening on ${_protocol}://${rawAddress}`);
-            logger.info(
-              `Application ready for Fourze Server v${FOURZE_VERSION}`
-            );
+            logger.info(`Fourze Server v${FOURZE_VERSION} listening on ${_protocol}://${rawAddress}.`);
             resolve(server);
             serverApp.emit("ready");
           });
@@ -275,4 +264,28 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
   });
 
   return serverApp;
+}
+
+export function connect(path: string, handler: FourzeMiddlewareHandler): CommonMiddleware;
+
+export function connect(handler: FourzeMiddlewareHandler): CommonMiddleware;
+
+export function connect(...args: [string, FourzeMiddleware] | [FourzeMiddlewareHandler]): CommonMiddleware {
+  const { path, handler } = overload({
+    path: {
+      type: String,
+      default: "/"
+    },
+    handler: {
+      type: Function as PropType<FourzeMiddlewareHandler>,
+      required: true
+    }
+  }, args);
+  return async (request, response, next) => {
+    if (isMatch(request.url!, path)) {
+      const context = await createServerContext(request, response);
+      return handler(context.request, context.response, next!);
+    }
+    await next?.();
+  };
 }

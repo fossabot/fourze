@@ -19,6 +19,7 @@ import { flatHeaders, getHeaderValue } from "./polyfill/header";
 import { PolyfillServerResponse } from "./polyfill/response";
 import { createLogger } from "./logger";
 import type { ExtractPropTypes, NormalizedObjectProps, ObjectProps, PropType } from "./props";
+import { isExtends } from "./props";
 import type { MetaInstance } from "./meta";
 
 export const FOURZE_VERSION = version;
@@ -37,7 +38,7 @@ export type DefaultData = Record<string, unknown>;
 
 export interface FourzeRouteOptions<Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta> {
   method?: RequestMethod
-  props: Props
+  props?: Props
   meta?: Meta & FourzeRouteMeta
 }
 
@@ -354,7 +355,7 @@ export interface FourzeMiddlewareHandler<T = any> {
 export interface FourzeMiddleware<T = any> extends FourzeMiddlewareHandler<T> {
   name?: string
   base?: string
-  setup?: (app: FourzeApp) => MaybePromise<void>
+  setup?: (app?: FourzeApp) => MaybePromise<void>
   readonly order?: number
 }
 
@@ -371,12 +372,34 @@ export function normalizeProps<T>(
   for (const name in props) {
     const key = name;
     const prop = props[name];
+
+    if (isFunction(prop)) {
+      result[key] = {
+        type: prop,
+        in: "query",
+        required: isExtends(prop as PropType<any>, Boolean),
+        meta: {}
+      };
+      continue;
+    }
+
+    if (Array.isArray(prop)) {
+      result[key] = {
+        type: prop,
+        in: "query",
+        required: prop.some((p) => isExtends(p as PropType<any>, Boolean)),
+        meta: {}
+      };
+      continue;
+    }
+
     if (!isFunction(prop) && !Array.isArray(prop) && !!prop) {
       result[key] = {
         type: prop.type,
         meta: {
           ...prop.meta
         },
+        in: prop.in ?? "query",
         default: prop.default,
         required: prop.default ? false : prop.required ?? false
       };
@@ -772,6 +795,10 @@ export function definePlugin(...args: [FourzePluginInstall] | [string, FourzePlu
 
 export function isFourzePlugin(obj: any): obj is FourzePlugin {
   return !!obj && !!obj[FOURZE_PLUGIN_SYMBOL];
+}
+
+export function isFourzeModule(obj: any): obj is FourzeModule {
+  return isFourzePlugin(obj) || isFourzeMiddleware(obj);
 }
 
 export function isFourzeResponse(obj: any): obj is FourzeResponse {

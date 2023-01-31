@@ -3,7 +3,8 @@ import type { FourzeHmrApp } from "@fourze/server";
 
 import vite from "vite";
 import fs from "fs-extra";
-import { createApiDocs, generateHtmlString, getSwaggerFSPath } from "@fourze/swagger";
+import { createApiDocs, getSwaggerFSPath, renderIndexHtml } from "@fourze/swagger";
+import { resolves } from "@fourze/core";
 import { defaultMockCode } from "./mock";
 
 const swaggerAssetFiles = [
@@ -22,50 +23,48 @@ export interface SwaggerUIBuildOptions {
   distPath?: string
 
   /**
-   *  @default "/swagger-ui/"
+   *  主项目的根路径
+   *  @default "/"
    */
-  uiPath?: string
-
-  /**
-   *  @default "swagger.json"
-   */
-  documentUrl?: string
+  base?: string
 
   assetsFilter?: (src: string) => boolean
-  mock?: boolean
+
   vite?: vite.InlineConfig
 
-  root?: string
+  /**
+   * @default ".fourze-swagger"
+   */
+  tmpDir?: string
+
 }
 
 export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = {}) {
   const swaggerFsPath = getSwaggerFSPath();
-  const distPath = options.distPath ?? path.join(process.cwd(), "dist", "swagger-ui");
-  const documentUrl = options.documentUrl ?? "./swagger.json";
 
+  const distPath = options.distPath ?? path.join(process.cwd(), "dist");
   const tmpDir = path.join(process.cwd(), ".fourze-swagger");
+
+  // 固定加上swagger-ui的路径
+  const base = options.base ?? "/";
+
+  const uiPath = "/swagger-ui/";
+
+  const documentPath = "/swagger-ui/swagger.json";
 
   await fs.emptyDir(tmpDir);
 
-  if (options.mock) {
-    const hmrApp = app as FourzeHmrApp;
-    const code = defaultMockCode(hmrApp);
-    await fs.outputFile(path.join(tmpDir, "mock.ts"), code);
-  }
+  await fs.outputFile(path.join(tmpDir, "mock.ts"), defaultMockCode(app));
 
-  await fs.outputFile(path.join(tmpDir, "index.html"), generateHtmlString(
-    {
-      initOptions: {
-        url: documentUrl
-      },
-      externalScripts: [
-        {
-          src: "./mock.ts",
-          type: "module"
-        }
-      ]
-    }
-  ));
+  await fs.outputFile(path.join(tmpDir, "index.html"), renderIndexHtml(resolves(base, uiPath), {
+    url: resolves(base, documentPath),
+    script: [
+      {
+        src: "mock.ts",
+        type: "module"
+      }
+    ]
+  }));
 
   const filter: fs.CopyFilterSync = options.assetsFilter ?? ((src) => {
     const filename = path.relative(swaggerFsPath, src);
@@ -76,17 +75,15 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
   // 打包接口文档 这里会有更好的方案吗???
 
   await vite.build(vite.mergeConfig(options.vite ?? {}, vite.defineConfig({
-    base: "./",
+    base: resolves(base, uiPath),
     root: tmpDir,
     build: {
-      outDir: distPath,
+      outDir: path.join(distPath, uiPath),
       emptyOutDir: true,
-      sourcemap: true
-    },
-    esbuild: {
-
+      sourcemap: false,
+      minify: true
     }
   })));
-  await fs.outputFile(path.resolve(distPath, documentUrl), JSON.stringify(createApiDocs(app)));
+  await fs.outputFile(path.join(distPath, documentPath), JSON.stringify(createApiDocs(app)));
   await fs.remove(tmpDir);
 }

@@ -4,6 +4,7 @@ import { isRegExp } from "./is";
 
 export function slash(...paths: string[]): string {
   let path = paths
+    .filter((p) => !!p)
     .map((p) => p.replace(/\\/g, "/"))
     .join("/")
     .replace(/\/+/g, "/");
@@ -15,10 +16,10 @@ export function slash(...paths: string[]): string {
   return path;
 }
 
-export function resolvePath(_path: string, _base = "/"): string {
+export function resolvePath(_path: string, ..._base: string[]): string {
   if (!hasProtocol(_path)) {
     if (!_path.startsWith("//")) {
-      return slash(_base, _path);
+      return slash(..._base, _path);
     }
     return slash(_path);
   }
@@ -50,4 +51,14 @@ export function isMatch(path: string, ...pattern: MaybeRegex[]) {
     }
     return path.startsWith(r) || minimatch(path, r, { partial: true });
   });
+}
+
+/**
+ *
+ * @param paths
+ * @returns
+ */
+export function resolves(...args: (string | undefined)[]): string {
+  const paths = args.filter((p) => !!p) as string[];
+  return slash(...paths);
 }

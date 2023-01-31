@@ -60,7 +60,7 @@ export interface FourzeRouter
 
   resolve(path: string): string
 
-  info?: string
+  setup(app?: FourzeApp): Promise<void>
 
   readonly meta: Record<string, any>
 
@@ -114,16 +114,19 @@ export function defineRouter(
 
   const logger = createLogger("@fourze/core");
 
-  const router = defineMiddleware(options.name ?? "Router", async (
+  const router = defineMiddleware(options.name ?? `FourzeRouter@${Math.random().toString(32).slice(8)}`, async (
     request: FourzeRequest,
     response: FourzeResponse,
     next?: FourzeNext
   ) => {
+    await router.setup();
+
     request.contextPath = router.base;
 
     const { path, method } = request;
 
     const [route, matches] = router.match(path, method);
+    logger.debug(`Request received -> ${normalizeRoute(request.path)}.`);
 
     if (route && matches) {
       for (let i = 0; i < route.pathParams.length; i++) {
@@ -156,7 +159,7 @@ export function defineRouter(
         response.sendError(500, error.message);
       }
 
-      logger.info(
+      logger.debug(
         `Request matched -> ${normalizeRoute(request.path, method)}.`
       );
 
@@ -164,6 +167,7 @@ export function defineRouter(
         response.end();
       }
     } else {
+      logger.debug(`Request not matched -> ${normalizeRoute(request.path)}.`, next);
       await next?.();
     }
 
@@ -284,7 +288,7 @@ export function defineRouter(
     base: {
       // default base
       get() {
-        return "/";
+        return options.base ?? "/";
       },
       configurable: true,
       enumerable: true

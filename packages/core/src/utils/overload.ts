@@ -1,17 +1,25 @@
-import type { ExtractPropTypes, PropType } from "../props";
+import type { InferPropType, OptionalKeys, PropType, RequiredKeys } from "../props";
 import { isInstanceOf } from "../props";
 import { isFunction, isUndef } from "./is";
 
-type OverloadConfig<P = Record<string, unknown>> = {
+type OverloadConfig<P = Record<string, any>> = {
   [K in keyof P]: OverloadProp<P[K]> | null;
 };
 
 type OverloadProp<T = any, D = T> = OverloadOptions<T, D> | PropType<T>;
 
+type ExtractPropTypes<
+  P extends Record<string, any>
+> = {
+  [K in keyof Pick<P, RequiredKeys<P>>]: InferPropType<P[K]>;
+} & {
+  [K in keyof Pick<P, OptionalKeys<P>>]?: InferPropType<P[K]>;
+} & Record<string, any>;
+
 export interface OverloadOptions<Type = any, Default = Type> {
   type: PropType<Type>
   required?: boolean
-  default?: (value: Type) => Default
+  default?: ((value: Type) => Default) | Default
   transform?: (value: Type) => any
   match?: (value: Type) => boolean
   rest?: boolean
@@ -39,7 +47,7 @@ export function defineOverload<Config extends OverloadConfig>(
           types.push(props.type);
           required = !!props.required || !!props.default;
           transform = props.transform;
-          defaultValue = props.default;
+          defaultValue = typeof props.default === "function" ? props.default : () => props.default;
         }
       }
 

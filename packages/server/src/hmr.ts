@@ -1,11 +1,10 @@
 import fs from "fs";
 import { basename, extname, join, resolve } from "path";
-import type { PropType } from "vue";
 import {
   createApp,
   createLogger,
   defineMiddleware,
-  isFourzePlugin,
+  isFourzeModule,
   isFunction,
   isString,
   overload
@@ -16,6 +15,8 @@ import type {
   FourzeAppOptions,
   FourzeBaseRoute,
   FourzeModule
+  ,
+  PropType
 } from "@fourze/core";
 import type { FSWatcher } from "chokidar";
 import { normalizePath } from "./utils";
@@ -126,16 +127,15 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
     }
 
     const loadModule = async (mod: string) => {
-      logger.info(`load module "${mod}" `);
-
       const instance = await _import(mod);
+
+      if (isFourzeModule(instance)) {
+        moduleMap.set(mod, instance);
+        return true;
+      }
 
       if (isFunction(instance)) {
         moduleMap.set(mod, defineMiddleware(basename(mod, extname(mod)), instance));
-        return true;
-      }
-      if (isFourzePlugin(instance)) {
-        moduleMap.set(mod, instance);
         return true;
       }
       logger.warn(`load module "${mod}" is not a valid module`);

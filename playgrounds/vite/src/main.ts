@@ -5,7 +5,7 @@ import "windi.css";
 createApp(RouterView)
   .use(
     createRouter({
-      history: createWebHistory("/"),
+      history: createWebHistory(import.meta.env.BASE_URL),
       routes: [
         {
           path: "/",

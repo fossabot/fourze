@@ -1,6 +1,6 @@
 import path from "path";
 import type { DelayMsType, FourzeLogLevelKey } from "@fourze/core";
-import { createLogger, setLoggerLevel } from "@fourze/core";
+import { createLogger, resolves, setLoggerLevel } from "@fourze/core";
 import { createUnplugin } from "unplugin";
 
 import type { FourzeMockAppOptions } from "@fourze/mock";
@@ -10,12 +10,12 @@ import type {
   FourzeProxyOption
 } from "@fourze/server";
 import {
+
   createHmrApp
   , createServer, defineEnvs
 } from "@fourze/server";
 
-import type { SwaggerRouterOptions } from "@fourze/swagger";
-import { createSwaggerRouter } from "@fourze/swagger";
+import { service } from "@fourze/swagger";
 import type { InlineConfig } from "vite";
 import { build } from "./swagger";
 import { defaultMockCode as defaultTransformCode } from "./mock";
@@ -28,7 +28,13 @@ function isClientID(id: string) {
   return id.endsWith(CLIENT_ID);
 }
 
-export interface SwaggerPluginOption extends SwaggerRouterOptions {
+export interface SwaggerPluginOption {
+
+  /**
+   *  @default vite.base + "/swagger-ui/"
+   */
+  base?: string
+
   generateDocument?: boolean
 }
 
@@ -149,7 +155,8 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
       async writeBundle() {
         if (generateDocument) {
           await build(app, {
-            mock: true,
+            base: viteConfig.base,
+            distPath: viteConfig.build?.outDir,
             vite: {
               ...viteConfig
             }
@@ -231,25 +238,22 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
             app.watch(watcher);
           }
 
-          const uiPath = "/swagger-ui/";
-
-          logger.info("Swagger document is ready at ", uiPath);
-
-          const swaggerRouter = createSwaggerRouter({
-            uiPath,
+          const swaggerMiddleware = service(app, {
+            base: resolves(viteConfig.base, "/swagger-ui/"),
             ...swaggerOptions
           });
-          app.use(swaggerRouter);
 
-          const service = createServer(app);
+          const server = createServer();
           if (options.server?.port) {
             try {
-              service.listen(port, host);
+              server.listen(port, host);
             } catch (error) {
               logger.error("Server listen failed.", error);
             }
           } else {
-            middlewares.use(service);
+            server.use(app);
+            server.use(swaggerMiddleware);
+            middlewares.use(server);
           }
         }
       }

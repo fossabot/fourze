@@ -1,7 +1,8 @@
 import os from "os";
 import path from "path";
 import EventEmitter from "events";
-import { slash } from "@fourze/core";
+import type { AddressInfo } from "net";
+import { isString, slash } from "@fourze/core";
 
 /**
  *  copy from @vitejs/vite/packages/vite/src/node/utils.ts
@@ -64,4 +65,14 @@ export function defineEnvs(
       return [`${prefix}${key}`, JSON.stringify(value)];
     })
   );
+}
+
+export function normalizeAddress(address?: AddressInfo | string | null): string {
+  if (address) {
+    if (isString(address)) {
+      return address;
+    }
+    return `${address.address}:${address.port}`;
+  }
+  return "unknown";
 }

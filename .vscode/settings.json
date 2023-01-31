@@ -3,7 +3,8 @@
     "cSpell.words": [
         "autocannon",
         "fourze",
-        "nexted"
+        "mkdirs",
+        "outfile"
     ],
     "eslint.alwaysShowStatus": true,
     "eslint.format.enable": true,

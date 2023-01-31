@@ -1,5 +1,7 @@
+import { Server } from 'http';
 import { defineRouter, randomInt } from "@fourze/core";
-import { createServer } from "@fourze/server";
+import { connect, createServer, normalizeAddress } from "@fourze/server";
+import express from "connect";
 import axios from "axios";
 import { describe, expect, it } from "vitest";
 
@@ -34,5 +36,42 @@ describe("server", async () => {
       .then((r) => r.data);
 
     expect(returnData).toEqual(testData);
+  });
+
+  it("run-connect", async () => {
+    const host = "localhost";
+    const port = 0;
+
+    const app = express();
+
+
+
+    const testData = {
+      name: "test",
+      count: randomInt(200),
+    };
+
+
+    const router = defineRouter({}).get("/test", () => {
+      return {
+        ...testData,
+      };
+    });
+
+    app.use("/api/",connect(router));
+
+    const server:Server = await new Promise(resolve=>{
+      const server = app.listen(port, host,()=>{
+        resolve(server);
+      });
+    })
+
+
+    const returnData = await axios
+      .get<typeof testData>(`http://${normalizeAddress(server.address())}/api/test`)
+      .then((r) => r.data);
+
+    expect(returnData).toEqual(testData);
+
   });
 });

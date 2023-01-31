@@ -12,6 +12,7 @@ export type ModuleImporter = (id: string) => Promise<any>;
 
 export function createImporter(options: ModuleImporterOptions): ModuleImporter {
   const cacheDir = path.join(process.cwd(), "node_modules", ".cache", "fourze/");
+  options.cache = options.cache ?? true;
   return async function (id: string) {
     await fs.mkdirs(cacheDir);
     const outfile = path.join(cacheDir, `${path.basename(id)}.js`);
@@ -24,12 +25,15 @@ export function createImporter(options: ModuleImporterOptions): ModuleImporter {
         write: true,
         platform: "node",
         bundle: true,
-        metafile: false,
         allowOverwrite: true,
         format: "cjs",
         target: "es6",
-        define: options.define ?? {},
-        alias: {},
+        define: {
+          "__dirname": JSON.stringify(path.dirname(id)),
+          "__filename": JSON.stringify(id),
+          "import.meta.url": JSON.stringify(id),
+          ...options.define
+        },
         treeShaking: true
       });
       if (!options.cache) {

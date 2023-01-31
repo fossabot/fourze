@@ -1,5 +1,5 @@
 import type { MaybePromise } from "maybe-types";
-import { isFunction, isPromise } from "./utils";
+import { isFunction, isPromise, renderElement } from "./utils";
 
 async function resolveElement(ele: any) {
   if (isPromise(ele)) {
@@ -34,22 +34,14 @@ export async function createElement(
       const tasks = children.map(async (c) =>
         Array.isArray(c) ? renderChildren(c) : resolveElement(c)
       );
-      const childs = await Promise.all(tasks);
-      return childs.join("");
+      return await Promise.all(tasks).then(r => r.join(""));
     }
     return children;
   }
 
   const content = await renderChildren(children);
-  const attrs = Object.entries(props)
-    .map(([key, value]) => ` ${key}="${value}"`)
-    .join("");
 
-  if (tag.toLowerCase() === "fragment") {
-    return content;
-  }
-
-  return `<${tag}${attrs}>${content}</${tag}>`;
+  return renderElement(tag, props, content);
 }
 
 export const h = createElement;
@@ -83,3 +75,4 @@ export function isFourzeComponent(
 ): component is FourzeComponent {
   return component && component[FourzeComponentSymbol];
 }
+

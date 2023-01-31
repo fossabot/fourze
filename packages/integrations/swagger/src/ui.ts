@@ -1,53 +1,27 @@
-import type { FourzeMockAppOptions } from "@fourze/mock";
-import type { FourzeHmrApp } from "@fourze/server";
-import { normalizePath } from "@fourze/server";
-import type { SwaggerUIInitOptions } from "./types";
+import type { RenderHtmlOptions } from "@fourze/core";
+import { renderHtml, resolves, transformTemplate } from "@fourze/core";
 
-const htmlTemplateString = `
-<!-- HTML for static distribution bundle build -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title><% title %></title>
-  <link rel="stylesheet" type="text/css" href="./swagger-ui.css" >
-  <link rel="icon" type="image/png" href="./favicon-32x32.png" sizes="32x32" />
-  <link rel="icon" type="image/png" href="./favicon-16x16.png" sizes="16x16" />
-  <style>
-    html {
-      box-sizing: border-box;
-      overflow: -moz-scrollbars-vertical;
-      overflow-y: scroll;
-    }
+const defaultStyleTemplate = `
+html {
+  box-sizing: border-box;
+  overflow: -moz-scrollbars-vertical;
+  overflow-y: scroll;
+}
 
-    *,
-    *:before,
-    *:after {
-      box-sizing: inherit;
-    }
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
 
-    body {
-      margin:0;
-      background: #fafafa;
-    }
+body {
+  margin:0;
+  background: #fafafa;
+}
 
-    .swagger-ui .topbar .download-url-wrapper {
-      display: none
-    }
-    <% inlineStyleCode %>
-  </style>
-</head>
-<body>
-<div id="swagger-ui"></div>
-<script src="./swagger-ui-bundle.js"> </script>
-<script src="./swagger-ui-standalone-preset.js"> </script>
-<script>
-  <% inlineScriptCode %>
-</script>
-<% externalScriptTags %>
-</body>
-</html>
-`;
+.swagger-ui .topbar .download-url-wrapper {
+  display: none !important;
+}`;
 
 const defaultScriptTemplate = `
 
@@ -84,54 +58,6 @@ window.onload = function() {
 }
 `;
 
-export interface ScriptTagAttributes extends Record<string, any> {
-  src?: string
-  type?: string
-}
-
-export function toExternalTag(tag: string, attrs: ScriptTagAttributes) {
-  return `<${tag} ${Object.entries(attrs).map(([key, value]) => `${key}='${value}'`).join(" ")}></${tag}>`;
-}
-
-export function toInlineScriptTag(scriptCode: string) {
-  return `<script>${scriptCode}</script>`;
-}
-
-export function toExternalStylesheetTag(url: string) {
-  return `<link href='${url}' rel='stylesheet'>`;
-}
-
-function transformTemplate(
-  template: string,
-  data: Record<string, any>
-): string {
-  return template.replace(/<% (.+?) %>/g, (_, name) => {
-    return data[name] ?? "";
-  });
-}
-
-interface HtmlTag {
-  tag: string
-  attributes?: Record<string, any>
-  content?: string
-  in?: "body" | "head"
-}
-
-export interface GenerateHtmlOptions {
-  initOptions?: SwaggerUIInitOptions
-  inlineStyle?: string
-  inlineScript?: string
-  favicon?: string
-  title?: string
-  tags?: HtmlTag[]
-  htmlTemplate?: string
-  scriptTemplate?: string
-  externalScripts?: (string | {
-    src: string
-    type?: string
-  })[]
-}
-
 function stringifyOptions(obj: Record<string, any>): string {
   const placeholder = "____FUNCTION_PLACEHOLDER____";
   const fns: Function[] = [];
@@ -152,58 +78,51 @@ function stringifyOptions(obj: Record<string, any>): string {
   return json;
 }
 
-export function generateHtmlString(options: GenerateHtmlOptions = {}) {
-  const scriptTemplate = options.scriptTemplate ?? defaultScriptTemplate;
+export interface RenderSwaggerUIOptions extends RenderHtmlOptions {
+  url?: string
+}
 
-  const inlineScriptCode = transformTemplate(scriptTemplate, {
-    inlineScriptCode: options.inlineScript ?? "",
+export function renderIndexHtml(root: string, options: RenderSwaggerUIOptions = {}) {
+  const scriptContent = transformTemplate(defaultScriptTemplate, {
     initOptions: stringifyOptions({
-      ...options.initOptions
+      url: options.url ?? resolves(root, "/swagger.json")
     })
   });
 
-  const externalScripts = (options.externalScripts ?? []).map(r => {
-    if (typeof r === "string") {
-      return toExternalTag("script", { src: r });
-    }
-    const { src, type } = r;
-    return toExternalTag("script", { src, type });
+  return renderHtml({
+    language: options.language ?? "en",
+    favicon: options.favicon ?? `${root}/favicon-32x32.png`,
+    script: [
+      resolves(root, "/swagger-ui-bundle.js"),
+      resolves(root, "/swagger-ui-standalone-preset.js"),
+      ...(options.script ?? [])
+    ],
+    style: [
+      resolves(root, "/swagger-ui.css"),
+      ...(options.style ?? [])
+    ],
+    title: "Swagger UI",
+    tags: [...options.tags ?? []],
+    meta: [
+      { name: "description", content: "Swagger UI" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { charset: "UTF-8" },
+      ...(options.meta ?? [])
+    ],
+    head: [
+      {
+        tag: "style",
+        content: defaultStyleTemplate
+      },
+      ...(options.head ?? [])
+    ],
+    body: [
+      { tag: "div", attributes: { id: "swagger-ui" } },
+      {
+        tag: "script",
+        content: scriptContent
+      },
+      ...(options.body ?? [])
+    ]
   });
-
-  const htmlString = transformTemplate(htmlTemplateString, {
-    inlineScriptCode,
-    externalScriptTags: externalScripts.join("\r\n"),
-    favicon: "<meta></meta>"
-  });
-  return htmlString;
-}
-
-const TEMPORARY_FILE_SUFFIX = ".tmp.js";
-
-export function defaultMockCode(
-  app: FourzeHmrApp,
-  options: FourzeMockAppOptions = {}
-) {
-  let code = "import {createMockApp} from \"@fourze/mock\";";
-
-  const names: string[] = [];
-  for (let i = 0; i < app.moduleNames.length; i++) {
-    let modName = app.moduleNames[i];
-    names[i] = `fourze_module_${i}`;
-    modName = modName.replace(TEMPORARY_FILE_SUFFIX, "");
-    modName = normalizePath(modName);
-
-    code += `
-      \nimport ${names[i]} from "${modName}";\n
-    `;
-  }
-  code += `
-  createMockApp({
-    base:"${app.base}",
-    modules:[${names.join(",")}].flat(),
-    delay:${JSON.stringify(options.delay)},
-    mode:${JSON.stringify(options.mode)},
-    allow:${JSON.stringify(options.allow)},
-  }).ready();`;
-  return code;
 }

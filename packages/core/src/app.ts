@@ -12,6 +12,7 @@ import type {
   FourzePlugin
 } from "./shared";
 import {
+
   createServiceContext
 
 } from "./shared";
@@ -144,7 +145,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
       const middleware = ms[i];
       if (typeof middleware === "function") {
         Object.defineProperty(middleware, "base", {
-          value: resolvePath(path, this.base),
+          value: resolvePath(path, this.base, middleware.base ?? "/"),
           writable: false,
           enumerable: true,
           configurable: true
@@ -291,3 +292,4 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
 
   return app;
 }
+
