@@ -31,7 +31,7 @@ function getParameter<P extends ObjectProps = ObjectProps>(props: P) {
 }
 
 function normalizeOperationId(path: string) {
-  return path.replace("/", "_");
+  return path.replaceAll("/", "_");
 }
 
 export function createApiDocs(app: FourzeApp, options: SwaggerOptions = {}): SwaggerDocument {
@@ -70,7 +70,7 @@ export function createApiDocs(app: FourzeApp, options: SwaggerOptions = {}): Swa
     for (const [path, routes] of groups) {
       const map = new Map<RequestMethod, SwaggerPathSchema>();
       for (const route of routes) {
-        const { method, meta, props } = route;
+        const { method = options.defaultMethod, meta, props } = route;
         const parameters = getParameter(props);
         const { summary, description, tags, responses = {}, produces = ["application/json"], consumes = ["application/json"], operationId = normalizeOperationId(path) } = meta as SwaggerPathSchema;
         const schema = {
@@ -84,9 +84,9 @@ export function createApiDocs(app: FourzeApp, options: SwaggerOptions = {}): Swa
           operationId
         };
         if (!method) {
-          paths.set(path, schema);
+          paths.set(path, { ...schema });
         } else {
-          map.set(method, schema);
+          map.set(method, { ...schema });
         }
       }
       const newPath = Object.fromEntries(map.entries()) as Record<
@@ -105,7 +105,7 @@ export function createApiDocs(app: FourzeApp, options: SwaggerOptions = {}): Swa
   }
 
   return {
-    swagger: "2.0",
+    openapi: "3.0.0",
     info: options.info,
     host: options.host,
     basePath: app.base,

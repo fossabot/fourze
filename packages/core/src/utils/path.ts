@@ -19,9 +19,9 @@ export function slash(...paths: string[]): string {
 export function resolvePath(_path: string, ..._base: string[]): string {
   if (!hasProtocol(_path)) {
     if (!_path.startsWith("//")) {
-      return slash(..._base, _path);
+      return resolves(..._base, _path);
     }
-    return slash(_path);
+    return normalize(_path);
   }
   return _path;
 }
@@ -54,11 +54,31 @@ export function isMatch(path: string, ...pattern: MaybeRegex[]) {
 }
 
 /**
- *
+ * 格式化路径
+ * @param path
+ */
+export function normalize(path: string) {
+  if (!path.startsWith("/")) {
+    path = "/".concat(path);
+  }
+  path = path.replace(/\\/g, "/").replace(/\/+/g, "/");
+  if (path.length > 1 && path.endsWith("/")) {
+    path = path.slice(0, -1);
+  }
+  return path;
+}
+
+/**
+ * 格式化路径 必须以‘/’开始，结尾去除'/',不得有重复的'/'
+ * @example /abc/edf
  * @param paths
  * @returns
  */
 export function resolves(...args: (string | undefined)[]): string {
-  const paths = args.filter((p) => !!p) as string[];
-  return slash(...paths);
+  const paths = args.filter((p) => !!p && p !== "/") as string[];
+  if (paths.length) {
+    return normalize(paths.map(normalize).join(""));
+  }
+  return "/";
 }
+

@@ -18,12 +18,12 @@ import {
 } from "./shared";
 import type { DelayMsType } from "./utils";
 import {
-  createQuery, createSingletonPromise,
-  isMatch,
+  createQuery,
+  createSingletonPromise, isMatch,
   isObject,
   isString,
   relativePath,
-  resolvePath
+  resolves
 } from "./utils";
 import { injectMeta } from "./meta";
 
@@ -102,11 +102,18 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     try {
       if (app.isAllow(url)) {
         const ms = app.match(url);
+
+        request.app = app;
+
+        const oldContextPath = request.contextPath;
+
         async function doNext() {
-          const middleware = ms.shift();
+          const [path, middleware] = ms.shift() ?? [];
           if (middleware) {
+            request.contextPath = resolves(app.base, path);
             await middleware(request, response, doNext);
           } else {
+            request.contextPath = oldContextPath;
             return await next?.();
           }
         }
@@ -126,7 +133,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     if (url) {
       return middlewareStore
         .where((r) => isMatch(url, r.path))
-        .select((r) => r.middleware)
+        .select(r => [r.path, r.middleware] as [string, FourzeMiddleware])
         .toArray();
     }
     return [];
@@ -138,18 +145,12 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
   ) {
     const arg0 = args[0];
     const isPath = isString(arg0);
-    const path = resolvePath(isPath ? arg0 : "/", "/");
+    const path = isPath ? arg0 : "/";
     const ms = (isPath ? args.slice(1) : args) as FourzeModule[];
 
     for (let i = 0; i < ms.length; i++) {
       const middleware = ms[i];
       if (typeof middleware === "function") {
-        Object.defineProperty(middleware, "base", {
-          value: resolvePath(path, this.base, middleware.base ?? "/"),
-          writable: false,
-          enumerable: true,
-          configurable: true
-        });
         const node = { path, middleware, order: middleware.order ?? middlewareStore.length };
         if (!this.isReadying) {
           persistenceMiddlewareStore.append(node);
@@ -184,8 +185,8 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     return { request, response };
   };
 
-  app.isAllow = function (url: string) {
-    let rs = true;
+  app.isAllow = function (this: FourzeApp, url: string) {
+    let rs = url.startsWith(this.base);
     if (allows.length) {
       // 有允许规则
       rs &&= isMatch(url, ...allows);

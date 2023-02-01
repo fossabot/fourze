@@ -1,5 +1,5 @@
 import path from "path";
-import type { DelayMsType, FourzeLogLevelKey } from "@fourze/core";
+import type { DelayMsType, FourzeLogLevelKey, RequestMethod } from "@fourze/core";
 import { createLogger, resolves, setLoggerLevel } from "@fourze/core";
 import { createUnplugin } from "unplugin";
 
@@ -36,6 +36,8 @@ export interface SwaggerPluginOption {
   base?: string
 
   generateDocument?: boolean
+
+  defaultMethod?: RequestMethod
 }
 
 export interface UnpluginFourzeOptions {
@@ -132,7 +134,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
   //     }
   //   );
 
-  const app = createHmrApp({
+  const hmrApp = createHmrApp({
     base,
     dir,
     pattern,
@@ -154,18 +156,19 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
       name: PLUGIN_NAME,
       async writeBundle() {
         if (generateDocument) {
-          await build(app, {
+          await build(hmrApp, {
             base: viteConfig.base,
             distPath: viteConfig.build?.outDir,
             vite: {
               ...viteConfig
-            }
+            },
+            defaultMethod: swaggerOptions.defaultMethod
           });
         }
       },
       async buildStart() {
         try {
-          await app.ready();
+          await hmrApp.ready();
 
           logger.info("Fourze plugin is ready.");
         } catch (error) {
@@ -181,11 +184,11 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
 
       async load(id) {
         if (isClientID(id)) {
-          return transformCode(app, options);
+          return transformCode(hmrApp, options);
         }
       },
       async webpack() {
-        const server = createServer(app);
+        const server = createServer(hmrApp);
         await server.listen(port, host);
         logger.info("Webpack Server listening on port", options.server?.port);
       },
@@ -221,7 +224,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
           };
         },
         async configResolved(config) {
-          app.configure({
+          hmrApp.configure({
             define: {
               ...defineEnvs(config.env, "import.meta.env."),
               ...defineEnvs(config.define ?? {})
@@ -238,10 +241,10 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
 
         configureServer({ middlewares, watcher }) {
           if (hmr) {
-            app.watch(watcher);
+            hmrApp.watch(watcher);
           }
 
-          const swaggerMiddleware = service(app, {
+          const swaggerMiddleware = service(hmrApp, {
             base: resolves(viteConfig.base, "/swagger-ui/"),
             ...swaggerOptions
           });
@@ -254,7 +257,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
               logger.error("Server listen failed.", error);
             }
           } else {
-            server.use(app);
+            server.use(hmrApp);
             server.use(swaggerMiddleware);
             middlewares.use(server);
           }

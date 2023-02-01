@@ -46,7 +46,8 @@ export default defineConfig({
       hmr: true,
       mock: true,
       delay: "200-500",
-      swagger: true
+      swagger: true,
+      logLevel: "debug"
     }),
     visualizer({
       open: false,

@@ -1,18 +1,20 @@
-import { DISABLE_JSON_WRAPPER_HEADER, resolvePath } from "@fourze/core";
+import { DISABLE_JSON_WRAPPER_HEADER, resolves } from "@fourze/core";
 import type {
   FourzeApp,
   FourzeMiddleware,
   FourzeNext,
   FourzeRequest
   , FourzeResponse
+
 } from "@fourze/core";
 import { getAbsoluteFSPath } from "swagger-ui-dist";
 import { staticFile } from "@fourze/server";
 
 import { renderIndexHtml } from "./ui";
 import { createApiDocs } from "./shared";
+import type { SwaggerOptions } from "./types";
 
-export interface SwaggerUIServiceOptions {
+export interface SwaggerUIServiceOptions extends SwaggerOptions {
   base?: string
   documentPath?: string
 }
@@ -23,7 +25,7 @@ export function service(
 ): FourzeMiddleware {
   const base = options.base ?? "/swagger-ui/";
   const documentPath = options.documentPath ?? "/swagger.json";
-  const documentUrl = resolvePath(documentPath, base);
+  const documentUrl = resolves(base, documentPath);
 
   const swaggerUISourcePath = getAbsoluteFSPath();
 
@@ -32,7 +34,9 @@ export function service(
   return async (req: FourzeRequest, res: FourzeResponse, next: FourzeNext) => {
     if (req.path.startsWith(base)) {
       if (req.path === documentUrl) {
-        const docs = createApiDocs(app, {});
+        const docs = createApiDocs(app, {
+          ...options
+        });
         res.setHeader(DISABLE_JSON_WRAPPER_HEADER, "true");
         res.send(docs, "application/json");
         return;

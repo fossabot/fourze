@@ -18,6 +18,8 @@ export type FourzeLogLevelKey = Lowercase<keyof typeof LogLevel>;
 
 export type FourzeLogger = Consola;
 
+let globalLoggerLevel: FourzeLogLevelKey | FourzeLogLevel = "info";
+
 const loggerStore = new Map<string, FourzeLogger>();
 
 export function createLogger(scope: string) {
@@ -25,6 +27,7 @@ export function createLogger(scope: string) {
   if (!logger) {
     logger = consola.withScope(scope);
     loggerStore.set(scope, logger);
+    setLoggerLevel(globalLoggerLevel, scope);
   }
   return logger;
 }
@@ -75,6 +78,7 @@ export function setLoggerLevel(
   };
 
   if (!scope) {
+    globalLoggerLevel = level;
     loggerStore.forEach(fn);
   } else {
     const logger = loggerStore.get(scope);

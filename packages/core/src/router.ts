@@ -31,9 +31,7 @@ import {
   isUndef,
   isUndefined,
   normalizeRoute,
-  overload,
-  relativePath,
-  resolvePath
+  overload
 } from "./utils";
 
 const FourzeRouterSymbol = Symbol("FourzeRouter");
@@ -56,15 +54,9 @@ export interface FourzeRouter
 
   route: FourzeRouteFunction<FourzeRouter>
 
-  relative(path: string): string | null
-
-  resolve(path: string): string
-
   setup(app?: FourzeApp): Promise<void>
 
   readonly meta: Record<string, any>
-
-  readonly base: string
 
   readonly name: string
 
@@ -80,7 +72,6 @@ export type FourzeRouterSetup = (
 
 export interface FourzeRouterOptions {
   name?: string
-  base?: string
   meta?: FourzeRouterMeta
   routes?: FourzeBaseRoute[]
   setup?: FourzeRouterSetup
@@ -120,8 +111,6 @@ export function defineRouter(
     next?: FourzeNext
   ) => {
     await router.setup();
-
-    request.contextPath = router.base;
 
     const { path, method } = request;
 
@@ -167,7 +156,7 @@ export function defineRouter(
         response.end();
       }
     } else {
-      logger.debug(`Request not matched -> ${normalizeRoute(request.path)}.`, next);
+      logger.debug(`[${router.name}]`, `Request not matched -> ${normalizeRoute(request.path)}.`);
       await next?.();
     }
 
@@ -178,16 +167,13 @@ export function defineRouter(
 
   router.match = function (
     this: FourzeRouter,
-    url: string,
+    path: string,
     method?: string
   ): [FourzeRoute, RegExpMatchArray] | [] {
-    const path = this.relative(url);
-    if (path) {
-      for (const route of routes) {
-        const matches = route.match(path, method);
-        if (matches) {
-          return [route, matches];
-        }
+    for (const route of routes) {
+      const matches = route.match(path, method);
+      if (matches) {
+        return [route, matches];
       }
     }
     return [];
@@ -237,14 +223,6 @@ export function defineRouter(
     return this;
   } as FourzeRouteFunction<FourzeRouter>;
 
-  router.relative = function (this: FourzeRouter, url: string) {
-    return relativePath(url, this.base);
-  };
-
-  router.resolve = function (this: FourzeRouter, url: string) {
-    return resolvePath(url, this.base);
-  };
-
   const setupRouter = createSingletonPromise(async (app: FourzeApp) => {
     try {
       const rs = await setup?.(router, app);
@@ -252,7 +230,6 @@ export function defineRouter(
         routes.push(...rs.map((r) => defineRoute(r)));
       } else if (!isRouter(rs) && isObject(rs)) {
         options.name = rs.name ?? options.name;
-        options.base = rs.base ?? options.base;
         if (rs.routes) {
           routes.push(...rs.routes.map((r) => defineRoute(r)));
         }
@@ -285,14 +262,6 @@ export function defineRouter(
         }
       ])
     ),
-    base: {
-      // default base
-      get() {
-        return options.base ?? "/";
-      },
-      configurable: true,
-      enumerable: true
-    },
     setup: {
       get() {
         return setupRouter;

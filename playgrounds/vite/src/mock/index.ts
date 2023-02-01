@@ -39,7 +39,7 @@ export default defineRouter((router) => {
         }
       },
       meta: {
-        summary: import.meta.env.APP_TOKEN,
+        summary: "测试",
         response: {
           type: String
         }

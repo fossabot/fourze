@@ -14,8 +14,7 @@ import type {
   FourzeApp,
   FourzeAppOptions,
   FourzeBaseRoute,
-  FourzeModule
-  ,
+  FourzeModule,
   PropType
 } from "@fourze/core";
 import type { FSWatcher } from "chokidar";

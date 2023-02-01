@@ -2,12 +2,14 @@ import {
   createSingletonPromise,
   delay,
   DelayMsType,
+  normalize,
   parseFakerNumber,
   randomArray,
   randomInt,
   randomItem,
   relativePath,
   resolvePath,
+  resolves,
   slash
 } from "@fourze/core";
 import { describe, expect, it } from "vitest";
@@ -62,14 +64,19 @@ describe("utils", () => {
   it("test-resolvePath", () => {
     const path = "https://test.com";
     const base = "/api";
-    const final0 = resolvePath(path, base);
+    const final0 = resolvePath(path,base);
     expect(final0).toBe(path);
-    const finalPath = resolvePath(final0, base);
+    const finalPath = resolvePath(path,base);
     expect(finalPath).toEqual(path);
-    expect(resolvePath("//api/hello")).toEqual("/api/hello");
+    expect(resolves("//api/hello")).toEqual("/api/hello");
   });
 
-
+  it("test-normalize", () => {
+    expect(normalize("")).toEqual("/")
+    expect(normalize("//abc")).toEqual("/abc")
+    expect(normalize("//abc/")).toEqual("/abc")
+    expect(normalize("\/\\/\/abc\\//a\\//c")).toEqual("/abc/a/c");
+  });
 
   it("createSingletonPromise", async () => {
     const createInstance = () => randomInt("374-9197");

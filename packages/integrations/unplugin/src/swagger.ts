@@ -4,6 +4,7 @@ import type { FourzeHmrApp } from "@fourze/server";
 import vite from "vite";
 import fs from "fs-extra";
 import { createApiDocs, getSwaggerFSPath, renderIndexHtml } from "@fourze/swagger";
+import type { RequestMethod } from "@fourze/core";
 import { resolves } from "@fourze/core";
 import { defaultMockCode } from "./mock";
 
@@ -36,6 +37,8 @@ export interface SwaggerUIBuildOptions {
    * @default ".fourze-swagger"
    */
   tmpDir?: string
+
+  defaultMethod?: RequestMethod
 
 }
 
@@ -84,6 +87,8 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
       minify: true
     }
   })));
-  await fs.outputFile(path.join(distPath, documentPath), JSON.stringify(createApiDocs(app)));
+  await fs.outputFile(path.join(distPath, documentPath), JSON.stringify(createApiDocs(app, {
+    defaultMethod: options.defaultMethod
+  })));
   await fs.remove(tmpDir);
 }

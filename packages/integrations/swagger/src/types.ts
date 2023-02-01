@@ -1,3 +1,5 @@
+import type { RequestMethod } from "@fourze/core";
+
 export interface SwaggerPathSchema {
   summary?: string
   description?: string
@@ -37,7 +39,8 @@ export interface SwaggerInfo extends Record<string, any> {
 }
 
 export interface SwaggerDocument extends Record<string, any> {
-  swagger: string
+  swagger?: string
+  openapi?: string
   info?: SwaggerInfo
   host?: string
   basePath?: string
@@ -52,6 +55,7 @@ export interface SwaggerUIInitOptions {
 }
 
 export interface SwaggerOptions {
+  defaultMethod?: RequestMethod
   info?: SwaggerInfo
   schemas?: string[]
   consumes?: string[]

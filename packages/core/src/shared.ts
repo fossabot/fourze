@@ -9,9 +9,9 @@ import {
   isObject,
   isString,
   isUint8Array,
+  normalize,
   overload,
-  relativePath,
-  resolvePath
+  resolves
 } from "./utils";
 import { decodeFormData } from "./polyfill/form-data";
 import type { PolyfillHeaderInit } from "./polyfill/header";
@@ -97,13 +97,14 @@ export interface FourzeRequest<
   headers: Record<string, string | string[] | undefined>
 
   route: FourzeRoute
+
+  app?: FourzeApp
+
   meta: Meta & FourzeRouteMeta
 
-  relative(path: string): string | null
-
-  resolve(path: string): string
-
   contextPath: string
+
+  readonly originalPath: string
 
   readonly params: Params
 
@@ -254,7 +255,7 @@ export function defineRoute<
     }
   }
 
-  path = resolvePath(path, base ?? "/");
+  path = resolves(base, path);
 
   return {
     method,
@@ -316,7 +317,7 @@ export interface FourzeApp extends FourzeMiddleware, MetaInstance<FourzeApp, Fou
 
   relative(url: string): string | null
 
-  match(url: string): FourzeMiddleware[]
+  match(url: string): [string, FourzeMiddleware][]
 
   service(context: FourzeContextOptions, fallback?: FourzeHandle): Promise<FourzeContext>
 
@@ -354,7 +355,6 @@ export interface FourzeMiddlewareHandler<T = any> {
 
 export interface FourzeMiddleware<T = any> extends FourzeMiddlewareHandler<T> {
   name?: string
-  base?: string
   setup?: (app?: FourzeApp) => MaybePromise<void>
   readonly order?: number
 }
@@ -608,7 +608,7 @@ export function createRequest(options: FourzeRequestOptions) {
 
   request.headers = headers;
 
-  const { query = {}, url: path } = qs.parseUrl(request.url, {
+  const { query = {}, url: originalPath } = qs.parseUrl(request.url, {
     parseBooleans: true
   });
 
@@ -643,14 +643,6 @@ export function createRequest(options: FourzeRequestOptions) {
   const params = { ...options.params };
 
   let _contextPath = "/";
-
-  request.relative = function (path: string) {
-    return relativePath(path, this.contextPath);
-  };
-
-  request.resolve = function (path: string) {
-    return resolvePath(path, this.contextPath);
-  };
 
   Object.defineProperties(request, {
     [FOURZE_REQUEST_SYMBOL]: {
@@ -693,18 +685,24 @@ export function createRequest(options: FourzeRequestOptions) {
       },
       enumerable: true
     },
-    path: {
-      get() {
-        return path;
-      },
-      enumerable: true
-    },
     contextPath: {
       get() {
         return _contextPath ?? "/";
       },
       set(val) {
         _contextPath = val;
+      },
+      enumerable: true
+    },
+    path: {
+      get() {
+        return normalize(originalPath.replace(new RegExp(`^${_contextPath}`), ""));
+      },
+      enumerable: true
+    },
+    originalPath: {
+      get() {
+        return originalPath;
       },
       enumerable: true
     }

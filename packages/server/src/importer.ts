@@ -39,6 +39,7 @@ const defaults: ModuleImporterOptions = {
 export interface ModuleImporter extends Require {
   (id: string): any
   remove(id: string): void
+  clear(): void
   configure(options: ModuleImporterOptions): void
 }
 
@@ -101,6 +102,7 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
   );
 
   const _resolve = (id: string, options?: { paths?: string[] }) => {
+    id = normalize(id);
     if (opts.alias) {
       id = resolveAlias(id, opts.alias);
     }
@@ -200,7 +202,10 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
 
     if (opts.requireCache && nativeRequire.cache[filename]) {
       logger.debug("[cache]", filename);
-      return _interopDefault(nativeRequire.cache[filename]?.exports);
+      const cache = _interopDefault(nativeRequire.cache[filename]?.exports);
+      if (cache) {
+        return cache;
+      }
     }
 
     let source = readFileSync(filename, "utf-8");
@@ -307,7 +312,7 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
   _require.extensions = nativeRequire.extensions;
   _require.main = nativeRequire.main;
   _require.remove = function (id: string) {
-    const filename = aliasMap.get(id);
+    const filename = aliasMap.get(id) ?? id;
     if (filename && nativeRequire.cache[filename]) {
       delete nativeRequire.cache[filename];
       logger.debug("[delete cache]", filename);
