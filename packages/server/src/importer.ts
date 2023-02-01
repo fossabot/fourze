@@ -1,22 +1,21 @@
 import { runInThisContext } from "vm";
 import { Module, builtinModules } from "module";
 import { platform } from "os";
-import { dirname, extname, join } from "pathe";
+import { pathToFileURL } from "url";
+import { dirname, extname, join, normalize } from "pathe";
 import { createLogger, escapeStringRegexp } from "@fourze/core";
-import fs from "fs-extra";
+import { readFileSync } from "fs-extra";
 import { fileURLToPath, hasESMSyntax, interopDefault, resolvePathSync } from "mlly";
 import createRequire from "create-require";
 import type { PackageJson } from "pkg-types";
 
-// eslint-disable-next-line import/order
-import { pathToFileURL } from "url";
+import type { Loader, TransformOptions } from "esbuild";
 import { transformSync } from "esbuild";
 export interface ModuleImporterOptions {
-  external?: string[]
+  esbuild?: TransformOptions
   define?: Record<string, string>
   interopDefault?: boolean
-  cache?: boolean
-
+  requireCache?: boolean
   extensions?: string[]
 }
 
@@ -25,17 +24,24 @@ type Require = typeof require;
 const isWindow = platform() === "win32";
 
 const defaults: ModuleImporterOptions = {
-  extensions: [".js", ".mjs", ".cjs", ".ts"],
-  interopDefault: true
+  extensions: [".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".json"],
+  interopDefault: true,
+  requireCache: true,
+  esbuild: {
+    format: "cjs",
+    target: "es6"
+  }
 };
 
-export interface ModuleImporter extends Require {}
+export interface ModuleImporter extends Require {
+  remove(id: string): void
+}
 
 export function readNearestPackageJSON(path: string): PackageJson | undefined {
   while (path && path !== "." && path !== "/") {
     path = join(path, "..");
     try {
-      const pkg = fs.readFileSync(join(path, "package.json"), "utf8");
+      const pkg = readFileSync(join(path, "package.json"), "utf8");
       try {
         return JSON.parse(pkg);
       } catch {}
@@ -52,9 +58,9 @@ export function readNearestPackageJSON(path: string): PackageJson | undefined {
  * @param parentModule
  * @returns
  */
-export function createImporter(_filename: string, opts: ModuleImporterOptions, parentModule?: NodeModule): ModuleImporter {
+export function createImporter(_filename: string, opts: ModuleImporterOptions = {}, parentModule?: NodeModule): ModuleImporter {
   opts = { ...defaults, ...opts };
-  const logger = createLogger("importer");
+  const logger = createLogger("@fourze/server");
 
   const nativeRequire = createRequire(isWindow ? _filename.replace(/\\/g, "/") : _filename);
 
@@ -114,17 +120,40 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions, p
 
   _resolve.paths = nativeRequire.resolve.paths;
 
-  const _transform = (code: string, filename: string, isTypescript: boolean) => {
+  const aliasMap = new Map<string, string>();
+
+  function getLoader(filename: string): Loader {
+    const ext = extname(filename);
+    switch (ext) {
+      case ".js":
+        return "js";
+      case ".jsx":
+        return "jsx";
+      case ".json":
+        return "json";
+      case ".ts":
+        return "ts";
+      case ".tsx":
+        return "tsx";
+      case ".css":
+        return "css";
+      default:
+        return "default";
+    }
+  }
+
+  const _transform = (code: string, filename: string) => {
     return transformSync(code, {
-      platform: "node",
-      format: "cjs",
-      target: "es6",
-      loader: isTypescript ? "ts" : "js",
+      ...opts.esbuild,
+      platform: opts.esbuild?.platform ?? "node",
+      format: opts.esbuild?.format ?? "cjs",
+      target: opts.esbuild?.target ?? "es6",
+      loader: opts.esbuild?.loader ?? getLoader(filename),
       define: {
-        "import.meta.url": JSON.stringify(filename),
+        "import.meta.url": JSON.stringify(pathToFileURL(filename).href),
         ...opts.define
       },
-      treeShaking: true
+      treeShaking: opts.esbuild?.treeShaking ?? true
     }).code;
   };
 
@@ -140,11 +169,15 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions, p
     }
 
     if (builtinModules.includes(id) || id === ".pnp.js" /* #24 */) {
+      logger.debug("[builtin]", id);
       return nativeRequire(id);
     }
 
-    const filename = _resolve(id);
+    const filename = normalize(_resolve(id));
+
     const ext = extname(filename);
+
+    aliasMap.set(id, filename);
 
     if (ext && !opts.extensions!.includes(ext)) {
       logger.debug("[unknown]", filename);
@@ -156,9 +189,14 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions, p
       return nativeRequire(id);
     }
 
-    let source = fs.readFileSync(filename, "utf-8");
+    if (opts.requireCache && nativeRequire.cache[filename]) {
+      logger.debug("[cache]", filename);
+      return _interopDefault(nativeRequire.cache[filename]?.exports);
+    }
 
-    const isTypescript = ext === ".ts";
+    let source = readFileSync(filename, "utf-8");
+
+    const isTypescript = ext === ".ts" || ext === ".tsx";
 
     const isCommonJS = ext === ".cjs";
 
@@ -169,8 +207,14 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions, p
     const needsTranspile = !isCommonJS && (isTypescript || isNativeModule || hasESMSyntax(source));
 
     if (needsTranspile) {
-      source = _transform(source, filename, isTypescript);
-      logger.debug("[transform]", filename);
+      const start = performance.now();
+      source = _transform(source, filename);
+      const time = Math.round((performance.now() - start) * 1000) / 1000;
+      logger.debug(
+        `[transpile]${isNativeModule ? " [esm]" : ""}`,
+        filename,
+        `(${time}ms)`
+      );
     } else {
       try {
         logger.debug("[native]", filename);
@@ -178,7 +222,7 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions, p
       } catch (error: any) {
         logger.debug("Native require error:", error);
         logger.debug("[fallback]", filename);
-        source = _transform(source, filename, isTypescript);
+        source = _transform(source, filename);
       }
     }
 
@@ -202,6 +246,10 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions, p
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     mod.paths = Module._nodeModulePaths(mod.path);
+
+    if (opts.requireCache) {
+      nativeRequire.cache[filename] = mod;
+    }
 
     const compiled = runInThisContext(Module.wrap(source), {
       filename,
@@ -232,6 +280,14 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions, p
   _require.cache = nativeRequire.cache;
   _require.extensions = nativeRequire.extensions;
   _require.main = nativeRequire.main;
+  _require.remove = function (id: string) {
+    const filename = aliasMap.get(id);
+    if (filename && nativeRequire.cache[filename]) {
+      delete nativeRequire.cache[filename];
+      logger.debug("[delete cache]", filename);
+    }
+    aliasMap.delete(id);
+  };
 
   return _require as ModuleImporter;
 }

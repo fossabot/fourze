@@ -163,8 +163,8 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
 
   app.remove = function (this: FourzeHmrApp, moduleName: string) {
     _remove(moduleName);
+    _import.remove(moduleName);
     moduleMap.delete(moduleName);
-    delete require.cache[moduleName];
     return this;
   };
 

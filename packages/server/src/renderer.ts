@@ -1,4 +1,3 @@
-import { createHash } from "crypto";
 import fs from "fs";
 import path from "path";
 import type {
@@ -15,8 +14,8 @@ import {
   isFourzeComponent,
   relativePath
 } from "@fourze/core";
-import { build } from "esbuild";
 import mime from "mime";
+import { createImporter } from "./importer";
 
 export interface FourzeRendererOptions {
   /**
@@ -101,6 +100,14 @@ export async function renderTsx(
 ) {
   const file = path.normalize(context.file);
 
+  const _import = createImporter(__filename, {
+    esbuild: {
+      jsxFactory: "h",
+      jsxFragment: "'fragment'",
+      banner: "const {h} = require(\"@fourze/core\")"
+    }
+  });
+
   const maybes = file.match(/\.[t|j]sx$/) ? [file] : [];
   maybes.push(
     ...["index.tsx", "index.jsx"].map((ext) => path.normalize(`${file}/${ext}`))
@@ -108,31 +115,7 @@ export async function renderTsx(
 
   for (const maybe of maybes) {
     if (fs.existsSync(maybe) && fs.statSync(maybe).isFile()) {
-      const hash = `_${createHash("md5")
-        .update(fs.readFileSync(maybe))
-        .digest("hex")
-        .slice(0, 8)}`;
-      const tmp = path.normalize(
-        `${maybe.replace(/\.[t|j]sx$/g, "")}${hash}.tmp.js`
-      );
-
-      await build({
-        entryPoints: [maybe],
-        target: "esnext",
-        format: "esm",
-        banner: {
-          js: `import { createElement as ${hash}} from '@fourze/core'`
-        },
-        jsxFactory: hash,
-        jsxFragment: "'fragment'",
-        outfile: tmp,
-        write: true
-      });
-
-      const { default: mod } = await require(tmp);
-
-      await fs.promises.rm(tmp);
-
+      const mod = await _import(maybe);
       const component = isFourzeComponent(mod)
         ? mod
         : defineFourzeComponent(mod);

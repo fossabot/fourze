@@ -179,7 +179,12 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
       if (server) {
         if (!server.listening) {
           server.listen(_port, _host, () => {
-            logger.info(`Fourze Server v${FOURZE_VERSION} listening on ${normalizeAddress(server.address(), _protocol)}}.`);
+            const address = server.address();
+            if (typeof address === "object" && !!address) {
+              serverApp.host = address.address;
+              serverApp.port = address.port;
+            }
+            logger.info(`Fourze Server v${FOURZE_VERSION} listening on ${normalizeAddress(address, _protocol)}}.`);
             resolve(server);
             serverApp.emit("ready");
           });

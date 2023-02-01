@@ -39,7 +39,7 @@ describe("server", async () => {
   });
 
   it("run-connect", async () => {
-    const host = "127.0.0.1";
+    const host = "localhost";
     const port = 0;
 
     const app = express();
