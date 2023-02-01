@@ -14,7 +14,7 @@ import {
 } from "@fourze/core";
 import {
   slicePage
-} from "../utils/setup-mock";
+} from "@/utils/setup-mock";
 
 interface Pagination {
   page: number
@@ -39,7 +39,7 @@ export default defineRouter((router) => {
         }
       },
       meta: {
-        summary: "测试",
+        summary: import.meta.env.APP_TOKEN,
         response: {
           type: String
         }

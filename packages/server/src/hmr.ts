@@ -100,6 +100,8 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
     }
   }) as FourzeHmrApp;
 
+  const _import = createImporter(__filename);
+
   app.configure = function (this: FourzeHmrApp, newConfig: FourzeHmrBuildConfig) {
     buildConfig.define = {
       ...buildConfig.define,
@@ -110,15 +112,9 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
       ...buildConfig.alias,
       ...newConfig.alias
     };
+    _import.configure({ ...buildConfig });
     return this;
   };
-
-  const _import = createImporter(__filename, {
-    get define() {
-      return buildConfig.define;
-    },
-    interopDefault: true
-  });
 
   async function load(moduleName: string = rootDir): Promise<boolean> {
     if (!fs.existsSync(moduleName)) {

@@ -1,3 +1,4 @@
+import { resolve } from "path";
 import fourze from "@fourze/vite";
 import vue from "@vitejs/plugin-vue";
 import jsx from "@vitejs/plugin-vue-jsx";
@@ -17,6 +18,24 @@ export default defineConfig({
       strict: false
     }
   },
+  resolve: {
+    alias: [
+      {
+        find: "@",
+        replacement: resolve(__dirname, "./src")
+      },
+      {
+        find: "assets",
+        replacement: resolve(__dirname, "./src/assets")
+      },
+      {
+        find: "vue",
+        replacement: "vue/dist/vue.esm-bundler.js" // compile template
+      }
+    ],
+    extensions: [".ts", ".js"]
+  },
+  envPrefix: ["APP_"],
   plugins: [
     vue(),
     jsx(),

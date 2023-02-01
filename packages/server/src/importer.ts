@@ -3,6 +3,7 @@ import { Module, builtinModules } from "module";
 import { platform } from "os";
 import { pathToFileURL } from "url";
 import { dirname, extname, join, normalize } from "pathe";
+import { normalizeAliases, resolveAlias } from "pathe/utils";
 import { createLogger, escapeStringRegexp } from "@fourze/core";
 import { readFileSync } from "fs-extra";
 import { fileURLToPath, hasESMSyntax, interopDefault, resolvePathSync } from "mlly";
@@ -17,6 +18,7 @@ export interface ModuleImporterOptions {
   interopDefault?: boolean
   requireCache?: boolean
   extensions?: string[]
+  alias?: Record<string, string> | null
 }
 
 type Require = typeof require;
@@ -30,11 +32,14 @@ const defaults: ModuleImporterOptions = {
   esbuild: {
     format: "cjs",
     target: "es6"
-  }
+  },
+  alias: {}
 };
 
 export interface ModuleImporter extends Require {
+  (id: string): any
   remove(id: string): void
+  configure(options: ModuleImporterOptions): void
 }
 
 export function readNearestPackageJSON(path: string): PackageJson | undefined {
@@ -59,10 +64,25 @@ export function readNearestPackageJSON(path: string): PackageJson | undefined {
  * @returns
  */
 export function createImporter(_filename: string, opts: ModuleImporterOptions = {}, parentModule?: NodeModule): ModuleImporter {
-  opts = { ...defaults, ...opts };
   const logger = createLogger("@fourze/server");
 
   const nativeRequire = createRequire(isWindow ? _filename.replace(/\\/g, "/") : _filename);
+
+  const _configure = (options: ModuleImporterOptions) => {
+    opts = { ...defaults, ...opts };
+    opts.alias = options.alias && Object.keys(options.alias).length > 0
+      ? normalizeAliases(options.alias ?? {})
+      : null;
+    opts.define = { ...opts.define, ...options.define };
+    opts.esbuild = {
+      ...opts.esbuild ?? options.esbuild
+    };
+    opts.interopDefault = options.interopDefault ?? opts.interopDefault;
+    opts.requireCache = options.requireCache ?? opts.requireCache;
+    opts.extensions = options.extensions ?? opts.extensions;
+  };
+
+  _configure(opts);
 
   const tryResolve = (id: string, options?: { paths?: string[] }) => {
     try {
@@ -70,10 +90,6 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
     } catch {
     }
   };
-
-  const _additionalExts = [...(opts.extensions as string[])].filter(
-    (ext) => ext !== ".js"
-  );
 
   const _url = pathToFileURL(_filename);
   const nativeModules = ["typescript", ...([])];
@@ -85,6 +101,14 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
   );
 
   const _resolve = (id: string, options?: { paths?: string[] }) => {
+    if (opts.alias) {
+      id = resolveAlias(id, opts.alias);
+    }
+
+    const _additionalExts = [...(opts.extensions as string[])].filter(
+      (ext) => ext !== ".js"
+    );
+
     let resolved, err;
     try {
       resolved = resolvePathSync(id, {
@@ -142,21 +166,6 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
     }
   }
 
-  const _transform = (code: string, filename: string) => {
-    return transformSync(code, {
-      ...opts.esbuild,
-      platform: opts.esbuild?.platform ?? "node",
-      format: opts.esbuild?.format ?? "cjs",
-      target: opts.esbuild?.target ?? "es6",
-      loader: opts.esbuild?.loader ?? getLoader(filename),
-      define: {
-        "import.meta.url": JSON.stringify(pathToFileURL(filename).href),
-        ...opts.define
-      },
-      treeShaking: opts.esbuild?.treeShaking ?? true
-    }).code;
-  };
-
   const _interopDefault = (m: any) => {
     return opts.interopDefault !== false ? interopDefault(m) : m;
   };
@@ -205,6 +214,23 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
     || (ext === ".js" && readNearestPackageJSON(filename)?.type === "module");
 
     const needsTranspile = !isCommonJS && (isTypescript || isNativeModule || hasESMSyntax(source));
+
+    const _transform = (code: string, filename: string) => {
+      code = transformSync(code, {
+        ...opts.esbuild,
+        platform: opts.esbuild?.platform ?? "node",
+        format: opts.esbuild?.format ?? "cjs",
+        target: opts.esbuild?.target ?? "es6",
+        loader: opts.esbuild?.loader ?? getLoader(filename),
+        define: {
+          "import.meta.url": JSON.stringify(pathToFileURL(filename).href),
+          ...opts.define
+        },
+        treeShaking: opts.esbuild?.treeShaking ?? true
+      }).code;
+
+      return code;
+    };
 
     if (needsTranspile) {
       const start = performance.now();
@@ -288,6 +314,8 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
     }
     aliasMap.delete(id);
   };
+
+  _require.configure = _configure;
 
   return _require as ModuleImporter;
 }

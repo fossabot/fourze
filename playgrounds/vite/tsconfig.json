@@ -1,8 +1,11 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./",
+    "baseUrl": ".",
     "jsx": "preserve",
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "node",
     "paths": {
       "@fourze/core": ["../../packages/core/src/index.ts"],
       "@fourze/mock": ["../../packages/mock/src/index.ts"],
@@ -15,5 +18,5 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["./**.ts", "./**.tsx", "./**.d.ts", "./**.vue"],
+  "include": ["./**/**.ts", "./**/**.tsx", "./**/**.d.ts", "./**/**.vue"],
 }

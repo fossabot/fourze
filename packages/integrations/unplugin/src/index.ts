@@ -225,7 +225,10 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
             define: {
               ...defineEnvs(config.env, "import.meta.env."),
               ...defineEnvs(config.define ?? {})
-            }
+            },
+            alias: Object.fromEntries(config.resolve.alias.map(r => {
+              return [r.find, r.replacement];
+            }))
           });
           viteConfig.base = config.base;
           viteConfig.envDir = path.resolve(config.root, config.envDir ?? "");
