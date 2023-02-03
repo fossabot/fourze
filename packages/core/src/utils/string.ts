@@ -23,3 +23,4 @@ export function escapeStringRegexp(str: string) {
     .replace(/[|\\{}()[\]^$+*?.]/g, "\\$&")
     .replace(/-/g, "\\x2d");
 }
+

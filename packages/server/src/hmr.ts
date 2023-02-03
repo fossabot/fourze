@@ -1,11 +1,12 @@
-import fs from "fs";
+import { basename, extname, join, normalize, resolve } from "pathe";
+import fs from "fs-extra";
 import {
   createApp,
   createLogger,
   defineMiddleware,
   isFourzeModule,
   isFunction,
-  isString,
+  isMatch,
   overload
 } from "@fourze/core";
 import type {
@@ -17,8 +18,6 @@ import type {
   PropType
 } from "@fourze/core";
 import type { FSWatcher } from "chokidar";
-import { basename, extname, join, resolve } from "pathe";
-import { normalizePath } from "./utils";
 import { createImporter } from "./importer";
 
 export interface FourzeHmrOptions extends Exclude<FourzeAppOptions, "setup"> {
@@ -29,6 +28,7 @@ export interface FourzeHmrOptions extends Exclude<FourzeAppOptions, "setup"> {
   dir?: string
   /**
    * 文件匹配规则
+   * @default /\.[ts|js]$/
    */
   pattern?: (string | RegExp)[]
 
@@ -51,25 +51,14 @@ export interface FourzeHmrApp extends FourzeApp {
   readonly moduleNames: string[]
 }
 
-const TEMPORARY_FILE_SUFFIX = ".tmp.js";
-
-function transformPattern(pattern: (string | RegExp)[]) {
-  return pattern.map((p) => {
-    if (isString(p)) {
-      return new RegExp(p);
-    }
-    return p;
-  });
-}
-
 export interface FourzeProxyOption extends Omit<FourzeBaseRoute, "handle"> {
   target?: string
 }
 
 export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
-  const rootDir = resolve(process.cwd(), options.dir ?? "router");
+  const rootDir = normalize(resolve(process.cwd(), options.dir ?? "router"));
 
-  const pattern = transformPattern(options.pattern ?? [".ts", ".js"]);
+  const pattern = options.pattern ?? [/\.[ts|js]$/];
   const moduleMap = new Map<string, FourzeModule>();
 
   const logger = createLogger("@fourze/server");
@@ -104,10 +93,6 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
   };
 
   async function load(moduleName: string = rootDir): Promise<boolean> {
-    if (!fs.existsSync(moduleName)) {
-      return false;
-    }
-
     if (fs.existsSync(moduleName)) {
       const stat = await fs.promises.stat(moduleName);
       if (stat.isDirectory()) {
@@ -115,27 +100,32 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
         const tasks = files.map((name) => load(join(moduleName, name)));
         return await Promise.all(tasks).then((r) => r.some((f) => f));
       } else if (stat.isFile()) {
-        if (!pattern.some((e) => e.test(moduleName))) {
+        if (pattern.length && !isMatch(moduleName, ...pattern)) {
+          logger.debug("[hmr]", `load file ${moduleName} not match pattern`);
           return false;
         }
 
-        const instance = _import(moduleName);
+        try {
+          const instance = _import(moduleName);
 
-        if (isFourzeModule(instance)) {
-          moduleMap.set(moduleName, instance);
-          return true;
-        }
+          if (isFourzeModule(instance)) {
+            moduleMap.set(moduleName, instance);
+            return true;
+          }
 
-        if (isFunction(instance)) {
-          moduleMap.set(moduleName, defineMiddleware(basename(moduleName, extname(moduleName)), instance));
-          return true;
+          if (isFunction(instance)) {
+            moduleMap.set(moduleName, defineMiddleware(basename(moduleName, extname(moduleName)), instance));
+            return true;
+          }
+          logger.warn(`load module "${moduleName}" is not a valid module`);
+        } catch (e) {
+          logger.error(`load module "${moduleName}" error`, e);
         }
-        logger.warn(`load module "${moduleName}" is not a valid module`);
         return false;
       }
-    } else {
-      logger.warn(`load file ${moduleName} not found`);
     }
+    logger.warn(`load file ${moduleName} not found`);
+
     return false;
   }
 
@@ -156,7 +146,10 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
       {
         dir: {
           type: String,
-          default: () => rootDir
+          default: () => rootDir,
+          transform(v) {
+            return normalize(v);
+          }
         },
         watcher: {
           type: Object as PropType<FSWatcher>,
@@ -169,10 +162,13 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
       args
     );
 
+    logger.debug("[hmr]", `watch ${dir} with pattern ${pattern.join(",")}`);
+
     watcher.add(dir);
 
     watcher.on("all", async (event, path) => {
-      if (!path.startsWith(dir) || path.endsWith(TEMPORARY_FILE_SUFFIX)) {
+      path = normalize(path);
+      if (!path.startsWith(dir)) {
         return;
       }
 
@@ -188,7 +184,7 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
           this.remove(path);
           const isLoaded = await load(path);
           if (isLoaded) {
-            logger.info(`reload module ${normalizePath(path)}`);
+            logger.info(`reload module ${path}`);
           }
           break;
         }

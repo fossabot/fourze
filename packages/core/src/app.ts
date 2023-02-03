@@ -217,13 +217,18 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     _isReadying = true;
     pluginStore.reset(persistencePluginStore);
     middlewareStore.reset(persistenceMiddlewareStore);
-    // 初始化app
-    const setupReturn = await setup(this);
 
-    if (isArray(setupReturn)) {
-      this.use(...setupReturn);
-    } else if (setupReturn) {
-      Object.assign(options, setupReturn);
+    try {
+    // 初始化app
+      const setupReturn = await setup(this);
+
+      if (isArray(setupReturn)) {
+        this.use(...setupReturn);
+      } else if (setupReturn) {
+        Object.assign(options, setupReturn);
+      }
+    } catch (e) {
+      logger.error(e);
     }
 
     if (options.allow?.length) {
@@ -240,11 +245,29 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     }
 
     // 装载插件
-    const installPlugins = pluginStore.select(async r => r.install(this)).toArray();
+    const installPlugins = pluginStore.select(async r => {
+      if (r.install) {
+        try {
+          await r.install(this);
+        } catch (e) {
+          logger.error(e);
+        }
+      }
+    });
+
     await Promise.all(installPlugins);
 
     // 初始化中间件
-    const setupMiddlewares = middlewareStore.select(async (r) => r.middleware.setup?.(this));
+    const setupMiddlewares = middlewareStore.select(async (r) => {
+      if (r.middleware.setup) {
+        try {
+          await r.middleware.setup(this);
+        } catch (e) {
+          logger.error(e);
+        }
+      }
+    });
+
     await Promise.all(setupMiddlewares);
 
     // 准备完成

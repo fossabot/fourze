@@ -49,7 +49,7 @@ export function isMatch(path: string, ...pattern: MaybeRegex[]) {
     if (isRegExp(r)) {
       return r.test(path);
     }
-    return path.startsWith(r) || minimatch(path, r, { partial: true });
+    return path.startsWith(r) || minimatch(path, r, { partial: true, matchBase: true });
   });
 }
 

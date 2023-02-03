@@ -48,7 +48,7 @@ export interface UnpluginFourzeOptions {
   base?: string
 
   /**
-   *  [".ts", ".js"]
+   *  [/\.[ts|js]$/]
    */
   filePattern?: (string | RegExp)[]
   /**
@@ -111,7 +111,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
   const port = options.server?.port ?? 7609;
   const host = options.server?.host ?? "localhost";
 
-  const pattern = Array.from(options.filePattern ?? [".ts$", ".js$"]);
+  const pattern = options.filePattern ?? [/\.[ts|js]$/];
   const hmr = options.hmr ?? true;
   const injectScript = options.injectScript ?? true;
 
@@ -172,7 +172,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
 
           logger.info("Fourze plugin is ready.");
         } catch (error) {
-          logger.error("Fourze plugin is not ready.");
+          logger.error("Fourze plugin is fail.");
           logger.error(error);
         }
       },
