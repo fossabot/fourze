@@ -9,12 +9,11 @@ export const DELAY_HEADER = "Fourze-Delay";
 export const DISABLE_JSON_WRAPPER_HEADER = "Fourze-Disable-Json-Wrapper";
 
 export function delayHook(ms: DelayMsType): FourzeMiddleware {
-  return defineMiddleware("Delay", async (req, res, next) => {
-    await next?.();
-    const delayMs
-      = res.getHeader(DELAY_HEADER) ?? req.headers[DELAY_HEADER] ?? ms;
+  return defineMiddleware("Delay", -1, async (req, res, next) => {
+    const delayMs = res.getHeader(DELAY_HEADER) ?? req.headers[DELAY_HEADER] ?? ms;
     const time = await delay(delayMs);
     res.setHeader(DELAY_HEADER, time);
+    await next?.();
   });
 }
 

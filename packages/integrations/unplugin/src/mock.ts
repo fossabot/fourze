@@ -1,9 +1,7 @@
+import { normalize } from "@fourze/core";
 import type { FourzeMockAppOptions } from "@fourze/mock";
 import type { FourzeHmrApp } from "@fourze/server";
-import { normalizePath } from "@fourze/server";
 import dedent from "dedent";
-
-const TEMPORARY_FILE_SUFFIX = ".tmp.js";
 
 export function defaultMockCode(
   app: FourzeHmrApp,
@@ -15,8 +13,7 @@ export function defaultMockCode(
   for (let i = 0; i < app.moduleNames.length; i++) {
     let modName = app.moduleNames[i];
     names[i] = `fourze_module_${i}`;
-    modName = modName.replace(TEMPORARY_FILE_SUFFIX, "");
-    modName = normalizePath(modName);
+    modName = normalize(modName);
 
     code += dedent`
       \nimport ${names[i]} from "${modName}";\n

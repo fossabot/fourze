@@ -1,5 +1,4 @@
 import fs from "fs";
-import { basename, extname, join, resolve } from "path";
 import {
   createApp,
   createLogger,
@@ -18,6 +17,7 @@ import type {
   PropType
 } from "@fourze/core";
 import type { FSWatcher } from "chokidar";
+import { basename, extname, join, resolve } from "pathe";
 import { normalizePath } from "./utils";
 import { createImporter } from "./importer";
 
@@ -28,22 +28,10 @@ export interface FourzeHmrOptions extends Exclude<FourzeAppOptions, "setup"> {
    */
   dir?: string
   /**
-   * 文件监听器
-   */
-  watcher?: FSWatcher
-
-  /**
    * 文件匹配规则
    */
   pattern?: (string | RegExp)[]
 
-  /**
-   * 响应延迟时间
-   * @default 0
-   */
-  delay?: DelayMsType
-
-  alias?: Record<string, string>
 }
 
 export interface FourzeHmrBuildConfig {
@@ -120,22 +108,6 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
       return false;
     }
 
-    const loadModule = async (mod: string) => {
-      const instance = _import(mod);
-
-      if (isFourzeModule(instance)) {
-        moduleMap.set(mod, instance);
-        return true;
-      }
-
-      if (isFunction(instance)) {
-        moduleMap.set(mod, defineMiddleware(basename(mod, extname(mod)), instance));
-        return true;
-      }
-      logger.warn(`load module "${mod}" is not a valid module`);
-      return false;
-    };
-
     if (fs.existsSync(moduleName)) {
       const stat = await fs.promises.stat(moduleName);
       if (stat.isDirectory()) {
@@ -146,7 +118,20 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
         if (!pattern.some((e) => e.test(moduleName))) {
           return false;
         }
-        return loadModule(moduleName);
+
+        const instance = _import(moduleName);
+
+        if (isFourzeModule(instance)) {
+          moduleMap.set(moduleName, instance);
+          return true;
+        }
+
+        if (isFunction(instance)) {
+          moduleMap.set(moduleName, defineMiddleware(basename(moduleName, extname(moduleName)), instance));
+          return true;
+        }
+        logger.warn(`load module "${moduleName}" is not a valid module`);
+        return false;
       }
     } else {
       logger.warn(`load file ${moduleName} not found`);

@@ -2,7 +2,7 @@
 /* eslint-disable no-var */
 import type http from "http";
 import type https from "https";
-import type { FourzeApp, FourzeAppOptions } from "@fourze/core";
+import type { DelayMsType, FourzeApp, FourzeAppOptions } from "@fourze/core";
 
 declare global {
   var __FOURZE_MOCK_APP__: FourzeMockApp;
@@ -28,6 +28,8 @@ export interface FourzeMockAppOptions extends Exclude<FourzeAppOptions, "setup">
   autoEnable?: boolean
 
   global?: boolean
+
+  delay?: DelayMsType
 }
 
 export const FOURZE_MOCK_APP_SYMBOL = Symbol("FOURZE_MOCK_APP_SYMBOL");

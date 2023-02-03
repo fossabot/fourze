@@ -4,9 +4,11 @@ import {
   createApp,
   createLogger,
   defineMiddleware,
+  delayHook,
   isDef,
   isNode
 } from "@fourze/core";
+
 import { createProxyFetch } from "./fetch";
 import { createProxyRequest } from "./request";
 import type {
@@ -66,6 +68,10 @@ export function createMockApp(
   if (mode.includes("fetch")) {
     app.originalFetch = globalThis.fetch;
     app.fetch = createProxyFetch(app) as typeof fetch;
+  }
+
+  if (options.delay) {
+    app.use(delayHook(options.delay));
   }
 
   app.enable = function (_mode?: FourzeMockRequestMode[]) {

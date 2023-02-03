@@ -105,7 +105,7 @@ export function createApiDocs(app: FourzeApp, options: SwaggerOptions = {}): Swa
   }
 
   return {
-    openapi: "3.0.0",
+    swagger: "2.0",
     info: options.info,
     host: options.host,
     basePath: app.base,

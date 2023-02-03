@@ -1,6 +1,6 @@
 import path from "path";
 import type { DelayMsType, FourzeLogLevelKey, RequestMethod } from "@fourze/core";
-import { createLogger, resolves, setLoggerLevel } from "@fourze/core";
+import { createLogger, delayHook, resolves, setLoggerLevel } from "@fourze/core";
 import { createUnplugin } from "unplugin";
 
 import type { FourzeMockAppOptions } from "@fourze/mock";
@@ -9,11 +9,7 @@ import type {
   FourzeHmrOptions,
   FourzeProxyOption
 } from "@fourze/server";
-import {
-
-  createHmrApp
-  , createServer, defineEnvs
-} from "@fourze/server";
+import { createHmrApp, createServer, defineEnvs } from "@fourze/server";
 
 import { service } from "@fourze/swagger";
 import type { InlineConfig } from "vite";
@@ -142,6 +138,10 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
     allow,
     deny
   });
+
+  if (delay) {
+    hmrApp.use(delayHook(delay));
+  }
 
   // proxy.forEach(router.proxy);
 
