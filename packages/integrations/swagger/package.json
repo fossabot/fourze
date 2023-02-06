@@ -1,6 +1,6 @@
 {
     "name": "@fourze/swagger",
-    "version": "0.24.4-beta.0",
+    "version": "0.24.4-beta.1",
     "description": "",
     "main": "dist/index.cjs",
     "module": "dist/index.mjs",
@@ -26,7 +26,7 @@
         "@fourze/swagger-middleware": "workspace:*",
         "swagger-ui-dist": "^4.15.5",
         "vite": "^4.0.4",
-        "fs-extra":"^11.1.0"
+        "fs-extra": "^11.1.0"
     },
     "devDependencies": {
         "@types/swagger-ui-dist": "^3.30.1"
