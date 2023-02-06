@@ -104,7 +104,10 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
       outDir: path.join(distPath, uiPath),
       emptyOutDir: true,
       sourcemap: false,
-      minify: true
+      minify: true,
+      rollupOptions: {
+        external: /^@fourze\/.*/g
+      }
     }
   })));
   await fs.remove(tmpDir);
