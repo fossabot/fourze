@@ -1,12 +1,12 @@
 import type { MaybePromise, MaybeRegex } from "maybe-types";
-import { delay, isMatch, overload } from "../utils";
+import { delay, isMatch, isUndef, overload } from "../utils";
 import type { FourzeMiddleware, PropType } from "../shared";
 import { defineMiddleware } from "../shared";
 import type { DelayMsType } from "../utils";
 
 export const DELAY_HEADER = "Fourze-Delay";
 
-export const DISABLE_JSON_WRAPPER_HEADER = "Fourze-Disable-Json-Wrapper";
+export const JSON_WRAPPER_HEADER = "Fourze-Json-Wrapper";
 
 export function delayHook(ms: DelayMsType): FourzeMiddleware {
   return defineMiddleware("Delay", -1, async (req, res, next) => {
@@ -79,13 +79,11 @@ export function jsonWrapperHook(
     const _send = res.send.bind(res);
     res.send = function (payload, contentType) {
       contentType = contentType ?? req.meta.contentType ?? res.getContentType(payload);
-      const disableJsonWrapper = res.getHeader(DISABLE_JSON_WRAPPER_HEADER) as string;
-      const isAllow = (!disableJsonWrapper || ["false", "0", "off"].includes(disableJsonWrapper)) && !isExclude(req.path);
+      const useJsonWrapper = res.getHeader(JSON_WRAPPER_HEADER) as string;
+      const isAllow = (isUndef(useJsonWrapper) || !["false", "0", "off"].includes(useJsonWrapper)) && !isExclude(req.path) && contentType?.startsWith("application/json");
 
       if (isAllow) {
-        if (contentType?.startsWith("application/json")) {
-          payload = resolve(payload) ?? payload;
-        }
+        payload = resolve(payload) ?? payload;
       }
       _send(payload, contentType);
       return res;

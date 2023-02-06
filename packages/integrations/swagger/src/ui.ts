@@ -85,7 +85,7 @@ export interface RenderSwaggerUIOptions extends RenderHtmlOptions {
 export function renderIndexHtml(root: string, options: RenderSwaggerUIOptions = {}) {
   const scriptContent = transformTemplate(defaultScriptTemplate, {
     initOptions: stringifyOptions({
-      url: options.url ?? resolves(root, "/swagger.json")
+      url: options.url ?? "/api-docs"
     })
   });
 

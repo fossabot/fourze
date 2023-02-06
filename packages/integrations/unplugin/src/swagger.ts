@@ -3,7 +3,8 @@ import type { FourzeHmrApp } from "@fourze/server";
 
 import vite from "vite";
 import fs from "fs-extra";
-import { createApiDocs, getSwaggerFSPath, renderIndexHtml } from "@fourze/swagger";
+import type { SwaggerOptions } from "@fourze/swagger";
+import { getSwaggerFSPath, renderIndexHtml } from "@fourze/swagger";
 import type { RequestMethod } from "@fourze/core";
 import { resolves } from "@fourze/core";
 import { defaultMockCode } from "./mock";
@@ -42,6 +43,17 @@ export interface SwaggerUIBuildOptions {
 
 }
 
+function createMockDocsCode(options: SwaggerOptions = {}) {
+  return `
+  import { defineRouter } from "@fourze/core";
+  import { createApiDocs } from "@fourze/swagger";
+  export default defineRouter((router,app) => {
+    router.setMeta("swagger",false);
+    router.get("/api-docs", createApiDocs(app,${JSON.stringify(options)}));
+  })
+`;
+}
+
 export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = {}) {
   const swaggerFsPath = getSwaggerFSPath();
 
@@ -53,14 +65,22 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
 
   const uiPath = "/swagger-ui/";
 
-  const documentPath = "/swagger-ui/swagger.json";
-
   await fs.emptyDir(tmpDir);
 
-  await fs.outputFile(path.join(tmpDir, "mock.ts"), defaultMockCode(app));
+  const mockDocsPath = path.join(tmpDir, "docs.ts");
+
+  await fs.outputFile(mockDocsPath, createMockDocsCode({
+    defaultMethod: options.defaultMethod
+  }));
+
+  const moduleNames = app.moduleNames.concat(["./docs"]);
+
+  await fs.outputFile(path.join(tmpDir, "mock.ts"), defaultMockCode(moduleNames, {
+    base: app.base
+  }));
 
   await fs.outputFile(path.join(tmpDir, "index.html"), renderIndexHtml(resolves(base, uiPath), {
-    url: resolves(base, documentPath),
+    url: resolves(app.base, "/api-docs"),
     script: [
       {
         src: "mock.ts",
@@ -86,9 +106,6 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
       sourcemap: false,
       minify: true
     }
-  })));
-  await fs.outputFile(path.join(distPath, documentPath), JSON.stringify(createApiDocs(app, {
-    defaultMethod: options.defaultMethod
   })));
   await fs.remove(tmpDir);
 }

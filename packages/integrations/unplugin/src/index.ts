@@ -5,8 +5,6 @@ import { createUnplugin } from "unplugin";
 
 import type { FourzeMockAppOptions } from "@fourze/mock";
 import type {
-  FourzeHmrApp,
-  FourzeHmrOptions,
   FourzeProxyOption
 } from "@fourze/server";
 import { createHmrApp, createServer, defineEnvs } from "@fourze/server";
@@ -94,9 +92,9 @@ export interface UnpluginFourzeOptions {
 
   deny?: string[]
 
-  swagger?: SwaggerPluginOption | true
+  swagger?: SwaggerPluginOption | boolean
 
-  transformCode?: (router: FourzeHmrApp, options?: FourzeHmrOptions) => string
+  transformCode?: typeof defaultTransformCode
 }
 
 const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) => {
@@ -148,7 +146,8 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
   const transformCode = options.transformCode ?? defaultTransformCode;
 
   const viteConfig: InlineConfig = {};
-  const swaggerOptions = (options.swagger === true) ? {} : options.swagger ?? {};
+
+  const swaggerOptions = typeof options.swagger === "boolean" ? {} : options.swagger ?? {};
   const generateDocument = swaggerOptions.generateDocument ?? !!options.swagger;
 
   return [
@@ -184,7 +183,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
 
       async load(id) {
         if (isClientID(id)) {
-          return transformCode(hmrApp, options);
+          return transformCode(hmrApp.moduleNames, options);
         }
       },
       async webpack() {
@@ -244,12 +243,15 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
             hmrApp.watch(watcher);
           }
 
-          const swaggerMiddleware = service(hmrApp, {
-            base: resolves(viteConfig.base, "/swagger-ui/"),
-            ...swaggerOptions
-          });
-
           const server = createServer();
+          if (options.swagger !== false) {
+            const swaggerMiddleware = service(hmrApp, {
+              base: resolves(viteConfig.base, "/swagger-ui/"),
+              ...swaggerOptions
+            });
+
+            server.use(swaggerMiddleware);
+          }
           if (options.server?.port) {
             try {
               server.listen(port, host);
@@ -258,7 +260,6 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
             }
           } else {
             server.use(hmrApp);
-            server.use(swaggerMiddleware);
             middlewares.use(server);
           }
         }
