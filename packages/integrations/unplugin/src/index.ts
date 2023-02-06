@@ -214,16 +214,14 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
           }
         },
         async config(_, env) {
-          options.mock
-            = options.mock ?? (env.command === "build" || env.mode === "mock");
-
+          options.mock ??= (env.command === "build" || env.mode === "mock");
           return {
             define: {
               VITE_PLUGIN_FOURZE_MOCK: options.mock
             },
             build: {
               rollupOptions: {
-                external: /^@fourze\/.*/g
+                external: [/^@fourze\/.*/g]
               }
             }
           };

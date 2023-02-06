@@ -106,7 +106,7 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
       sourcemap: false,
       minify: true,
       rollupOptions: {
-        external: /^@fourze\/.*/g
+        external: [/^@fourze\/.*/g]
       }
     }
   })));
