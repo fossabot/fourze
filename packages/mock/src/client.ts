@@ -1,7 +1,7 @@
 import type { FourzeMockAppOptions } from "@fourze/mock";
 import dedent from "dedent";
 
-export function defaultMockCode(
+export function createMockClient(
   moduleNames: string[],
   options: FourzeMockAppOptions = {}
 ) {

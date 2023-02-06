@@ -1,4 +1,4 @@
-import type { FourzeApp, FourzeHandle, FourzeRouter, ObjectProps, PropType, RequestMethod } from "@fourze/core";
+import type { FourzeApp, FourzeMiddleware, FourzeRouter, ObjectProps, PropType, RequestMethod } from "@fourze/core";
 import { JSON_WRAPPER_HEADER, createQuery, isRouter, normalizeProps } from "@fourze/core";
 import type { SwaggerOptions, SwaggerParameter, SwaggerPathSchema } from "./types";
 
@@ -35,10 +35,10 @@ function normalizeOperationId(path: string) {
 }
 
 // 创建swagger文档服务
-export function createApiDocs(
+export function createSwaggerMiddleware(
   app: FourzeApp,
   options: SwaggerOptions = {}
-): FourzeHandle {
+): FourzeMiddleware {
   return (req, res) => {
     const routers = createQuery(app.middlewares)
       .where((r) => isRouter(r) && r.meta.swagger !== false)
@@ -134,3 +134,5 @@ export function createApiDocs(
     res.send(docs, "application/json");
   };
 }
+
+export * from "./types";

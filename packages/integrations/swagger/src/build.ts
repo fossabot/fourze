@@ -3,11 +3,12 @@ import type { FourzeHmrApp } from "@fourze/server";
 
 import vite from "vite";
 import fs from "fs-extra";
-import type { SwaggerOptions } from "@fourze/swagger";
-import { getSwaggerFSPath, renderIndexHtml } from "@fourze/swagger";
 import type { RequestMethod } from "@fourze/core";
 import { resolves } from "@fourze/core";
-import { defaultMockCode } from "./mock";
+import { createMockClient } from "@fourze/mock";
+import type { SwaggerOptions } from "@fourze/swagger-middleware";
+import { getSwaggerFSPath } from "./service";
+import { renderIndexHtml } from "./ui";
 
 const swaggerAssetFiles = [
   "favicon-16x16.png",
@@ -46,12 +47,21 @@ export interface SwaggerUIBuildOptions {
 function createMockDocsCode(options: SwaggerOptions = {}) {
   return `
   import { defineRouter } from "@fourze/core";
-  import { createApiDocs } from "@fourze/swagger";
+  import { createSwaggerMiddleware } from "@fourze/swagger-middleware";
   export default defineRouter((router,app) => {
     router.setMeta("swagger",false);
-    router.get("/api-docs", createApiDocs(app,${JSON.stringify(options)}));
+    router.get("/api-docs", createSwaggerMiddleware(app,${JSON.stringify(options)}));
   })
 `;
+}
+
+export function getModuleAlias() {
+  return ["@fourze/core", "@fourze/mock", "@fourze/swagger", "@fourze/swagger-middleware"].map(r => {
+    return {
+      find: r,
+      replacement: require.resolve(r)
+    };
+  });
 }
 
 export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = {}) {
@@ -75,7 +85,7 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
 
   const moduleNames = app.moduleNames.concat(["./docs"]);
 
-  await fs.outputFile(path.join(tmpDir, "mock.ts"), defaultMockCode(moduleNames, {
+  await fs.outputFile(path.join(tmpDir, "mock.ts"), createMockClient(moduleNames, {
     base: app.base
   }));
 
@@ -106,8 +116,11 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
       sourcemap: false,
       minify: true,
       rollupOptions: {
-        external: [/^@fourze\/.*/g]
+        external: ["@fourze/server"]
       }
+    },
+    resolve: {
+      alias: getModuleAlias()
     }
   })));
   await fs.remove(tmpDir);

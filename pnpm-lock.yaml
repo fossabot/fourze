@@ -120,17 +120,29 @@ importers:
       '@fourze/core': workspace:*
       '@fourze/mock': workspace:*
       '@fourze/server': workspace:*
+      '@fourze/swagger-middleware': workspace:*
       '@types/swagger-ui-dist': ^3.30.1
+      fs-extra: ^11.1.0
       swagger-ui-dist: ^4.15.5
       vite: ^4.0.4
     dependencies:
       '@fourze/core': link:../../core
       '@fourze/mock': link:../../mock
       '@fourze/server': link:../../server
+      '@fourze/swagger-middleware': link:../swagger-middleware
+      fs-extra: 11.1.0
       swagger-ui-dist: 4.15.5
       vite: 4.0.4
     devDependencies:
       '@types/swagger-ui-dist': 3.30.1
+
+  packages/integrations/swagger-middleware:
+    specifiers:
+      '@fourze/core': workspace:*
+      '@fourze/mock': workspace:*
+    dependencies:
+      '@fourze/core': link:../../core
+      '@fourze/mock': link:../../mock
 
   packages/integrations/unplugin:
     specifiers:
@@ -138,6 +150,7 @@ importers:
       '@fourze/mock': workspace:*
       '@fourze/server': workspace:*
       '@fourze/swagger': workspace:*
+      '@fourze/swagger-middleware': workspace:*
       '@types/webpack': ^5.28.0
       dedent: ^0.7.0
       esbuild: ^0.17.5
@@ -153,6 +166,7 @@ importers:
       '@fourze/mock': link:../../mock
       '@fourze/server': link:../../server
       '@fourze/swagger': link:../swagger
+      '@fourze/swagger-middleware': link:../swagger-middleware
       dedent: 0.7.0
       fs-extra: 11.1.0
       swagger-ui: 4.15.5

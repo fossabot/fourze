@@ -24,8 +24,11 @@
             ],
             "@fourze/nuxt": ["./packages/integrations/nuxt/src/module.ts"],
             "@fourze/swagger": [
-              "./packages/integrations/swagger/src/index.ts"
-          ],
+              "./packages/integrations/swagger/src/index.ts",
+            ],
+            "@fourze/swagger-middleware": [
+              "./packages/integrations/swagger-middleware/src/index.ts"
+            ],
         }
     },
     "include": [

@@ -9,10 +9,9 @@ import type {
 } from "@fourze/server";
 import { createHmrApp, createServer, defineEnvs } from "@fourze/server";
 
-import { service } from "@fourze/swagger";
+import { build, getModuleAlias, service } from "@fourze/swagger";
 import type { InlineConfig } from "vite";
-import { build } from "./swagger";
-import { defaultMockCode as defaultTransformCode } from "./mock";
+import { createMockClient } from "@fourze/mock";
 
 const PLUGIN_NAME = "unplugin-fourze";
 
@@ -94,7 +93,7 @@ export interface UnpluginFourzeOptions {
 
   swagger?: SwaggerPluginOption | boolean
 
-  transformCode?: typeof defaultTransformCode
+  transformCode?: typeof createMockClient
 }
 
 const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) => {
@@ -143,7 +142,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
 
   // proxy.forEach(router.proxy);
 
-  const transformCode = options.transformCode ?? defaultTransformCode;
+  const transformCode = options.transformCode ?? createMockClient;
 
   const viteConfig: InlineConfig = {};
 
@@ -219,9 +218,12 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
             define: {
               VITE_PLUGIN_FOURZE_MOCK: options.mock
             },
+            resolve: {
+              alias: [...getModuleAlias()]
+            },
             build: {
               rollupOptions: {
-                external: [/^@fourze\/.*/g]
+                external: ["@fourze/server"]
               }
             }
           };
