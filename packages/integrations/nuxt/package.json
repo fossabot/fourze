@@ -1,6 +1,6 @@
 {
     "name": "@fourze/nuxt",
-    "version": "0.24.3",
+    "version": "0.24.4-beta.0",
     "license": "MIT",
     "type": "module",
     "exports": {
