@@ -27,7 +27,6 @@
         "@fourze/swagger-middleware": "workspace:*",
         "dedent": "^0.7.0",
         "fs-extra": "^11.1.0",
-        "swagger-ui": "^4.15.5",
         "unplugin": "^1.0.1"
     },
     "devDependencies": {

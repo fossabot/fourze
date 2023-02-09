@@ -27,7 +27,6 @@
   },
   "devDependencies": {
     "@types/mime": "^2.0.3",
-    "esbuild-css-modules-plugin": "^2.5.0",
     "pkg-types": "^1.0.1"
   }
 }

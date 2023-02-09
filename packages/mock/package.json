@@ -17,7 +17,5 @@
     "dependencies": {
         "@fourze/core": "workspace:*"
     },
-    "devDependencies": {
-        "@types/node": "^18.6.0"
-    }
+    "devDependencies": {}
 }

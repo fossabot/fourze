@@ -6,6 +6,10 @@
     "module": "ESNext",
     "target": "ESNext",
     "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "skipDefaultLibCheck": true,
     "paths": {
       "@fourze/core": ["../../packages/core/src/index.ts"],
       "@fourze/mock": ["../../packages/mock/src/index.ts"],
@@ -18,5 +22,5 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["./**/**.ts", "./**/**.tsx", "./**/**.d.ts", "./**/**.vue"],
+  "include": ["./**/*.ts", "./**/*.tsx", "./**/*.d.ts", "./**/*.vue","vite.config.ts"]
 }

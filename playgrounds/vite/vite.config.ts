@@ -3,11 +3,12 @@ import fourze from "@fourze/vite";
 import vue from "@vitejs/plugin-vue";
 import jsx from "@vitejs/plugin-vue-jsx";
 import visualizer from "rollup-plugin-visualizer";
-import uncomponents from "unplugin-vue-components";
+import uncomponents from "unplugin-vue-components/vite";
 
 import type { Plugin } from "vite";
 import { defineConfig } from "vite";
 import windicss from "vite-plugin-windicss";
+import tsconfig from "./tsconfig.json";
 
 export default defineConfig({
   base: "/test",
@@ -21,17 +22,19 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: "@",
-        replacement: resolve(__dirname, "./src")
-      },
-      {
         find: "assets",
         replacement: resolve(__dirname, "./src/assets")
       },
       {
         find: "vue",
         replacement: "vue/dist/vue.esm-bundler.js" // compile template
-      }
+      },
+      ...Object.entries(tsconfig.compilerOptions.paths).map(([key, value]) => {
+        return {
+          find: key.replace("/*", ""),
+          replacement: resolve(__dirname, value[0].replace("/*", ""))
+        };
+      }) ?? []
     ],
     extensions: [".ts", ".js"]
   },
@@ -54,7 +57,7 @@ export default defineConfig({
       gzipSize: true,
       brotliSize: true
     }) as Plugin,
-    uncomponents.vite({
+    uncomponents({
       resolvers: []
     })
   ]

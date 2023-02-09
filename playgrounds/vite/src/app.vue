@@ -6,12 +6,11 @@
   import $ from "jquery";
   import querystring from "query-string";
   import { computed, reactive, ref, watch } from "vue";
-  import Button from "./components/base/button.vue";
-  import Item from "./components/base/item.vue";
+  import { HiItem, HiSelection } from "hoci";
   import Loading from "./components/base/loading.vue";
-  import Selection from "./components/base/selection.vue";
   import Table from "./components/base/table";
   import type { TableColumns } from "./components/hooks/table";
+  import Button from "@/components/base/button.vue";
 
   const t = ref(0);
 
@@ -41,7 +40,7 @@
   function upload() {
     const fileElement = document.createElement("input");
     fileElement.type = "file";
-    fileElement.onchange = async (e) => {
+    fileElement.onchange = async () => {
       if (fileElement.files) {
         const formData = new FormData();
         formData.append("file", fileElement.files[0]);
@@ -195,38 +194,38 @@
           <div class="font-bold text-lg text-light-blue-400">
             Mock Data:
           </div>
-          <Selection
+          <HiSelection
             v-model="mockEnabled"
             item-class="px-4 py-1 select-none cursor-pointer" active-class="bg-light-blue-300 text-white"
             unactive-class="text-light-blue-300" class="flex space-x-4 items-center"
           >
-            <Item :value="true">
+            <HiItem :value="true">
               Enable
-            </Item>
-            <Item :value="false">
+            </HiItem>
+            <HiItem :value="false">
               Disable
-            </Item>
-          </Selection>
+            </HiItem>
+          </HiSelection>
         </div>
         <div class="flex space-x-4 mt-2 items-center">
           <div class="font-bold text-lg text-light-blue-400">
             Request Type:
           </div>
-          <Selection
+          <HiSelection
             v-model="args.type"
             item-class="px-4 py-1 select-none cursor-pointer" active-class="bg-light-blue-300 text-white"
             unactive-class="text-light-blue-300" class="flex space-x-4 items-center"
           >
-            <Item value="fetch">
+            <HiItem value="fetch">
               Fetch
-            </Item>
-            <Item value="axios">
+            </HiItem>
+            <HiItem value="axios">
               Axios
-            </Item>
-            <Item value="jquery">
+            </HiItem>
+            <HiItem value="jquery">
               JQuery
-            </Item>
-          </Selection>
+            </HiItem>
+          </HiSelection>
         </div>
         <Loading :loading="isLoading" class="mt-4 w-240">
           <div class="min-h-128 ">

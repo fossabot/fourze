@@ -1,26 +1,26 @@
 export type RequestPath = `${"get" | "post" | "delete"}:${string}` | string;
 
 export interface Pagination {
-  page?: number;
-  pageSize?: number;
-  total?: number;
+  page?: number
+  pageSize?: number
+  total?: number
 }
 
 export interface ResponseData {
-  code: number;
-  data: any;
-  msg: string;
+  code: number
+  data: any
+  msg: string
 }
 
 export interface PageData<T> {
-  currentPageIndex: number;
-  items: T[];
-  nextIndex: number;
-  pageSize: number;
-  previousIndex: number;
-  startIndex: number;
-  totalCount: number;
-  totalPageCount: number;
+  currentPageIndex: number
+  items: T[]
+  nextIndex: number
+  pageSize: number
+  previousIndex: number
+  startIndex: number
+  totalCount: number
+  totalPageCount: number
 }
 export function slicePage<T>(
   content: T[],
@@ -37,7 +37,7 @@ export function slicePage<T>(
     pageSize,
     startIndex: 0,
     nextIndex: 0,
-    previousIndex: 0,
+    previousIndex: 0
   };
 }
 
@@ -46,7 +46,7 @@ export const successResponseWrap = (data?: unknown, msg?: string) => {
     data,
     code: "Success",
     succ: true,
-    msg,
+    msg
   };
 };
 
@@ -62,6 +62,6 @@ export const failResponseWrap = (msg: string) => {
   return {
     data: null,
     code: "Error",
-    msg,
+    msg
   };
 };
