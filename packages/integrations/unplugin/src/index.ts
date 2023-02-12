@@ -219,7 +219,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
               VITE_PLUGIN_FOURZE_MOCK: options.mock
             },
             resolve: {
-              alias: [...getModuleAlias()]
+              alias: env.command === "build" ? getModuleAlias() : []
             },
             build: {
               rollupOptions: {

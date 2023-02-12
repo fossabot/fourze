@@ -1,7 +1,8 @@
 import path from "path";
 import type { FourzeHmrApp } from "@fourze/server";
 
-import vite from "vite";
+import type { InlineConfig } from "vite";
+import { defineConfig, mergeConfig, build as viteBuild } from "vite";
 import fs from "fs-extra";
 import type { RequestMethod } from "@fourze/core";
 import { resolves } from "@fourze/core";
@@ -33,7 +34,7 @@ export interface SwaggerUIBuildOptions {
 
   assetsFilter?: (src: string) => boolean
 
-  vite?: vite.InlineConfig
+  vite?: InlineConfig
 
   /**
    * @default ".fourze-swagger"
@@ -107,7 +108,7 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
 
   // 打包接口文档 这里会有更好的方案吗???
 
-  await vite.build(vite.mergeConfig(options.vite ?? {}, vite.defineConfig({
+  await viteBuild(mergeConfig(options.vite ?? {}, defineConfig({
     base: resolves(base, uiPath),
     root: tmpDir,
     build: {

@@ -2,7 +2,7 @@ import { runInThisContext } from "vm";
 import { Module, builtinModules } from "module";
 import { platform } from "os";
 import { pathToFileURL } from "url";
-import { dirname, extname, join, normalize } from "pathe";
+import { dirname, extname, join } from "pathe";
 import { normalizeAliases, resolveAlias } from "pathe/utils";
 import { createLogger, escapeStringRegexp } from "@fourze/core";
 import { readFileSync } from "fs-extra";
@@ -50,9 +50,9 @@ export function readNearestPackageJSON(path: string): PackageJson | undefined {
       const pkg = readFileSync(join(path, "package.json"), "utf8");
       try {
         return JSON.parse(pkg);
-      } catch {}
+      } catch { }
       break;
-    } catch {}
+    } catch { }
   }
 }
 
@@ -102,7 +102,6 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
   );
 
   const _resolve = (id: string, options?: { paths?: string[] }) => {
-    id = normalize(id);
     if (opts.alias) {
       id = resolveAlias(id, opts.alias);
     }
@@ -146,8 +145,6 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
 
   _resolve.paths = nativeRequire.resolve.paths;
 
-  const aliasMap = new Map<string, string>();
-
   function getLoader(filename: string): Loader {
     const ext = extname(filename);
     switch (ext) {
@@ -184,11 +181,9 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
       return nativeRequire(id);
     }
 
-    const filename = normalize(_resolve(id));
+    const filename = _resolve(id);
 
     const ext = extname(filename);
-
-    aliasMap.set(id, filename);
 
     if (ext && !opts.extensions!.includes(ext)) {
       logger.debug("[unknown]", filename);
@@ -202,10 +197,7 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
 
     if (opts.requireCache && nativeRequire.cache[filename]) {
       logger.debug("[cache]", filename);
-      const cache = _interopDefault(nativeRequire.cache[filename]?.exports);
-      if (cache) {
-        return cache;
-      }
+      return _interopDefault(nativeRequire.cache[filename]?.exports);
     }
 
     let source = readFileSync(filename, "utf-8");
@@ -215,8 +207,8 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
     const isCommonJS = ext === ".cjs";
 
     const isNativeModule
-    = ext === ".mjs"
-    || (ext === ".js" && readNearestPackageJSON(filename)?.type === "module");
+      = ext === ".mjs"
+      || (ext === ".js" && readNearestPackageJSON(filename)?.type === "module");
 
     const needsTranspile = !isCommonJS && (isTypescript || isNativeModule || hasESMSyntax(source));
 
@@ -264,7 +256,7 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
       mod.parent = parentModule;
       if (
         Array.isArray(parentModule.children)
-          && !parentModule.children.includes(mod)
+        && !parentModule.children.includes(mod)
       ) {
         parentModule.children.push(mod);
       }
@@ -312,12 +304,11 @@ export function createImporter(_filename: string, opts: ModuleImporterOptions = 
   _require.extensions = nativeRequire.extensions;
   _require.main = nativeRequire.main;
   _require.remove = function (id: string) {
-    const filename = aliasMap.get(id) ?? id;
-    if (filename && nativeRequire.cache[filename]) {
-      delete nativeRequire.cache[filename];
-      logger.debug("[delete cache]", filename);
+    const cacheName = _resolve(id);
+    if (cacheName) {
+      delete nativeRequire.cache[cacheName];
+      logger.debug("[delete cache]", cacheName);
     }
-    aliasMap.delete(id);
   };
 
   _require.configure = _configure;

@@ -181,7 +181,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     await this(request, response, async () => {
       await next?.(request, response);
     });
-    logger.info(`service ${request.url} done`);
+    logger.debug(`service ${request.url} done`);
     return { request, response };
   };
 

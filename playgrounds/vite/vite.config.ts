@@ -29,12 +29,10 @@ export default defineConfig({
         find: "vue",
         replacement: "vue/dist/vue.esm-bundler.js" // compile template
       },
-      ...Object.entries(tsconfig.compilerOptions.paths).map(([key, value]) => {
-        return {
-          find: key.replace("/*", ""),
-          replacement: resolve(__dirname, value[0].replace("/*", ""))
-        };
-      }) ?? []
+      {
+        find: "@",
+        replacement: resolve(__dirname, "./src")
+      }
     ],
     extensions: [".ts", ".js"]
   },
@@ -59,6 +57,24 @@ export default defineConfig({
     }) as Plugin,
     uncomponents({
       resolvers: []
-    })
+    }),
+    {
+      name: "vite:tsconfig-paths",
+      apply: "serve",
+      config(){
+        return {
+          resolve:{
+            alias:[
+              ...Object.entries(tsconfig.compilerOptions.paths).map(([key, value]) => {
+                return {
+                  find: key.replace("/*", ""),
+                  replacement: resolve(__dirname, value[0].replace("/*", ""))
+                };
+              }) ?? []
+            ]
+          }
+        }
+      }
+    }
   ]
 });

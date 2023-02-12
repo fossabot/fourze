@@ -176,7 +176,7 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
         case "add": {
           const isLoaded = await load(path);
           if (isLoaded) {
-            logger.info(`load module ${path}`);
+            logger.info("[hmr]", `load module ${path}`);
           }
           break;
         }
@@ -184,13 +184,13 @@ export function createHmrApp(options: FourzeHmrOptions = {}): FourzeHmrApp {
           this.remove(path);
           const isLoaded = await load(path);
           if (isLoaded) {
-            logger.info(`reload module ${path}`);
+            logger.info("[hmr]", `reload module ${path}`);
           }
           break;
         }
         case "unlink":
           this.remove(path);
-          logger.info(`remove module ${path}`);
+          logger.info("[hmr]", `remove module ${path}`);
           break;
       }
       await this.reset();

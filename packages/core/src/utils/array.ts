@@ -1,52 +1,3 @@
-export function unique<T>(arr: Iterable<T>): T[] {
-  return Array.from(new Set(arr));
-}
-
-export function groupBy<T, K>(array: T[], callback: (t: T) => K) {
-  const map = new Map<K, T[]>();
-  for (let i = 0; i < array.length; i++) {
-    const t = array[i];
-    const key = callback(t);
-    const temp: T[] = map.get(key) || [];
-    if (!map.has(key)) {
-      map.set(key, temp);
-    }
-    temp.push(t);
-  }
-
-  return Array.from(map.entries());
-}
-
-export function filterBy<T, I>(array: T[], callback: (t: T) => I) {
-  const set = new Set<I>();
-  const arr = <T[]>[];
-  for (let i = 0; i < array.length; i++) {
-    const t = array[i];
-    const key = callback(t);
-    if (!set.has(key)) {
-      set.add(key);
-      arr.push(t);
-    }
-  }
-
-  return arr;
-}
-
-export function countBy<T, I>(array: T[], callback: (t: T) => I) {
-  const map = new Map<I, number>();
-  for (let i = 0; i < array.length; i++) {
-    const t = array[i];
-    const key = callback(t);
-
-    if (!map.has(key)) {
-      map.set(key, 0);
-    }
-    map.set(key, (map.get(key) ?? 0) + 1);
-  }
-
-  return Array.from(map.entries());
-}
-
 export type PredicateFn<T> = (item: T, index: number) => boolean;
 
 export type MapFn<T, U> = (item: T, index: number) => U;
@@ -65,16 +16,14 @@ export interface CollectionQuery<T> extends Iterable<T> {
   where(fn: PredicateFn<T>): WhereCollectionQuery<T>
   select<U>(mapFn: MapFn<T, U>): CollectionQuery<U>
   select(): CollectionQuery<T>
+
   append(...items: T[]): this
   prepend(...items: T[]): this
   insert(index: number, ...items: T[]): this
   delete(index: number): this
   delete(fn: PredicateFn<T>): this
-  sort(compareFn: CompareFn<T>): this
-  clear(): this
-  reverse(): this
+
   union(...collections: Iterable<T>[]): this
-  flat<D extends number = 1>(depth?: D): CollectionQuery<FlatArray<T[], D>>
   distinct(): this
   distinct<U>(mapFn: MapFn<T, U>): this
   intersect(...collections: Iterable<T>[]): this
@@ -85,13 +34,23 @@ export interface CollectionQuery<T> extends Iterable<T> {
     mapFn: (a: T, b: U) => R
   ): CollectionQuery<R>
   groupBy<K>(mapFn: MapFn<T, K>): CollectionQuery<[K, T[]]>
-  clone(): this
+
   fill(value: T, start?: number, end?: number): this
   slice(start?: number, end?: number): this
+  flat<D extends number = 1>(depth?: D): CollectionQuery<FlatArray<T[], D>>
+  includes(value: T, fromIndex?: number): boolean
+  some(fn: PredicateFn<T>): boolean
+  every(fn: PredicateFn<T>): boolean
+  reverse(): this
+  sort(compareFn: CompareFn<T>): this
+  find(fn: PredicateFn<T>): T | undefined
+
+  clear(): this
+  reset(source?: Iterable<T>): this
+  clone(): this
+
   toArray(): T[]
   toSet(): Set<T>
-  includes(value: T, fromIndex?: number): boolean
-  reset(source?: Iterable<T>): this
   toJSON(): T[]
 
   readonly length: number
@@ -235,6 +194,15 @@ export function createQuery<T>(
     reverse() {
       source.reverse();
       return this;
+    },
+    some(fn: PredicateFn<T>) {
+      return source.some(fn);
+    },
+    every(fn: PredicateFn<T>) {
+      return source.every(fn);
+    },
+    find(fn: PredicateFn<T>) {
+      return source.find(fn);
     },
     clear() {
       source.length = 0;

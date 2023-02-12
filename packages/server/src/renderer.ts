@@ -200,7 +200,7 @@ export function createRenderer(
             }
 
             if (content) {
-              logger.info("fallback", url, " => ", context.file);
+              logger.debug("[fallback]", url, " => ", context.file);
               break;
             }
           }

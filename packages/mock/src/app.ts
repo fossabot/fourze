@@ -26,8 +26,7 @@ export function createMockApp(
 
   const app = createApp(options) as FourzeMockApp;
 
-  logger.info("Fourze Mock is starting...");
-  logger.info(`Powered by Fourze v${FOURZE_VERSION}`);
+  logger.info(`Fourze Mock is ready on ${FOURZE_VERSION}`);
 
   const mode = options.mode ?? (isNode() ? ["request"] : ["xhr", "fetch"]);
   const autoEnable = options.autoEnable ?? true;
@@ -117,7 +116,7 @@ export function createMockApp(
   const _service = app.service.bind(app);
 
   app.service = function (context: FourzeContextOptions, fallback) {
-    logger.info(`Fourze Mock is processing [${context.url}]`);
+    logger.debug(`Fourze Mock is processing [${context.url}]`);
     return _service({
       ...context,
       url: context.url.replace(origin, "")
