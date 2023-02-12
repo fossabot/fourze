@@ -208,7 +208,7 @@ export function createRenderer(
       }
 
       if (content && !response.writableEnded) {
-        logger.info("render page", url);
+        logger.debug("render page", url);
         if (!response.hasHeader("Content-Type")) {
           response.setHeader("Content-Type", mime.getType(url) ?? "text/html");
         }

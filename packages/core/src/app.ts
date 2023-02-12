@@ -25,7 +25,7 @@ import {
   relativePath,
   resolves
 } from "./utils";
-import { injectMeta } from "./meta";
+import { injectMeta } from "./shared/meta";
 
 export type FourzeAppSetup = (app: FourzeApp) => MaybePromise<void | FourzeModule[] | FourzeAppOptions>;
 

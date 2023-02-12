@@ -1,11 +1,9 @@
 import type { MaybePromise } from "maybe-types";
 import { createLogger } from "./logger";
-import type { MetaInstance } from "./meta";
-import { injectMeta } from "./meta";
-import type { ObjectProps, PropType } from "./props";
+import type { MetaInstance } from "./shared/meta";
+import { injectMeta } from "./shared/meta";
 import type {
-  FourzeApp,
-  FourzeBaseRoute,
+  FourzeApp, FourzeBaseRoute,
   FourzeHandle,
   FourzeMiddleware,
   FourzeNext,
@@ -16,11 +14,15 @@ import type {
   FourzeRouteGenerator,
   FourzeRouteOptions,
   FourzeRouterMeta,
+  ObjectProps,
+  PropType,
   RequestMethod
 } from "./shared";
 import {
   FOURZE_METHODS
-  , defineMiddleware, defineRoute
+  ,
+  defineMiddleware
+  , defineRoute, isExtends
 } from "./shared";
 import {
   createSingletonPromise,
@@ -290,13 +292,6 @@ export function defineRouter(
 
 export function isRouter(value: any): value is FourzeRouter {
   return !!value && !!value[FourzeRouterSymbol];
-}
-
-export function isExtends<D>(types: PropType<D>, type: PropType<D>): boolean {
-  if (Array.isArray(types)) {
-    return types.some((e) => isExtends(e, type));
-  }
-  return types === type;
 }
 
 export function validateProps(

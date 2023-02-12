@@ -1,4 +1,4 @@
-import { isArray, isPlainObject } from "./utils";
+import { isArray, isFunction, isPlainObject } from "../utils";
 
 export type DefaultData = Record<string, unknown>;
 
@@ -189,4 +189,47 @@ export function isInstanceOf<D = any>(type: PropType<D> | PropType<D>[], value: 
     }
   }
   return valid;
+}
+
+export function normalizeProps<T>(
+  props: ObjectProps<T>
+): NormalizedObjectProps<T> {
+  const result = {} as NormalizedObjectProps<T>;
+  for (const name in props) {
+    const key = name;
+    const prop = props[name];
+
+    if (isFunction(prop)) {
+      result[key] = {
+        type: prop,
+        in: "query",
+        required: isExtends(prop as PropType<any>, Boolean),
+        meta: {}
+      };
+      continue;
+    }
+
+    if (Array.isArray(prop)) {
+      result[key] = {
+        type: prop,
+        in: "query",
+        required: prop.some((p) => isExtends(p as PropType<any>, Boolean)),
+        meta: {}
+      };
+      continue;
+    }
+
+    if (!isFunction(prop) && !Array.isArray(prop) && !!prop) {
+      result[key] = {
+        type: prop.type,
+        meta: {
+          ...prop.meta
+        },
+        in: prop.in ?? "query",
+        default: prop.default,
+        required: prop.default ? false : prop.required ?? false
+      };
+    }
+  }
+  return result;
 }

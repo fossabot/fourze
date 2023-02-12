@@ -1,5 +1,5 @@
-import type { InferPropType, OptionalKeys, PropType, RequiredKeys } from "../props";
-import { isInstanceOf } from "../props";
+import type { InferPropType, OptionalKeys, PropType, RequiredKeys } from "../shared/props";
+import { isInstanceOf } from "../shared/props";
 import { isFunction, isUndef } from "./is";
 
 type OverloadConfig<P = Record<string, any>> = {

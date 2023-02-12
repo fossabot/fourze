@@ -1,4 +1,4 @@
-import { isObject } from "./utils";
+import { isObject } from "../utils";
 
 export interface MetaInstance<This, Meta = Record<string, any>> {
   readonly meta: Meta
@@ -27,3 +27,9 @@ export function injectMeta<This extends MetaInstance<This>>(instance: This, meta
   });
   return instance;
 }
+
+export interface FourzeAppMeta extends Record<string, any> {}
+
+export interface FourzeRouterMeta extends FourzeAppMeta {}
+
+export interface FourzeRouteMeta extends FourzeRouterMeta {}

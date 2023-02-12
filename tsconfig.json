@@ -35,7 +35,7 @@
         "playgrounds/**/*.ts",
         "playgrounds/**/*.d.ts",
         "playgrounds/**/*.tsx",
-        "packages/**/**.ts",
+        "packages/**/*.ts",
         "test/**/*.ts",
         "playgrounds/vue-cli/vue.config.js"
     ],
