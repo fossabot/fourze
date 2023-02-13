@@ -1,6 +1,6 @@
 import type { MaybePromise } from "maybe-types";
 import { createLogger } from "./logger";
-import type { MetaInstance } from "./shared/meta";
+import type { FourzeRouteMeta, MetaInstance } from "./shared/meta";
 import { injectMeta } from "./shared/meta";
 import type {
   FourzeApp, FourzeBaseRoute,
@@ -10,7 +10,6 @@ import type {
   FourzeRequest,
   FourzeResponse,
   FourzeRoute,
-  FourzeRouteFunction,
   FourzeRouteGenerator,
   FourzeRouteOptions,
   FourzeRouterMeta,
@@ -19,42 +18,60 @@ import type {
   RequestMethod
 } from "./shared";
 import {
-  FOURZE_METHODS
+  FOURZE_METHODS,
+  defineMiddleware,
+  defineRoute,
+  isExtends
   ,
-  defineMiddleware
-  , defineRoute, isExtends
+  isRoute
 } from "./shared";
 import {
   createSingletonPromise,
   isConstructor,
-  isDef,
   isFunction,
   isObject,
+  isString,
   isUndef,
   isUndefined,
   normalizeRoute,
   overload
 } from "./utils";
+import { createRouteMatcher } from "./shared/matcher";
 
 const FourzeRouterSymbol = Symbol("FourzeRouter");
+
+type FourzeRouteChain<Methods extends string = RequestMethod> = {
+  [method in Methods]: {
+    <Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta>(
+      options: Omit<FourzeRouteOptions<Props, Meta>, "path" | "method">,
+      handle: FourzeHandle<Result, Props, Meta>
+    ): FourzeRouteChain<Exclude<Methods, method>>
+
+    <Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta>(
+      handle: FourzeHandle<Result, Props, Meta>
+    ): FourzeRouteChain<Exclude<Methods, method>>
+  }
+};
 
 export interface FourzeRouter
   extends FourzeMiddleware,
   FourzeRouteGenerator<FourzeRouter>, MetaInstance<FourzeRouter, FourzeRouterMeta> {
-  /**
-   * 根据url匹配路由
-   * @param url
-   * @param method
-   * @allowed 是否验证路由在允许规则内
-   */
-  match(
-    url: string,
-    method?: string,
-  ): [FourzeRoute, RegExpMatchArray] | []
 
   reset(): void
 
-  route: FourzeRouteFunction<FourzeRouter>
+  route(path: string): FourzeRouteChain
+
+  route(path: string, method: RequestMethod, options: FourzeRouteOptions, handle: FourzeHandle): this
+
+  route(path: string, method: RequestMethod, handle: FourzeHandle): this
+
+  route(path: string, options: FourzeRouteOptions, handle: FourzeHandle): this
+
+  route(path: string, handle: FourzeHandle): this
+
+  route(route: FourzeBaseRoute): this
+
+  route(route: FourzeBaseRoute[]): this
 
   setup(app?: FourzeApp): Promise<void>
 
@@ -103,7 +120,7 @@ export function defineRouter(
 
   const meta: Record<string, any> = { ...options.meta };
 
-  const routes: FourzeRoute[] = [];
+  const matcher = createRouteMatcher<FourzeRoute>();
 
   const logger = createLogger("@fourze/core");
 
@@ -116,14 +133,13 @@ export function defineRouter(
 
     const { path, method } = request;
 
-    const [route, matches] = router.match(path, method);
+    const [route, matches] = matcher.match(path, (method as RequestMethod) ?? "all");
+
     logger.debug(`Request received -> ${normalizeRoute(request.path)}.`);
 
-    if (route && matches) {
-      for (let i = 0; i < route.pathParams.length; i++) {
-        const key = route.pathParams[i].slice(1, -1);
-        const value = matches[i + 1];
-        request.params[key] = value;
+    if (route) {
+      if (matches) {
+        Object.assign(request.params, matches);
       }
 
       request.route = route;
@@ -167,73 +183,89 @@ export function defineRouter(
 
   injectMeta(router, meta);
 
-  router.match = function (
-    this: FourzeRouter,
-    path: string,
-    method?: string
-  ): [FourzeRoute, RegExpMatchArray] | [] {
-    for (const route of routes) {
-      const matches = route.match(path, method);
-      if (matches) {
-        return [route, matches];
-      }
-    }
-    return [];
+  const addRoute = (arg: FourzeBaseRoute) => {
+    const route = isRoute(arg) ? arg : defineRoute(arg);
+    matcher.add(route.path, route.method ?? "all", route);
   };
 
-  router.route = function (
-    this: FourzeRouter,
-    ...args: Parameters<typeof router["route"]>
-  ) {
-    const param0 = args[0];
-    if (Array.isArray(param0)) {
-      routes.push(...param0.map(defineRoute));
-    } else if (isObject(param0)) {
-      routes.push(defineRoute(param0) as FourzeRoute);
-    } else {
-      const { path, method, options, handle } = overload(
-        {
-          path: {
-            type: String,
-            required: true
-          },
-          method: {
-            type: String as PropType<RequestMethod>
-          },
-          options: {
-            type: Object as PropType<FourzeRouteOptions>
-          },
-          handle: {
-            type: Function as PropType<FourzeHandle>,
-            required: true
-          }
-        },
-        [...args]
-      );
+  router.route = function (this: FourzeRouter, ...args: any[]) {
+    const firstArg = args[0];
 
-      const route = {
-        path,
-        method,
-        handle,
-        ...options
-      };
+    if (args.length === 1) {
+      if (isString(firstArg)) {
+        const path = firstArg;
+        return FOURZE_METHODS.reduce((methods, method) => {
+          methods[method] = function (
+            this: FourzeRouter,
+            ...args: [FourzeRouteOptions, FourzeHandle] | [FourzeHandle]
+          ) {
+            const { handle, options } = overload({
+              options: {
+                type: Object
+              },
+              handle: {
+                type: Function as PropType<FourzeHandle>,
+                required: true
+              }
+            }, args);
 
-      if (isDef(route)) {
-        routes.push(defineRoute(route));
+            addRoute({
+              ...options,
+              path,
+              method,
+              handle
+            });
+            return router;
+          };
+          return methods;
+        }, {} as any);
+      } else if (Array.isArray(firstArg)) {
+        firstArg.forEach((r) => addRoute(r));
+      } else {
+        addRoute(firstArg);
       }
+    } else {
+      const baseRoute = overload({
+        path: {
+          type: String,
+          required: true
+        },
+        method: {
+          type: String as PropType<RequestMethod>
+        },
+        options: {
+          type: Object
+        },
+        handle: {
+          type: Function as PropType<FourzeHandle>,
+          required: true
+        }
+      }, args);
+
+      addRoute({
+        ...baseRoute.options,
+        path: baseRoute.path,
+        method: baseRoute.method,
+        handle: baseRoute.handle
+      });
     }
     return this;
-  } as FourzeRouteFunction<FourzeRouter>;
+  };
 
   const setupRouter = createSingletonPromise(async (app: FourzeApp) => {
     try {
       const rs = await setup?.(router, app);
-      if (Array.isArray(rs)) {
-        routes.push(...rs.map((r) => defineRoute(r)));
-      } else if (!isRouter(rs) && isObject(rs)) {
-        options.name = rs.name ?? options.name;
-        if (rs.routes) {
-          routes.push(...rs.routes.map((r) => defineRoute(r)));
+      if (rs) {
+        if (Array.isArray(rs)) {
+          rs.forEach((r) => addRoute(r));
+        } else if (rs !== router && isObject(rs)) {
+          options.name = rs.name ?? options.name;
+          if (rs.meta) {
+            Object.assign(meta, rs.meta);
+          }
+          if (rs.routes) {
+            rs.routes.forEach((r) => addRoute(r));
+          }
         }
       }
     } catch (error) {
@@ -278,7 +310,9 @@ export function defineRouter(
     },
     routes: {
       get() {
-        return Array.from(routes);
+        const routes: FourzeRoute[] = [];
+        matcher.traverse((payload) => routes.push(payload));
+        return routes;
       },
       enumerable: true
     },

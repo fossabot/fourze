@@ -15,13 +15,10 @@ import type {
   FourzeApp,
   FourzeContext,
   FourzeLogger,
-  FourzeMiddleware
-  ,
-  FourzeMiddlewareHandler
-  ,
+  FourzeMiddleware,
+  FourzeMiddlewareHandler,
   FourzeNext,
-  FourzeRequest
-  ,
+  FourzeRequest,
   FourzeResponse,
   PropType
 } from "@fourze/core";

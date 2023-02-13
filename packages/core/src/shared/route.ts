@@ -27,48 +27,8 @@ export interface FourzeRoute<
   Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta
 > extends FourzeBaseRoute<Result, Props, Meta> {
   readonly [FOURZE_ROUTE_SYMBOL]: true
-  readonly pathParams: RegExpMatchArray | string[]
   readonly props: Props
   readonly meta: Meta
-  match: (
-    url: string,
-    method?: string,
-    base?: string
-  ) => RegExpMatchArray | null
-}
-
-export interface FourzeRouteFunction<This> {
-
-  <
-    Method extends RequestMethod, Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta
-  >(
-    path: string,
-    method: Method,
-    options: FourzeRouteOptions<Props, Meta>,
-    handle: FourzeHandle<Result, Props, Meta>
-  ): This
-
-  <
-    Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta
-  >(
-    path: string,
-    options: FourzeRouteOptions<Props, Meta>,
-    handle: FourzeHandle<Result, Props, Meta>
-  ): This
-
-  <Method extends RequestMethod, Result = unknown>(
-    path: string,
-    method: Method,
-    handle: FourzeHandle<Result>
-  ): This
-
-  <Result = unknown>(path: string, handle: FourzeHandle<Result>): This
-
-  <
-    Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta
-  >(
-    route: FourzeBaseRoute<Result, Props, Meta>
-  ): This
 }
 
 export type FourzeRouteGenerator<This> = {
@@ -92,8 +52,6 @@ const REQUEST_PATH_REGEX = new RegExp(
   `^(${FOURZE_METHODS.join("|")})\\s+`,
   "i"
 );
-
-const PARAM_KEY_REGEX = /\{[\w_-]+\}/g;
 
 export function defineRouteProps<Props extends ObjectProps = ObjectProps>(
   props: Props
@@ -125,27 +83,6 @@ export function defineRoute<
     path,
     meta,
     handle,
-    match(this: FourzeRoute, url: string, method?: string) {
-      if (
-        !this.method
-        || !method
-        || this.method.toLowerCase() === method.toLowerCase()
-      ) {
-        let pattern = path.replace(PARAM_KEY_REGEX, "([a-zA-Z0-9_-\\s]+)?");
-        if (!pattern.startsWith("*")) {
-          pattern = `^${pattern}`;
-        }
-        if (!pattern.endsWith("*")) {
-          pattern = `${pattern}$`;
-        }
-        const regex = new RegExp(pattern, "i");
-        return url.match(regex);
-      }
-      return null;
-    },
-    get pathParams() {
-      return this.path.match(PARAM_KEY_REGEX) ?? [];
-    },
     get props() {
       return props;
     },

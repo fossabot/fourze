@@ -26,7 +26,7 @@ export interface SingletonPromiseReturn<T> {
 
 /**
  * Create singleton promise function
- *
+ * base on original work of @antfu/utils by Anthony Fu (MIT)
  * @category Promise
  * @see https://github.com/antfu/utils/blob/main/src/promise.ts
  */

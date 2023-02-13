@@ -58,7 +58,8 @@ export function readNearestPackageJSON(path: string): PackageJson | undefined {
 
 /**
  * Create a module importer
- * @inspired https://github.com/unjs/jiti
+ * base on original work of @unjs/jiti by Pooya Parsa (MIT)
+ * @see https://github.com/unjs/jiti
  * @param _filename
  * @param opts
  * @param parentModule
