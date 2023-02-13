@@ -1,7 +1,6 @@
 import type { OutgoingMessage, ServerResponse } from "http";
 import { createLogger } from "../logger";
-import { getHeaderValue } from "../polyfill";
-import { PolyfillServerResponse } from "../polyfill/response";
+import { PolyfillServerResponse, getHeaderValue } from "../polyfill";
 import { isDef, isObject, isString, isUint8Array } from "../utils";
 import { FOURZE_VERSION } from "./version";
 

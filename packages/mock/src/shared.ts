@@ -1,14 +1,6 @@
-/* eslint-disable vars-on-top */
-/* eslint-disable no-var */
 import type http from "http";
 import type https from "https";
 import type { DelayMsType, FourzeApp, FourzeAppOptions } from "@fourze/core";
-
-declare global {
-  var __FOURZE_MOCK_APP__: FourzeMockApp;
-
-  var __FOURZE_VERSION__: string;
-}
 
 export type FourzeMockRequestMode = "xhr" | "fetch" | "request";
 
@@ -59,4 +51,3 @@ export interface FourzeMockApp extends FourzeApp {
   [FOURZE_MOCK_APP_SYMBOL]: true
 }
 
-export {};

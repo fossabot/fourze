@@ -61,10 +61,10 @@ export default defineConfig({
     {
       name: "vite:tsconfig-paths",
       apply: "serve",
-      config(){
+      config() {
         return {
-          resolve:{
-            alias:[
+          resolve: {
+            alias: [
               ...Object.entries(tsconfig.compilerOptions.paths).map(([key, value]) => {
                 return {
                   find: key.replace("/*", ""),
@@ -73,7 +73,7 @@ export default defineConfig({
               }) ?? []
             ]
           }
-        }
+        };
       }
     }
   ]

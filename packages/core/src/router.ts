@@ -21,8 +21,7 @@ import {
   FOURZE_METHODS,
   defineMiddleware,
   defineRoute,
-  isExtends
-  ,
+  isExtends,
   isRoute
 } from "./shared";
 import {
@@ -61,15 +60,15 @@ export interface FourzeRouter
 
   route(path: string): FourzeRouteChain
 
-  route(path: string, method: RequestMethod, options: FourzeRouteOptions, handle: FourzeHandle): this
+  route<Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta>(path: string, method: RequestMethod, options: FourzeRouteOptions<Props, Meta>, handle: FourzeHandle<Result, Props, Meta>): this
 
   route(path: string, method: RequestMethod, handle: FourzeHandle): this
 
-  route(path: string, options: FourzeRouteOptions, handle: FourzeHandle): this
+  route<Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta>(path: string, options: FourzeRouteOptions<Props, Meta>, handle: FourzeHandle<Result, Props, Meta>): this
 
   route(path: string, handle: FourzeHandle): this
 
-  route(route: FourzeBaseRoute): this
+  route<Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta>(route: FourzeBaseRoute<Result, Props, Meta>): this
 
   route(route: FourzeBaseRoute[]): this
 

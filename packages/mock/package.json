@@ -15,7 +15,10 @@
     "author": "chizuki",
     "license": "MIT",
     "dependencies": {
-        "@fourze/core": "workspace:*"
+        "@fourze/core": "workspace:*",
+        "dedent": "^0.7.0"
     },
-    "devDependencies": {}
+    "devDependencies": {
+        "@types/dedent": "^0.7.0"
+    }
 }
