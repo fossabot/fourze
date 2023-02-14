@@ -1,1 +1,3 @@
-export { version as FOURZE_VERSION } from "../../package.json";
+import { version } from "../../package.json";
+
+export const FOURZE_VERSION = version;

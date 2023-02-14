@@ -53,7 +53,3 @@ export function createSingletonPromise<T>(
   return wrapper;
 }
 
-/**
- *  alias of `createSingletonPromise`
- */
-export const asyncLock = createSingletonPromise;

@@ -40,16 +40,27 @@ import { createRouteMatcher } from "./shared/matcher";
 const FourzeRouterSymbol = Symbol("FourzeRouter");
 
 type FourzeRouteChain<Methods extends string = RequestMethod> = {
+
+  /**
+   * Add a middleware to the router
+   * only once
+   */
   [method in Methods]: {
     <Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta>(
       options: Omit<FourzeRouteOptions<Props, Meta>, "path" | "method">,
       handle: FourzeHandle<Result, Props, Meta>
-    ): FourzeRouteChain<Exclude<Methods, method>>
+    ): FourzeRouteChain<Exclude<Methods, method>> & {
+      route: FourzeRouter["route"]
+    }
 
     <Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta>(
       handle: FourzeHandle<Result, Props, Meta>
-    ): FourzeRouteChain<Exclude<Methods, method>>
+    ): FourzeRouteChain<Exclude<Methods, method>> & {
+      route: FourzeRouter["route"]
+    }
   }
+} & {
+  route: FourzeRouter["route"]
 };
 
 export interface FourzeRouter
@@ -187,17 +198,18 @@ export function defineRouter(
     matcher.add(route.path, route.method ?? "all", route);
   };
 
-  router.route = function (this: FourzeRouter, ...args: any[]) {
+  router.route = function (this: FourzeRouter, ...args: any[]): any {
     const firstArg = args[0];
 
     if (args.length === 1) {
       if (isString(firstArg)) {
         const path = firstArg;
-        return FOURZE_METHODS.reduce((methods, method) => {
-          methods[method] = function (
-            this: FourzeRouter,
-            ...args: [FourzeRouteOptions, FourzeHandle] | [FourzeHandle]
-          ) {
+        const chain = {
+          route: router.route.bind(router)
+        } as FourzeRouteChain;
+
+        for (const method of FOURZE_METHODS) {
+          chain[method] = (...args: [FourzeRouteOptions, FourzeHandle] | [FourzeHandle]) => {
             const { handle, options } = overload({
               options: {
                 type: Object
@@ -214,10 +226,11 @@ export function defineRouter(
               method,
               handle
             });
-            return router;
+            delete chain[method];
+            return chain;
           };
-          return methods;
-        }, {} as any);
+        }
+        return chain;
       } else if (Array.isArray(firstArg)) {
         firstArg.forEach((r) => addRoute(r));
       } else {

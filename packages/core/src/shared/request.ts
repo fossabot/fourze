@@ -10,7 +10,7 @@ import type { FourzeApp } from ".";
 
 const FOURZE_REQUEST_SYMBOL = Symbol("FourzeRequest");
 
-export const FOURZE_METHODS: RequestMethod[] = [
+export const FOURZE_METHODS = [
   "get",
   "post",
   "delete",
@@ -20,18 +20,9 @@ export const FOURZE_METHODS: RequestMethod[] = [
   "head",
   "trace",
   "connect"
-];
+] as const;
 
-export type RequestMethod =
-  | "get"
-  | "post"
-  | "delete"
-  | "put"
-  | "patch"
-  | "head"
-  | "options"
-  | "trace"
-  | "connect";
+export type RequestMethod = typeof FOURZE_METHODS[number];
 
 export interface FourzeRequestOptions {
   url: string
