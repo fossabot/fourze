@@ -1,6 +1,6 @@
 import path from "path";
 import type { DelayMsType, FourzeLogLevelKey, RequestMethod } from "@fourze/core";
-import { createLogger, delayHook, resolves, setLoggerLevel } from "@fourze/core";
+import { createLogger, delayHook, isBoolean, resolves, setLoggerLevel } from "@fourze/core";
 import { createUnplugin } from "unplugin";
 
 import type { FourzeMockAppOptions } from "@fourze/mock";
@@ -146,7 +146,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
 
   const viteConfig: InlineConfig = {};
 
-  const swaggerOptions = typeof options.swagger === "boolean" ? {} : options.swagger ?? {};
+  const swaggerOptions = isBoolean(options.swagger) ? {} : options.swagger ?? {};
   const generateDocument = swaggerOptions.generateDocument ?? !!options.swagger;
 
   return [

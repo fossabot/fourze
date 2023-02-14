@@ -1,7 +1,7 @@
 import type { IncomingMessage, OutgoingMessage } from "http";
 import type { MaybePromise, MaybeRegex } from "maybe-types";
 import { overload } from "../utils";
-import type { FourzeContext, FourzeContextOptions } from "./context";
+import type { FourzeContextOptions, FourzeServiceContext } from "./context";
 import type { FourzeAppMeta, FourzeRouteMeta, MetaInstance } from "./meta";
 import type { ObjectProps, PropType } from "./props";
 import type { FourzeRequest } from "./request";
@@ -103,7 +103,7 @@ export interface FourzeApp extends FourzeMiddleware, MetaInstance<FourzeApp, Fou
 
   match(url: string): [string, FourzeMiddleware][]
 
-  service(context: FourzeContextOptions, fallback?: FourzeHandle): Promise<FourzeContext>
+  service(context: FourzeContextOptions, fallback?: FourzeHandle): Promise<FourzeServiceContext>
 
   ready(): Promise<void>
 

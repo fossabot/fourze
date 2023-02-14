@@ -5,6 +5,7 @@ import {
   flatHeaders,
   getHeader,
   getHeaderValue,
+  isString,
   normalizeRoute,
   toRawHeaders
 } from "@fourze/core";
@@ -97,7 +98,7 @@ export function createProxyXMLHttpRequest(app: FourzeMockApp) {
     get responseText() {
       if (this.matched) {
         const res = this.response;
-        if (typeof res === "string") {
+        if (isString(res)) {
           return res;
         }
         return JSON.stringify(res);

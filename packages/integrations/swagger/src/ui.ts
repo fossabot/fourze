@@ -1,5 +1,5 @@
 import type { RenderHtmlOptions } from "@fourze/core";
-import { renderHtml, resolves, transformTemplate } from "@fourze/core";
+import { isFunction, renderHtml, resolves, transformTemplate } from "@fourze/core";
 
 const defaultStyleTemplate = `
 html {
@@ -64,7 +64,7 @@ function stringifyOptions(obj: Record<string, any>): string {
   let json = JSON.stringify(
     obj,
     (key, value) => {
-      if (typeof value === "function") {
+      if (isFunction(value)) {
         fns.push(value);
         return placeholder;
       }

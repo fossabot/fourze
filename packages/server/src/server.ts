@@ -13,13 +13,10 @@ import {
 import type {
   CommonMiddleware,
   FourzeApp,
-  FourzeContext,
   FourzeLogger,
   FourzeMiddleware,
   FourzeMiddlewareHandler,
-  FourzeNext,
-  FourzeRequest,
-  FourzeResponse,
+  FourzeServiceContext,
   PropType
 } from "@fourze/core";
 import { injectEventEmitter, normalizeAddress } from "./utils";
@@ -32,12 +29,7 @@ export interface FourzeServerOptions {
   logger?: FourzeLogger
 }
 
-export interface FourzeServer extends EventEmitter {
-  (
-    req: IncomingMessage,
-    res: OutgoingMessage,
-    next?: () => void | Promise<void>
-  ): Promise<void>
+export interface FourzeServer extends EventEmitter, CommonMiddleware {
 
   host: string
   port: number
@@ -54,34 +46,6 @@ export interface FourzeServer extends EventEmitter {
   use(...middleware: FourzeMiddleware[]): this
 
   close(): Promise<void>
-}
-
-export function createServerContext(
-  req: IncomingMessage,
-  res: OutgoingMessage
-): Promise<FourzeContext> {
-  return new Promise((resolve, reject) => {
-    let body: Buffer = Buffer.alloc(0);
-
-    req.on("data", (chunk: Buffer) => {
-      body = Buffer.concat([body, chunk]);
-    });
-
-    req.on("end", () => {
-      const context = createServiceContext({
-        url: req.url!,
-        method: req.method ?? "GET",
-        headers: req.headers,
-        body,
-        request: req,
-        response: res
-      });
-
-      resolve(context);
-    });
-
-    req.on("error", reject);
-  });
 }
 
 export function createServer(): FourzeServer;
@@ -116,11 +80,7 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
 
   const logger = options.logger ?? createLogger("@fourze/server");
 
-  const serverApp = connect(async (
-    request: FourzeRequest,
-    response: FourzeResponse,
-    next?: FourzeNext
-  ) => {
+  const serverApp = connect(async (request, response, next) => {
     try {
       await app(request, response, async () => {
         if (next) {
@@ -253,6 +213,34 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
   });
 
   return serverApp;
+}
+
+export function createServerContext(
+  req: IncomingMessage,
+  res: OutgoingMessage
+): Promise<FourzeServiceContext> {
+  return new Promise((resolve, reject) => {
+    let body: Buffer = Buffer.alloc(0);
+
+    req.on("data", (chunk: Buffer) => {
+      body = Buffer.concat([body, chunk]);
+    });
+
+    req.on("end", () => {
+      const context = createServiceContext({
+        url: req.url!,
+        method: req.method ?? "GET",
+        headers: req.headers,
+        body,
+        request: req,
+        response: res
+      });
+
+      resolve(context);
+    });
+
+    req.on("error", reject);
+  });
 }
 
 export function connect(path: string, handler: FourzeMiddlewareHandler): CommonMiddleware;

@@ -47,7 +47,7 @@ export function defineOverload<Config extends OverloadConfig>(
           types.push(props.type);
           required = !!props.required || !!props.default;
           transform = props.transform;
-          defaultValue = typeof props.default === "function" ? props.default : () => props.default;
+          defaultValue = isFunction(props.default) ? props.default : () => props.default;
         }
       }
 

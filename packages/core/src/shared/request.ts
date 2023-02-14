@@ -57,6 +57,8 @@ export interface FourzeRequest<
 
   contextPath: string
 
+  readonly req?: IncomingMessage
+
   readonly originalPath: string
 
   readonly params: Params

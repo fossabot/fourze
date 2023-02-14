@@ -17,9 +17,23 @@ export class PolyfillServerResponse {
     return this._ended;
   }
 
-  end() {
-    this.statusCode = 200;
+  end(cb?: () => void): this;
+  end(chunk: any, cb?: () => void): this;
+  end(chunk: any, encoding: BufferEncoding, cb?: () => void): this;
+  end(
+    chunk?: any,
+    encoding?: BufferEncoding | (() => void),
+    cb?: () => void
+  ) {
+    if (typeof encoding === "function") {
+      cb = encoding;
+      encoding = undefined;
+    }
+    if (cb) {
+      cb();
+    }
     this._ended = true;
+    return this;
   }
 
   getHeaders() {

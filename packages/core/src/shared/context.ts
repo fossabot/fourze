@@ -14,7 +14,7 @@ export interface FourzeContextOptions {
   contextPath?: string
 }
 
-export interface FourzeContext {
+export interface FourzeServiceContext {
   request: FourzeRequest
   response: FourzeResponse
 }
@@ -31,6 +31,7 @@ export function createServiceContext(options: FourzeContextOptions) {
   const response = createResponse({
     url,
     method,
+    request,
     response: options.response
   });
 

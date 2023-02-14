@@ -2,18 +2,19 @@ import type { OutgoingMessage, ServerResponse } from "http";
 import { createLogger } from "../logger";
 import { PolyfillServerResponse, getHeaderValue } from "../polyfill";
 import { isDef, isObject, isString, isUint8Array } from "../utils";
+import type { FourzeRequest } from "./request";
 import { FOURZE_VERSION } from "./version";
 
 export interface FourzeResponseOptions {
   url: string
   method: string
+  request: FourzeRequest
   response?: OutgoingMessage
 }
 
 const FOURZE_RESPONSE_SYMBOL = Symbol("FourzeResponse");
 
 export interface FourzeBaseResponse extends ServerResponse {
-  method?: string
 }
 export interface FourzeResponse extends FourzeBaseResponse {
   json(payload: any): this
@@ -38,6 +39,10 @@ export interface FourzeResponse extends FourzeBaseResponse {
 
   sendError(code: number, error?: string | Error): this
 
+  readonly res?: OutgoingMessage
+
+  readonly request: FourzeRequest
+
   readonly url: string
 
   readonly payload: any
@@ -48,8 +53,8 @@ export interface FourzeResponse extends FourzeBaseResponse {
 }
 
 export function createResponse(options: FourzeResponseOptions) {
-  const response = (options?.response
-    ?? new PolyfillServerResponse()) as FourzeResponse;
+  const res = options?.response;
+  const response = (res ?? (new PolyfillServerResponse())) as FourzeResponse;
   const logger = createLogger("@fourze/core");
 
   let _payload: any;
@@ -98,7 +103,7 @@ export function createResponse(options: FourzeResponseOptions) {
   };
 
   response.sendError = function (code = 500, error: Error | string) {
-    _error = typeof error === "string" ? new Error(error) : error;
+    _error = isString(error) ? new Error(error) : error;
     this.statusCode = code;
     logger.error(error);
     return this;
@@ -153,6 +158,17 @@ export function createResponse(options: FourzeResponseOptions) {
         return true;
       },
       enumerable: true
+    },
+    request: {
+      get() {
+        return options.request;
+      },
+      enumerable: true
+    },
+    res: {
+      get() {
+        return res;
+      }
     },
     url: {
       get() {

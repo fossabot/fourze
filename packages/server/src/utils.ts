@@ -4,12 +4,10 @@ import EventEmitter from "events";
 import type { AddressInfo } from "net";
 import { isString, slash } from "@fourze/core";
 
-/**
- *  copy from @vitejs/vite/packages/vite/src/node/utils.ts
- */
-
 export const isWindows = os.platform() === "win32";
-
+/**
+ *  copy from @vitejs/vite by @yyx990803 (Evan You) (MIT License)
+ */
 export function normalizePath(id: string) {
   return path.posix.normalize(isWindows ? slash(id) : id);
 }

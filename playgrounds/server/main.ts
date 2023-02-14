@@ -7,15 +7,13 @@ import express from "express";
 import type { CommonMiddleware, FourzeRequest, FourzeResponse } from "@fourze/core";
 import { defineRouter } from "@fourze/core";
 import type { FourzeRendererContext } from "@fourze/server";
-import { createHmrApp, createRenderer, createServer } from "@fourze/server";
+import { createRenderer, createServer } from "@fourze/server";
 
-const router = createHmrApp().use(defineRouter(router =>
-  router.route("GET /hello", () => {
-    return {
-      msg: "hello router 1"
-    };
-  })
-));
+const router = defineRouter(router => {
+  router.route("/hello").get(() => {
+    return "Hello World";
+  });
+});
 
 export async function renderEjs(request: FourzeRequest, response: FourzeResponse, context: FourzeRendererContext) {
   const file = path.normalize(context.file);

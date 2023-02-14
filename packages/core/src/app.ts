@@ -1,5 +1,5 @@
 import type { MaybePromise, MaybeRegex } from "maybe-types";
-import { isArray } from "./utils/is";
+import { isArray, isFunction } from "./utils/is";
 import { createLogger } from "./logger";
 import type {
   FourzeApp,
@@ -12,9 +12,7 @@ import type {
   FourzePlugin
 } from "./shared";
 import {
-
   createServiceContext
-
 } from "./shared";
 import type { DelayMsType } from "./utils";
 import {
@@ -69,7 +67,7 @@ export function createApp(setup: FourzeAppSetup): FourzeApp;
 export function createApp(options: FourzeAppOptions): FourzeApp;
 
 export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeApp {
-  const isSetup = typeof args === "function";
+  const isSetup = isFunction(args);
   const isRoutes = Array.isArray(args);
   const isOptions = !isSetup && !isRoutes && isObject(args);
   const logger = createLogger("@fourze/core");

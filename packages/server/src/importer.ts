@@ -31,8 +31,10 @@ const defaults: ModuleImporterOptions = {
   requireCache: true,
   esbuild: {
     format: "cjs",
-    target: "es6"
+    target: "es6",
+    define: {}
   },
+  define: {},
   alias: {}
 };
 

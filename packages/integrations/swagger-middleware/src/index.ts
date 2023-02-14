@@ -1,12 +1,12 @@
 import type { FourzeApp, FourzeMiddleware, FourzeRouter, ObjectProps, PropType, RequestMethod } from "@fourze/core";
-import { JSON_WRAPPER_HEADER, createQuery, isRouter, normalizeProps } from "@fourze/core";
+import { JSON_WRAPPER_HEADER, createQuery, isFunction, isRouter, normalizeProps } from "@fourze/core";
 import type { SwaggerOptions, SwaggerParameter, SwaggerPathSchema } from "./types";
 
 function getParameterType(type: PropType<any>): string | string[] {
   if (Array.isArray(type)) {
     return type.map(getParameterType).flat();
   }
-  if (typeof type === "function") {
+  if (isFunction(type)) {
     return type.name.toLowerCase();
   }
   return type;

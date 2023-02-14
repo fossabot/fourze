@@ -9,9 +9,15 @@ import type {
   FourzeResponse
 } from "@fourze/core";
 import {
-  createLogger,
-  defineFourzeComponent,
-  isFourzeComponent,
+  createLogger
+  ,
+  defineFourzeComponent
+  ,
+  isFourzeComponent
+  ,
+  isFunction,
+  isObject,
+  isString,
   relativePath
 } from "@fourze/core";
 import mime from "mime";
@@ -105,7 +111,8 @@ export async function renderTsx(
       jsxFactory: "h",
       jsxFragment: "'fragment'",
       banner: "const {h} = require(\"@fourze/core\")"
-    }
+    },
+    requireCache: false
   });
 
   const maybes = file.match(/\.[t|j]sx$/) ? [file] : [];
@@ -124,12 +131,12 @@ export async function renderTsx(
 
       if (setup) {
         const setupReturn = await setup();
-        if (typeof setupReturn === "function") {
+        if (isFunction(setupReturn)) {
           render = setupReturn as FourzeComponent["render"];
         }
       }
 
-      if (render && typeof render === "function") {
+      if (isFunction(render)) {
         const content = await render();
 
         response.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -145,15 +152,17 @@ export async function renderTsx(
 export function createRenderer(
   options: FourzeRendererOptions | string = {}
 ): FourzeRenderer {
+  const isOptions = isObject(options);
   const dir
-    = (options && typeof options === "object" ? options.dir : options)
+    = (isOptions ? options.dir : options)
     ?? process.cwd();
-  const templates = (options && typeof options === "object"
+
+  const templates = (isOptions
     ? options.templates
     : [renderTsx]) ?? [renderTsx];
-  const base = typeof options === "string" ? "/" : options.base ?? "/";
+  const base = isString(options) ? "/" : options.base ?? "/";
   const _fallbacks
-    = (options && typeof options === "object" ? options.fallbacks : []) ?? [];
+    = (isOptions ? options.fallbacks : []) ?? [];
   const fallbacks = Array.isArray(_fallbacks)
     ? _fallbacks.map((f) => [f, f])
     : Object.entries(_fallbacks);

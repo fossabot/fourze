@@ -73,7 +73,7 @@ export function createProxyRequest(app: FourzeMockApp) {
     constructor(res: FourzeResponse) {
       super();
       this.headers = flatHeaders(res.getHeaders());
-      this.method = res.method;
+      this.method = res.request.method;
       this.statusCode = res.statusCode;
       this.payload = res.payload ?? "";
       this._maxLength = this.payload.length;

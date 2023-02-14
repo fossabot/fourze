@@ -1,5 +1,5 @@
 import type { MaybePromise } from "maybe-types";
-import { isFunction, isPromise, renderElement } from "./utils";
+import { isFunction, isObject, isPromise, renderElement } from "./utils";
 
 async function resolveElement(ele: any) {
   if (isPromise(ele)) {
@@ -9,7 +9,7 @@ async function resolveElement(ele: any) {
     return await ele.render?.();
   }
   if (isFunction(ele)) {
-    await ele();
+    return await ele();
   }
   return ele;
 }
@@ -19,7 +19,7 @@ export async function createElement(
   props: any = {},
   ...children: (string | JSX.Element)[]
 ) {
-  if (!props || typeof props !== "object" || Array.isArray(props)) {
+  if (!props || !isObject(props) || Array.isArray(props)) {
     props = {};
   }
 

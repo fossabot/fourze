@@ -1,3 +1,4 @@
+import { isObject, isString } from "./is";
 import { transformTemplate } from "./string";
 
 const htmlTemplateString = `
@@ -54,7 +55,7 @@ export interface RenderHtmlOptions {
 const notCloseTags = ["img", "br", "hr", "input", "meta", "link", "area"];
 
 export function renderElement(tag: string, props: any = {}, ...children: (string | JSX.Element)[]) {
-  if (!props || typeof props !== "object" || Array.isArray(props)) {
+  if (!props || !isObject(props) || Array.isArray(props)) {
     props = {};
   }
 
@@ -109,7 +110,7 @@ export function renderHtml(options: RenderHtmlOptions = {}) {
 
   if (options.style?.length) {
     headTags.push(...options.style.map(r => {
-      if (typeof r === "string") {
+      if (isString(r)) {
         return { tag: "link", attributes: { href: r, rel: "stylesheet" } };
       }
       return { tag: "link", attributes: { ...r } };
@@ -120,7 +121,7 @@ export function renderHtml(options: RenderHtmlOptions = {}) {
 
   if (options.script?.length) {
     bodyTags.push(...options.script.map(r => {
-      if (typeof r === "string") {
+      if (isString(r)) {
         return { tag: "script", attributes: { src: r } };
       }
       return { tag: "script", attributes: r };

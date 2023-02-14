@@ -1,3 +1,5 @@
+import { isString } from "./is";
+
 export function transformTemplate(
   template: string,
   data: Record<string, any>
@@ -13,7 +15,7 @@ export function transformTemplate(
  * @returns
  */
 export function escapeStringRegexp(str: string) {
-  if (typeof str !== "string") {
+  if (!isString(str)) {
     throw new TypeError("Expected a string");
   }
 

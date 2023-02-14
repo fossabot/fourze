@@ -1,3 +1,5 @@
+import { isNumber } from "./is";
+
 export type PredicateFn<T> = (item: T, index: number) => boolean;
 
 export type MapFn<T, U> = (item: T, index: number) => U;
@@ -119,7 +121,7 @@ export function createQuery<T>(
       return this;
     },
     delete(fn: number | PredicateFn<T>) {
-      const index = typeof fn === "number" ? fn : source.findIndex(fn);
+      const index = isNumber(fn) ? fn : source.findIndex(fn);
       if (index >= 0) {
         source.splice(index, 1);
       }

@@ -32,8 +32,8 @@ export function isPlainObject(obj: any): boolean {
   return _toString.call(obj) === "[object Object]";
 }
 
-export function isFunction<T extends Function>(value: unknown): value is T {
-  return typeof value === "function" || value instanceof Function;
+export function isFunction<T extends Function>(value: any): value is T {
+  return typeof value === "function";
 }
 
 export function isConstructor<T>(value: unknown): value is Constructor<T> {

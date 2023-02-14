@@ -273,40 +273,25 @@ export function defineRouter(
     }
   });
 
+  for (const method of FOURZE_METHODS) {
+    router[method] = function (
+      this: FourzeRouter,
+      path: string,
+      ...others: any[]
+    ) {
+      const args = [path, method, ...others] as unknown as Parameters<
+        typeof router["route"]
+      >;
+      router.route(...args);
+      return this;
+    };
+  }
+
+  router.setup = setupRouter;
+
+  router.reset = setupRouter.reset;
+
   return Object.defineProperties(router, {
-    ...Object.fromEntries(
-      [...FOURZE_METHODS].map((method) => [
-        method,
-        {
-          get() {
-            return function (
-              this: FourzeRouter,
-              path: string,
-              ...others: any[]
-            ) {
-              const args = [path, method, ...others] as unknown as Parameters<
-                typeof router["route"]
-              >;
-              router.route(...args);
-              return this;
-            };
-          },
-          enumerable: true
-        }
-      ])
-    ),
-    setup: {
-      get() {
-        return setupRouter;
-      },
-      enumerable: true
-    },
-    reset: {
-      get() {
-        return setupRouter.reset;
-      },
-      enumerable: true
-    },
     routes: {
       get() {
         const routes: FourzeRoute[] = [];
