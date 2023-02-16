@@ -214,7 +214,7 @@ export function createRouteMatcher<T>(options: RouteMatcherOptions = {}): RouteM
   };
 }
 
-const PARAM_KEY_REGEX = /^\{.*\}$/g;
+const PARAM_KEY_REGEX = /^\{.*\}$/;
 
 function getNodeType(path: string) {
   if (path.startsWith("**")) {
