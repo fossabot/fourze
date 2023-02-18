@@ -1,6 +1,6 @@
 import { connect, normalizeAddress } from '@fourze/server';
 import express from 'express';
-import { createApp, defineRouter, delay, isMatch, randomInt, resolvePath } from "@fourze/core";
+import { createApp, defineRouter, randomInt } from "@fourze/core";
 import { service } from "@fourze/swagger";
 import { describe, expect, it } from "vitest";
 import axios from 'axios';
@@ -44,9 +44,13 @@ describe("shared", async () => {
       const _server = expressApp.listen(7609, "localhost", () => {
         resolve(_server);
       });
-    })
+    });
 
-    const url = `${normalizeAddress(server.address())}/swagger-ui/index.html`;
+    const origin = normalizeAddress(server.address(), {
+      protocol: "http",
+    });
+
+    const url = `${origin ?? ""}/swagger-ui/index.html`;
 
     const response = await axios.get(url)
 

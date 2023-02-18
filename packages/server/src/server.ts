@@ -16,11 +16,10 @@ import type {
   FourzeLogger,
   FourzeMiddleware,
   FourzeMiddlewareHandler,
-  FourzeServiceContext
-  ,
+  FourzeServiceContext,
   PropType
 } from "@fourze/core";
-import { injectEventEmitter, normalizeAddress } from "./utils";
+import { injectEventEmitter, isAddressInfo, normalizeAddress } from "./utils";
 
 export interface FourzeServerOptions {
   host?: string
@@ -38,6 +37,7 @@ export interface FourzeServer extends EventEmitter, CommonMiddleware {
   readonly origin: string
 
   readonly server?: Server
+
   readonly protocol: "http" | "https"
 
   listen(port?: number, host?: string): Promise<Server>
@@ -76,6 +76,7 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
   let _host = options.host ?? "localhost";
   let _port = options.port ?? 7609;
   let _server = options.server;
+  let _origin: string | null = null;
 
   const _protocol = options.protocol ?? "http";
 
@@ -136,20 +137,24 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
       const server = this.server;
       if (server) {
         if (!server.listening) {
-          server.listen(_port, _host, () => {
+          server.listen(_port, _host, async () => {
             const address = server.address();
-            if (typeof address === "object" && !!address) {
-              serverApp.host = address.address;
-              serverApp.port = address.port;
+            if (isAddressInfo(address)) {
+              _host = address.address;
+              _port = address.port;
+              _origin = normalizeAddress(address, {
+                protocol: _protocol
+              });
             }
-            logger.info(`Fourze Server v${FOURZE_VERSION} listening on ${normalizeAddress(address, _protocol)}}.`);
+
+            logger.info(`Fourze Server v${FOURZE_VERSION} listening on ${serverApp.origin}}.`);
             resolve(server);
             serverApp.emit("ready");
           });
         } else {
           reject(
             new Error(
-              `Server is already listening on ${normalizeAddress(server.address(), _protocol)}`
+              `Server is already listening on ${_port}`
             )
           );
         }
@@ -194,11 +199,10 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
     },
     origin: {
       get() {
-        return `${_protocol}://${_host}:${_port}`;
+        return _origin || `${_protocol}://${_host}:${_port}`;
       },
       enumerable: true
     },
-
     server: {
       get() {
         return _server;

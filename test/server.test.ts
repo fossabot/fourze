@@ -1,6 +1,6 @@
 import { Server } from 'http';
 import { defineRouter, delay, randomInt } from "@fourze/core";
-import { connect, createServer, normalizeAddress } from "@fourze/server";
+import { connect, createServer, normalizeAddress, resolveServerUrls } from "@fourze/server";
 import express from "connect";
 import axios from "axios";
 import { describe, expect, it } from "vitest";
@@ -58,15 +58,20 @@ describe("server", async () => {
       };
     });
 
-    app.use("/api/",connect(router));
+    app.use("/api/", connect(router));
 
-    const server:Server = await new Promise(resolve=>{
-      const server = app.listen(port, host,()=>{
+    const server: Server = await new Promise(resolve => {
+      const server = app.listen(port, host, () => {
         resolve(server);
       });
     })
 
-    const url = `${normalizeAddress(server.address())}/api/test`;
+    const origin = normalizeAddress(server.address(), {
+      protocol: "http",
+    });
+
+
+    const url = `${origin ?? ""}/api/test`;
 
     const returnData = await axios
       .get<typeof testData>(url)
