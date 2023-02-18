@@ -91,7 +91,7 @@ export interface Hostname {
 }
 
 export async function resolveHostname(
-  optionsHost: string | boolean | undefined
+  optionsHost?: string | boolean
 ): Promise<Hostname> {
   let host: string | undefined;
   if (optionsHost === undefined || optionsHost === false) {
@@ -192,7 +192,7 @@ export interface NormalizedAddressOptions {
   protocol?: "http" | "https" | false
   hostname?: string
   /**
-   * @default "/"
+   * @default ""
    */
   base?: string
 }
@@ -207,7 +207,7 @@ export function normalizeAddress(address: AddressInfo | string | null, options: 
     return address;
   }
   const protocol = options.protocol ?? "http";
-  const base = options.base ?? "/";
+  const base = options.base ?? "";
   if (isAddressInfo(address)) {
     const port = address.port;
     let host = options.hostname ?? address.address;

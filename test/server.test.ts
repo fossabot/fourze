@@ -1,6 +1,6 @@
 import { Server } from 'http';
 import { defineRouter, delay, randomInt } from "@fourze/core";
-import { connect, createServer, normalizeAddress, resolveServerUrls } from "@fourze/server";
+import { connect, createServer, normalizeAddress, resolveHostname, resolveServerUrls } from "@fourze/server";
 import express from "connect";
 import axios from "axios";
 import { describe, expect, it } from "vitest";
@@ -66,12 +66,16 @@ describe("server", async () => {
       });
     })
 
+
     const origin = normalizeAddress(server.address(), {
       protocol: "http",
+      hostname: host,
     });
 
 
+
     const url = `${origin ?? ""}/api/test`;
+    console.log(url);
 
     const returnData = await axios
       .get<typeof testData>(url)
