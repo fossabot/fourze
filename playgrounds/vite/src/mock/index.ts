@@ -46,7 +46,8 @@ export default defineRouter((router) => {
     },
     (req) => {
       return {
-        summary: req.meta.summary
+        summary: req.meta.summary,
+        name: req.data.name
       };
     }
   );

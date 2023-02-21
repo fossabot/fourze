@@ -99,8 +99,14 @@ export function createProxyFetch(app: FourzeMockApp) {
 
     const headers = flatHeaders(init?.headers);
     const useMock = getHeaderValue(headers, "X-Fourze-Mock");
-
-    async function mockRequest() {
+    if (["0", "off", "false"].includes(useMock)) {
+      logger.debug(
+        `X-Fourze-Mock is off, fallback to original ${normalizeRoute(
+          url,
+          method
+        )}.`
+      );
+    } else {
       headers["X-Request-With"] = "Fourze Fetch Proxy";
       let isMatched = true;
       const { response } = await app.service({
@@ -112,26 +118,13 @@ export function createProxyFetch(app: FourzeMockApp) {
         isMatched = false;
       });
 
-      if (!isMatched) {
-        logger.debug(
-          `No matched mock for ${normalizeRoute(url, method)}, fallback to original.`
-        );
-        return originalFetch(input, init);
+      if (isMatched) {
+        return new ProxyFetchResponse(response);
       }
-      return new ProxyFetchResponse(response);
-    }
-
-    if (useMock === "off") {
       logger.debug(
-        `X-Fourze-Mock is off, fallback to original ${normalizeRoute(
-          url,
-          method
-        )}.`
+        `No matched mock for ${normalizeRoute(url, method)}, fallback to original.`
       );
-      const res = await originalFetch(input, init);
-      return res;
-    } else {
-      return mockRequest();
     }
+    return originalFetch(input, init);
   };
 }

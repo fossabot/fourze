@@ -6,3 +6,4 @@ export * from "./props";
 export * from "./interface";
 export * from "./meta";
 export * from "./version";
+export * from "./error";

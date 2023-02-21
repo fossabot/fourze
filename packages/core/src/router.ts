@@ -21,16 +21,13 @@ import {
   FOURZE_METHODS,
   defineMiddleware,
   defineRoute,
-  isExtends,
   isRoute
 } from "./shared";
 import {
   createSingletonPromise,
-  isConstructor,
   isFunction,
   isObject,
   isString,
-  isUndef,
   isUndefined,
   normalizeRoute,
   overload
@@ -148,18 +145,7 @@ export function defineRouter(
     logger.debug(`Request received -> ${normalizeRoute(request.path)}.`);
 
     if (route) {
-      if (matches) {
-        Object.assign(request.params, matches);
-      }
-
-      request.route = route;
-
-      try {
-        validateProps(route.props, request.data);
-      } catch (error: any) {
-        response.sendError(400, error.message);
-        return;
-      }
+      request.setRoute(route, matches);
 
       request.meta = {
         ...request.meta,
@@ -325,24 +311,3 @@ export function isRouter(value: any): value is FourzeRouter {
   return !!value && !!value[FourzeRouterSymbol];
 }
 
-export function validateProps(
-  props: ObjectProps,
-  data: Record<string, unknown>
-) {
-  for (const [key, propsOption] of Object.entries(props)) {
-    let value = data[key];
-    if (propsOption != null) {
-      if (isConstructor(propsOption) || Array.isArray(propsOption)) {
-        //
-      } else {
-        const required = propsOption.required;
-        if (isExtends(propsOption.type, Boolean)) {
-          value = value ?? false;
-        }
-        if (required && isUndef(value)) {
-          throw new Error(`Property '${key}' is required.`);
-        }
-      }
-    }
-  }
-}

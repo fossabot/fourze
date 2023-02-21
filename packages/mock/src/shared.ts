@@ -32,7 +32,7 @@ export interface FourzeMockApp extends FourzeApp {
   originalHttpRequest: typeof http.request
   originalHttpsRequest: typeof https.request
 
-  XmlHttpRequest: typeof XMLHttpRequest
+  XMLHttpRequest: typeof XMLHttpRequest
   fetch: typeof fetch
   request: typeof http.request
 

@@ -1,5 +1,5 @@
 import type { MaybePromise, MaybeRegex } from "maybe-types";
-import { isArray, isFunction } from "./utils/is";
+import { isArray, isFunction, isUndef } from "./utils/is";
 import { createLogger } from "./logger";
 import type {
   FourzeApp,
@@ -26,6 +26,7 @@ import {
   resolves
 } from "./utils";
 import { injectMeta } from "./shared/meta";
+import { FourzeError } from "./shared/error";
 
 export type FourzeAppSetup = (app: FourzeApp) => MaybePromise<void | FourzeModule[] | FourzeAppOptions>;
 
@@ -123,6 +124,10 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
         await next?.();
       }
     } catch (error: any) {
+      if (error instanceof FourzeError) {
+        response.sendError(error.statusCode, error);
+        return;
+      }
       response.sendError(500, error);
     }
   }) as FourzeApp;
@@ -151,6 +156,9 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
 
     for (let i = 0; i < ms.length; i++) {
       const middleware = ms[i];
+      if (isUndef(middleware)) {
+        continue;
+      }
       if (typeof middleware === "function") {
         const node = { path, middleware, order: middleware.order ?? middlewareStore.length };
         if (!this.isReadying) {

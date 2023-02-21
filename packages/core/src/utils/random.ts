@@ -1,4 +1,5 @@
 import type { MaybeDate } from "maybe-types";
+import { unique } from "./array";
 import { isString, isUndef } from "./is";
 
 export function randomInt(tmp: string): number;
@@ -91,7 +92,7 @@ export function randomArray<T>(
 }
 
 export function randomUnique<T>(source: Iterable<T>) {
-  const store = Array.from(source);
+  const store = unique(source);
   return () => {
     return randomItem(store, (value, index, arr) => {
       arr.splice(index, 1);

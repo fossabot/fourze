@@ -1,5 +1,5 @@
 import type { MaybePromise, MaybeRegex } from "maybe-types";
-import { delay, isMatch, isUndef, overload } from "../utils";
+import { delay, isMatch, isString, isUndef, overload } from "../utils";
 import type { FourzeMiddleware, PropType } from "../shared";
 import { defineMiddleware } from "../shared";
 import type { DelayMsType } from "../utils";
@@ -91,8 +91,9 @@ export function jsonWrapperHook(
 
     if (reject) {
       const _sendError = res.sendError.bind(res);
-      res.sendError = function (code, message) {
-        _sendError(code, message);
+      res.sendError = function (code, error) {
+        _sendError(code, error);
+        const message = isString(error) ? error : error?.message;
         _send(reject(message), "application/json");
         return this;
       };

@@ -13,12 +13,19 @@ export interface Storage {
 
 interface StorageOptions {
   id?: string
-  target?: "local" | "session"
   persistence?: boolean
+  /**
+   * only for browser
+   */
+  target?: "local" | "session"
+  /**
+   *  only for node
+   */
+  dir?: string
 }
 
 export function createStorage(options: StorageOptions = {}): Storage {
-  const { id = "app.storage", target = "local", persistence = true } = options;
+  const { id = "app.storage", target = "local", persistence = true, dir = ".fourze" } = options;
 
   const storage = new Proxy({} as Storage, {
     set(target, key, value) {
@@ -71,7 +78,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     if (persistence) {
       if (isNode()) {
         const fs = require("fs") as typeof import("fs");
-        fs.writeFileSync(`.fourze/${id}`, JSON.stringify(storage));
+        fs.writeFileSync(`${dir}/${id}`, JSON.stringify(storage));
       } else {
         const _store = target === "local" ? localStorage : sessionStorage;
         _store.setItem(`fourze.${id}`, JSON.stringify(storage));
@@ -83,11 +90,11 @@ export function createStorage(options: StorageOptions = {}): Storage {
     if (isNode()) {
       const fs = require("fs") as typeof import("fs");
       const path = require("path") as typeof import("path");
-      const storagePath = path.resolve(".fourze");
+      const storagePath = path.resolve(dir);
       if (!fs.existsSync(storagePath)) {
         fs.mkdirSync(storagePath);
       }
-      if (fs.existsSync(`.fourze/${id}`)) {
+      if (fs.existsSync(`${dir}/${id}`)) {
         Object.assign(
           storage,
           JSON.parse(fs.readFileSync(`.fourze/${id}`, "utf8"))

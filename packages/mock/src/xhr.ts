@@ -1,4 +1,3 @@
-import type { FourzeRoute } from "@fourze/core";
 import {
   appendHeader,
   createLogger,
@@ -23,7 +22,6 @@ export function createProxyXMLHttpRequest(app: FourzeMockApp) {
 
   return class {
     $base: XMLHttpRequest | null = null;
-    $route: FourzeRoute | undefined;
 
     readonly UNSENT: number = 0;
     readonly OPENED: number = 1;

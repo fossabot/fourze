@@ -97,7 +97,7 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
       });
 
       serverApp.emit("request", { request, response });
-    } catch (error) {
+    } catch (error: any) {
       serverApp.emit("error", error, { request, response });
       if (!response.writableEnded) {
         response.sendError(500, "Internal Server Error");

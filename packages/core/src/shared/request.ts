@@ -4,6 +4,7 @@ import type { PolyfillHeaderInit } from "../polyfill";
 import { decodeFormData, flatHeaders, getHeaderValue } from "../polyfill";
 import { isString, isUint8Array, normalize } from "../utils";
 import type { ExtractPropTypes, ObjectProps } from "./props";
+import { validateProps, withDefaults } from "./props";
 import type { FourzeRoute } from "./route";
 import type { FourzeRouteMeta } from "./meta";
 import type { FourzeApp } from ".";
@@ -47,6 +48,10 @@ export interface FourzeRequest<
   meta: Meta & FourzeRouteMeta
 
   contextPath: string
+
+  setRoute(route: FourzeRoute, matchParams?: Record<string, any> | null): void
+
+  applyProps(props: Props): void
 
   readonly req?: IncomingMessage
 
@@ -123,6 +128,26 @@ export function createRequest(options: FourzeRequestOptions) {
 
   let _contextPath = "/";
 
+  let _route: FourzeRoute | undefined;
+
+  /**
+   *  默认值
+   */
+  const _defaultsProps = {};
+
+  request.setRoute = (route, matches) => {
+    _route = route;
+    if (matches) {
+      Object.assign(params, matches);
+    }
+    withDefaults(params, route.props, "path");
+    withDefaults(query, route.props, "query");
+    withDefaults(body, route.props, "body");
+    const data = withDefaults(request.data, route.props);
+    Object.assign(_defaultsProps, data);
+    validateProps(route.props, data);
+  };
+
   Object.defineProperties(request, {
     [FOURZE_REQUEST_SYMBOL]: {
       get() {
@@ -133,6 +158,7 @@ export function createRequest(options: FourzeRequestOptions) {
     data: {
       get() {
         return {
+          ..._defaultsProps,
           ...query,
           ...body,
           ...params
@@ -161,6 +187,12 @@ export function createRequest(options: FourzeRequestOptions) {
     query: {
       get() {
         return query;
+      },
+      enumerable: true
+    },
+    route: {
+      get() {
+        return _route;
       },
       enumerable: true
     },

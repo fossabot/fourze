@@ -1,4 +1,5 @@
-import { isArray, isFunction, isPlainObject } from "../utils";
+import { isArray, isConstructor, isFunction, isPlainObject, isUndef } from "../utils";
+import { FourzeError } from "./error";
 
 export type DefaultData = Record<string, unknown>;
 
@@ -12,9 +13,24 @@ export type ExtractPropTypes<
   [K in keyof Pick<O, OptionalKeys<O>>]?: InferPropType<O[K]>;
 } & DefaultData;
 
+export type ExtractDefaultPropTypes<P extends Record<string, any>> = {
+  [K in keyof Pick<P, DefaultKeys<P>>]: InferPropType<P[K]>;
+};
+
 export type LooseRequired<T> = {
   [P in string & keyof T]: T[P];
 };
+
+export type DefaultKeys<T> = {
+  [K in keyof T]: T[K] extends {
+    default: any
+  } | BooleanConstructor | {
+    type: BooleanConstructor
+  } ? T[K] extends {
+      type: BooleanConstructor
+      required: true
+    } ? never : K : never;
+}[keyof T];
 
 export type RequiredKeys<T> = {
   [K in keyof T]: T[K] extends
@@ -144,7 +160,7 @@ declare type DefaultFactory<T> = (props: DefaultData) => T | null | undefined;
 
 export type PropType<T> = PropConstructor<T> | PropConstructor<T>[];
 
-export function isExtends<D = any>(types: PropType<D>, value: PropType<D>): boolean {
+export function isExtends(types: PropType<any>, value: PropType<any>): boolean {
   if (Array.isArray(types)) {
     return types.some((e) => isExtends(e, value));
   }
@@ -232,4 +248,71 @@ export function normalizeProps<T>(
     }
   }
   return result;
+}
+
+export function withDefaults<
+  T = Record<string, any>,
+  P extends ObjectProps<T> = ObjectProps <T>, D = ExtractPropTypes<P>, Defaults = ExtractDefaultPropTypes<P>
+>(props: Partial<Defaults> & Omit<D, keyof Defaults>, propsOptions: P, propIn?: PropIn): D {
+  if (Array.isArray(propsOptions)) {
+    return props as D;
+  }
+  const rs = (props ?? {}) as D;
+  const options = propsOptions;
+  for (const key in options) {
+    const k = key as unknown as keyof D;
+    const opt = options[key as keyof P] as Prop<D> | null;
+    if (opt === null) {
+      continue;
+    }
+    if (isConstructor(opt)) {
+      if (propIn) {
+        continue;
+      }
+      if (isExtends(opt, Boolean)) {
+        rs[k] = false as D[typeof k];
+      }
+      continue;
+    }
+    if (Array.isArray(opt)) {
+      if (propIn) {
+        continue;
+      }
+      if (opt.some((e) => isExtends(e, Boolean))) {
+        rs[k] = false as D[typeof k];
+      }
+      continue;
+    }
+    if (opt.in !== propIn) {
+      continue;
+    }
+    if (isFunction(opt.default)) {
+      rs[k] = opt.default(props) as D[typeof k];
+    } else if (opt.default !== undefined) {
+      rs[k] = opt.default as D[typeof k];
+    }
+  }
+  return rs;
+}
+
+export function validateProps(
+  props: ObjectProps,
+  data: Record<string, unknown>
+) {
+  for (const [key, propsOption] of Object.entries(props)) {
+    let value = data[key];
+    if (propsOption != null) {
+      if (isConstructor(propsOption) || Array.isArray(propsOption)) {
+        //
+      } else {
+        const required = propsOption.required;
+        if (isExtends(propsOption.type, Boolean)) {
+          value = value ?? false;
+        }
+        if (required && isUndef(value)) {
+          throw new FourzeError(405, `Property '${key}' is required.`);
+        }
+      }
+    }
+  }
 }

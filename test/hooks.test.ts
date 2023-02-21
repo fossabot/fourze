@@ -69,7 +69,7 @@ describe("hooks", async () => {
     const resToken = res2.headers.get("token");
 
     // 请求一个swagger示例的json接口
-    const res3 = await fetch("https://petstore.swagger.io/v2/pet/findByStatus?status=available").then(r=>r.json())
+    const res3 = await fetch("http://petstore.swagger.io/v2/pet/findByStatus?status=available").then(r=>r.json())
 
     expect(res3).toBeInstanceOf(Array);
 

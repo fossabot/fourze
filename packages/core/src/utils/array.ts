@@ -1,4 +1,5 @@
-import { isNumber } from "./is";
+import { isNumber, isString } from "./is";
+import { isKeyOf } from "./object";
 
 export type PredicateFn<T> = (item: T, index: number) => boolean;
 
@@ -12,7 +13,14 @@ export interface Predicate<T> extends PredicateFn<T> {
 }
 export interface WhereCollectionQuery<T>
   extends CollectionQuery<T>,
-  Predicate<T> {}
+  Predicate<T> { }
+
+export interface ExtraArrayMethods<T> {
+  where(fn: PredicateFn<T>): WhereCollectionQuery<T>
+  select<U>(mapFn: MapFn<T, U>): CollectionQuery<U>
+  select(): CollectionQuery<T>
+
+}
 
 export interface CollectionQuery<T> extends Iterable<T> {
   where(fn: PredicateFn<T>): WhereCollectionQuery<T>
@@ -46,6 +54,27 @@ export interface CollectionQuery<T> extends Iterable<T> {
   reverse(): this
   sort(compareFn: CompareFn<T>): this
   find(fn: PredicateFn<T>): T | undefined
+  findIndex(fn: PredicateFn<T>): number
+  indexOf(value: T, fromIndex?: number): number
+  lastIndexOf(value: T, fromIndex?: number): number
+  join(separator?: string): string
+  reduce<U>(
+    callbackfn: (previousValue: U, currentValue: T, currentIndex: number) => U,
+    initialValue: U
+  ): U
+  reduceRight<U>(
+    callbackfn: (previousValue: U, currentValue: T, currentIndex: number) => U,
+    initialValue: U
+  ): U
+  forEach(fn: (item: T, index: number) => void): void
+  map<U>(mapFn: MapFn<T, U>): CollectionQuery<U>
+  filter(fn: PredicateFn<T>): CollectionQuery<T>
+  first(): T | undefined
+  last(): T | undefined
+  set(index: number, value: T): this
+  get(index: number): T | undefined
+
+  at(index: number): T | undefined
 
   clear(): this
   reset(source?: Iterable<T>): this
@@ -56,6 +85,8 @@ export interface CollectionQuery<T> extends Iterable<T> {
   toJSON(): T[]
 
   readonly length: number
+
+  [key: number]: T
   // set(index: number, value: T): this
   // get(index: number): T | undefined
 }
@@ -85,7 +116,15 @@ export function createQuery<T>(
   initSource: Iterable<T> = []
 ): CollectionQuery<T> {
   const source = Array.from(initSource);
-  return {
+
+  const normalize = (index: number) => {
+    if (index < 0) {
+      return source.length + index;
+    }
+    return index;
+  };
+
+  const q = new Proxy({
     where(predicateFn: PredicateFn<T>) {
       let predicate = createPredicate(predicateFn);
       const query = this.clone() as WhereCollectionQuery<T>;
@@ -108,7 +147,7 @@ export function createQuery<T>(
       }
       return createQuery(source);
     },
-    insert(index, ...items) {
+    insert(index: number, ...items: T[]) {
       source.splice(index, 0, ...items);
       return this;
     },
@@ -121,14 +160,16 @@ export function createQuery<T>(
       return this;
     },
     delete(fn: number | PredicateFn<T>) {
-      const index = isNumber(fn) ? fn : source.findIndex(fn);
-      if (index >= 0) {
-        source.splice(index, 1);
+      if (isNumber(fn)) {
+        fn = normalize(fn);
+        source.splice(fn, 1);
+      } else {
+        for (let i = source.length - 1; i >= 0; i--) {
+          if (fn(source[i], i)) {
+            source.splice(i, 1);
+          }
+        }
       }
-      return this;
-    },
-    sort(fn: CompareFn<T>) {
-      source.sort(fn);
       return this;
     },
     distinct<U>(mapFn?: MapFn<T, U>) {
@@ -181,30 +222,23 @@ export function createQuery<T>(
       const result = Array.from(map.entries());
       return createQuery(result);
     },
-    flat<D extends number = 1>(depth?: D) {
-      return createQuery(source.flat(depth));
-    },
     fill(value: T, start = 0, end = source.length) {
-      start = start < 0 ? source.length + start : start;
-      end = end < 0 ? source.length + end : end;
+      start = normalize(start);
+      end = normalize(end);
       source.fill(value, start, end);
       return this;
     },
-    slice(start, end) {
+    slice(start: number, end: number) {
       return createQuery(source.slice(start, end));
     },
-    reverse() {
-      source.reverse();
+    set(index: number, item: T) {
+      index = normalize(index);
+      source[index] = item;
       return this;
     },
-    some(fn: PredicateFn<T>) {
-      return source.some(fn);
-    },
-    every(fn: PredicateFn<T>) {
-      return source.every(fn);
-    },
-    find(fn: PredicateFn<T>) {
-      return source.find(fn);
+    get(index: number) {
+      index = normalize(index);
+      return source[index];
     },
     clear() {
       source.length = 0;
@@ -214,28 +248,83 @@ export function createQuery<T>(
       return createQuery(source);
     },
     reset(iterable: Iterable<T> = initSource) {
-      source.splice(0, source.length, ...Array.from(iterable));
+      source.splice(0, source.length, ...iterable);
       return this;
-    },
-    includes(item: T, fromIndex = 0) {
-      return source.includes(item, fromIndex);
-    },
-    toArray() {
-      return Array.from(source);
-    },
-    toSet() {
-      return new Set(source);
-    },
-    toJSON() {
-      return source;
-    },
-    [Symbol.iterator]() {
-      return source[Symbol.iterator]();
-    },
-    get length() {
-      return source.length;
     }
-  };
+  }, {
+    get(target, prop) {
+      if (isString(prop)) {
+        const index = +prop;
+        if (!isNaN(index)) {
+          return target.get(index);
+        }
+      }
+      switch (prop) {
+        case "toString":
+          return () => source.toString();
+        case "toJSON":
+          return () => source;
+        case "toSet":
+          return () => new Set(source);
+        case "toArray":
+          return () => Array.from(source);
+        case Symbol.iterator:
+          return () => source[Symbol.iterator]();
+        case "reverse":
+        case "sort":
+          return (...args: any[]) => {
+            source[prop](...args);
+            return target;
+          };
+        case "includes":
+        case "indexOf":
+        case "lastIndexOf":
+          return (item: T, fromIndex = -1) => {
+            fromIndex = normalize(fromIndex);
+            return source[prop](item, fromIndex);
+          };
+        case "flat":
+          return (depth?: number) => {
+            return createQuery(source.flat(depth));
+          };
+      }
+      if (isKeyOf(target, prop)) {
+        return target[prop];
+      }
+      return source[prop as keyof Array<T>];
+    },
+    set(target, prop, value) {
+      if (isString(prop)) {
+        const index = +prop;
+        if (!isNaN(index)) {
+          target.set(index, value);
+          return true;
+        }
+      }
+      if (prop === "length") {
+        source.length = value;
+        return true;
+      }
+      target[prop as keyof typeof target] = value;
+      return true;
+    },
+    deleteProperty(target, prop) {
+      if (isString(prop)) {
+        let index = +prop;
+        if (!isNaN(index)) {
+          index = normalize(index);
+          return delete source[index];
+        }
+      }
+      if (prop === "length") {
+        source.length = 0;
+        return true;
+      }
+      return false;
+    }
+  });
+
+  return q as CollectionQuery<T>;
 }
 
 export function range(
@@ -248,4 +337,8 @@ export function range(
     source.push(i);
   }
   return createQuery(source);
+}
+
+export function unique<T>(array: Iterable<T>) {
+  return Array.from(new Set(array));
 }

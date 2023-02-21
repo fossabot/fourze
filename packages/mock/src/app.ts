@@ -1,3 +1,4 @@
+import type http from "http";
 import type { FourzeContextOptions } from "@fourze/core";
 import {
   FOURZE_VERSION,
@@ -8,15 +9,15 @@ import {
   isDef,
   isNode
 } from "@fourze/core";
-
-import { createProxyFetch } from "./fetch";
 import { createProxyRequest } from "./request";
+
 import type {
   FourzeMockApp,
   FourzeMockAppOptions,
   FourzeMockRequestMode
 } from "./shared";
 import { FOURZE_MOCK_APP_SYMBOL } from "./shared";
+import { createProxyFetch } from "./fetch";
 import { createProxyXMLHttpRequest } from "./xhr";
 
 export function createMockApp(
@@ -46,84 +47,63 @@ export function createMockApp(
     globalThis.__FOURZE_VERSION__ = FOURZE_VERSION;
   }
 
-  if (mode.includes("request") && isNode()) {
+  if (options.delay) {
+    app.use(delayHook(options.delay));
+  }
+
+  const notSupport = () => {
+    throw new Error("Not support request in browser.");
+  };
+
+  let _request: typeof http.request;
+
+  if (isNode()) {
     const http = require("http");
     const https = require("https");
 
     app.originalHttpRequest = http.request;
     app.originalHttpsRequest = https.request;
-
-    app.request = createProxyRequest(app) as typeof http.request;
+    _request = createProxyRequest(app) as typeof http.request;
+  } else {
+    app.originalHttpRequest = notSupport;
+    app.originalHttpsRequest = notSupport;
+    _request = notSupport;
   }
 
-  if (mode.includes("xhr")) {
-    const XMLHttpRequest = globalThis.XMLHttpRequest;
-    app.originalXMLHttpRequest = XMLHttpRequest;
-    app.XmlHttpRequest = createProxyXMLHttpRequest(
-      app
-    ) as unknown as typeof XMLHttpRequest;
-  }
+  app.originalFetch = globalThis.fetch;
+  const _fetch = createProxyFetch(app) as typeof globalThis.fetch;
 
-  if (mode.includes("fetch")) {
-    app.originalFetch = globalThis.fetch;
-    app.fetch = createProxyFetch(app) as typeof fetch;
-  }
-
-  if (options.delay) {
-    app.use(delayHook(options.delay));
-  }
-
-  app.enable = function (_mode?: FourzeMockRequestMode[]) {
-    _mode = _mode ?? Array.from(mode);
-    _mode.forEach((m) => activeMode.add(m));
-
-    if (mode.includes("fetch")) {
-      globalThis.fetch = this.fetch;
-    }
-    if (mode.includes("xhr")) {
-      globalThis.XMLHttpRequest = this.XmlHttpRequest;
-    }
-    if (mode.includes("request")) {
-      const http = require("http") as typeof import("http");
-      const https = require("https") as typeof import("https");
-      http.request = this.request;
-      https.request = this.request;
-    }
-    logger.success(`Fourze Mock is enabled for [${_mode.join(",")}]`);
-    return this;
-  };
-
-  app.disable = function (_mode?: FourzeMockRequestMode[]) {
-    _mode = _mode ?? Array.from(mode);
-    _mode.forEach((m) => activeMode.delete(m));
-
-    if (_mode.includes("fetch")) {
-      globalThis.fetch = this.originalFetch;
-    }
-    if (_mode.includes("xhr")) {
-      globalThis.XMLHttpRequest = this.originalXMLHttpRequest;
-    }
-    if (_mode.includes("request") && isNode()) {
-      const http = require("http") as typeof import("http");
-      const https = require("https") as typeof import("https");
-      http.request = this.originalHttpRequest;
-      https.request = this.originalHttpsRequest;
-    }
-    logger.success(`Fourze Mock is disabled for [${_mode.join(",")}]`);
-    return this;
-  };
-
-  const _service = app.service.bind(app);
-
-  app.service = function (context: FourzeContextOptions, fallback) {
-    logger.debug(`Fourze Mock is processing [${context.url}]`);
-    return _service({
-      ...context,
-      url: context.url.replace(origin, "")
-    }, fallback);
-  };
+  app.originalXMLHttpRequest = globalThis.XMLHttpRequest;
+  const _xhr = createProxyXMLHttpRequest(app) as unknown as typeof globalThis.XMLHttpRequest;
 
   Object.defineProperties(app, {
+    XMLHttpRequest: {
+      get() {
+        if (activeMode.has("xhr")) {
+          return _xhr;
+        }
+        return app.originalXMLHttpRequest;
+      },
+      enumerable: true
+    },
+    request: {
+      get() {
+        if (activeMode.has("request")) {
+          return _request;
+        }
+        return app.originalHttpRequest;
+      },
+      enumerable: true
+    },
+    fetch: {
+      get() {
+        if (activeMode.has("fetch")) {
+          return _fetch;
+        }
+        return app.originalFetch;
+      },
+      enumerable: true
+    },
     activeModes: {
       get() {
         return Array.from(activeMode);
@@ -143,6 +123,59 @@ export function createMockApp(
       enumerable: true
     }
   });
+
+  app.enable = (_mode?: FourzeMockRequestMode[]) => {
+    _mode = _mode ?? Array.from(mode);
+    _mode.forEach((m) => activeMode.add(m));
+
+    if (injectGlobal) {
+      if (_mode.includes("xhr")) {
+        globalThis.XMLHttpRequest = app.XMLHttpRequest;
+      }
+      if (_mode.includes("fetch")) {
+        globalThis.fetch = app.fetch;
+      }
+      if (isNode() && activeMode.has("request")) {
+        const http = require("http") as typeof import("http");
+        const https = require("https") as typeof import("https");
+        http.request = app.request;
+        https.request = app.request;
+      }
+    }
+    logger.success(`Fourze Mock is enabled for [${_mode.join(",")}]`);
+    return app;
+  };
+
+  app.disable = function (_mode?: FourzeMockRequestMode[]) {
+    _mode = _mode ?? Array.from(mode);
+    _mode.forEach((m) => activeMode.delete(m));
+    if (injectGlobal) {
+      if (_mode.includes("xhr")) {
+        globalThis.XMLHttpRequest = app.originalXMLHttpRequest;
+      }
+      if (_mode.includes("fetch")) {
+        globalThis.fetch = app.originalFetch;
+      }
+      if (_mode.includes("request") && isNode()) {
+        const http = require("http") as typeof import("http");
+        const https = require("https") as typeof import("https");
+        http.request = this.originalHttpRequest;
+        https.request = this.originalHttpsRequest;
+      }
+    }
+    logger.success(`Fourze Mock is disabled for [${_mode.join(",")}]`);
+    return this;
+  };
+
+  const _service = app.service.bind(app);
+
+  app.service = function (context: FourzeContextOptions, fallback) {
+    logger.debug(`Fourze Mock is processing [${context.url}]`);
+    return _service({
+      ...context,
+      url: context.url.replace(origin, "")
+    }, fallback);
+  };
 
   if (autoEnable) {
     app.enable();
