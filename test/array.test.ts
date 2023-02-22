@@ -49,4 +49,63 @@ describe("array", async () => {
 
   });
 
+
+  it("mock-query-2", async () => {
+
+    const magnus = { name: "Hedlund, Magnus" }
+    const terry = { name: "Adams, Terry" }
+    const charlotte = { name: "Weiss, Charlotte" }
+
+    const barley = { name: "Barley", owner: terry };
+    const boots = { name: "Boots", owner: terry };
+    const whiskers = { name: "Whiskers", owner: charlotte };
+    const daisy = { name: "Daisy", owner: magnus };
+
+    const pets = [barley, boots, whiskers, daisy];
+    const people = [magnus, terry, charlotte];
+
+    const query = createQuery(people).groupJoin(pets, "name", p => p.owner.name, (person, petCollection) => {
+      return {
+        name: person.name,
+        pets: petCollection.map((pet) => pet.name)
+      }
+    });
+
+    expect(query.length).toEqual(3);
+    expect(query[0]).toEqual({ name: "Hedlund, Magnus", pets: ["Daisy"] });
+    expect(query[1]).toEqual({ name: "Adams, Terry", pets: ["Barley", "Boots"] });
+    expect(query[2]).toEqual({ name: "Weiss, Charlotte", pets: ["Whiskers"] });
+  });
+
+  it("mock-query-math", async () => {
+
+    const query = createQuery([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(query.sum()).toEqual(55);
+    expect(query.average()).toEqual(5.5);
+    expect(query.min()).toEqual(1);
+    expect(query.max()).toEqual(10);
+    expect(query.length).toEqual(10);
+  });
+
+  it("mock-query-distinct", async () => {
+    const query = createQuery([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(query.distinct().length).toEqual(10);
+    const query2 = createQuery([{ name: "test" }, { name: "test2" }, { name: "test" }, { name: "test2" }]);
+    expect(query2.distinct("name").toArray()).toEqual([{ name: "test" }, { name: "test2" }]);
+  });
+
+  it("mock-query-where", async () => {
+
+    const query = createQuery([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+
+    expect(query.where((x) => x > 5).select().length).toEqual(5);
+
+
+    query.sort().select()
+
+    const query2 = createQuery([{ name: "test", order: 1 }, { name: "test2", order: 1 }, { name: "test", order: 1 }, { name: "test2", order: 1 }]);
+    expect(query2.select("name").toArray()).toEqual(["test", "test2", "test", "test2"]);
+    expect(query2.where("order", 1).select("name").toArray()).toEqual(["test", "test2", "test", "test2"]);
+  });
 });

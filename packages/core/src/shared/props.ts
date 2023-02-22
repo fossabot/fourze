@@ -251,8 +251,7 @@ export function normalizeProps<T>(
 }
 
 export function withDefaults<
-  T = Record<string, any>,
-  P extends ObjectProps<T> = ObjectProps <T>, D = ExtractPropTypes<P>, Defaults = ExtractDefaultPropTypes<P>
+  T = Record<string, any>, P extends ObjectProps<T> = ObjectProps <T>, D = ExtractPropTypes<P>, Defaults = ExtractDefaultPropTypes<P>
 >(props: Partial<Defaults> & Omit<D, keyof Defaults>, propsOptions: P, propIn?: PropIn): D {
   if (Array.isArray(propsOptions)) {
     return props as D;
