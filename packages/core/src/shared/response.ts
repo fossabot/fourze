@@ -1,7 +1,7 @@
 import type { OutgoingMessage, ServerResponse } from "http";
 import { createLogger } from "../logger";
 import { PolyfillServerResponse, getHeaderValue } from "../polyfill";
-import { isDef, isError, isObject, isString, isUint8Array, overload } from "../utils";
+import { isDef, isObject, isString, isUint8Array } from "../utils";
 import { FourzeError } from "./error";
 import type { FourzeRequest } from "./request";
 
@@ -31,19 +31,44 @@ export interface FourzeResponse extends FourzeBaseResponse {
 
   removeHeader(key: string): this
 
+  /**
+   * 发送数据
+   * @param payload
+   * @param contentType
+   */
   send(payload: any, contentType?: string | null): this
 
+  /**
+   * 获取Content-Type
+   * @param payload 如果没有指定contentType，则会根据payload的类型自动推断
+   */
   getContentType(payload?: any): string | undefined
 
+  /**
+   * 设置Content-Type
+   * @param contentType
+   */
   setContentType(contentType: string): this
 
   status(code: number): this
 
+  /**
+   * 发送错误
+   * @param code
+   * @param error
+   */
   sendError(code: number, error?: string | Error): this
 
+  /**
+   * 发送错误
+   * @param error
+   */
   sendError(error?: string | Error): this
 
-  wait(): Promise<void>
+  /**
+   *  等待所有的异步操作完成
+   */
+  done(): Promise<void>
 
   readonly res?: OutgoingMessage
 
@@ -53,7 +78,7 @@ export interface FourzeResponse extends FourzeBaseResponse {
 
   readonly payload: any
 
-  readonly error: Error | undefined
+  readonly error: FourzeError | undefined
 
   readonly [FOURZE_RESPONSE_SYMBOL]: true
 }
@@ -64,7 +89,7 @@ export function createResponse(options: FourzeResponseOptions) {
   const logger = createLogger("@fourze/core");
 
   let _payload: any;
-  let _error: Error;
+  let _error: FourzeError;
 
   response.setContentType = function (contentType) {
     if (!response.headersSent) {
@@ -88,9 +113,6 @@ export function createResponse(options: FourzeResponseOptions) {
   };
 
   response.send = function (payload: any, contentType?: string) {
-    if (isError(payload)) {
-      payload = payload.message;
-    }
     contentType = contentType ?? this.getContentType(payload);
     switch (contentType) {
       case "application/json":
@@ -117,20 +139,8 @@ export function createResponse(options: FourzeResponseOptions) {
   };
 
   response.sendError = function (...args: any[]) {
-    const { code, error } = overload({
-      code: {
-        type: Number
-      },
-      error: {
-        type: [String, Error],
-        default: () => "Internal Server Error"
-      }
-    }, args);
-
-    _error = isString(error) ? new Error(error) : error;
-
-    const defaultStatusCode = _error instanceof FourzeError ? _error.statusCode : 500;
-    this.statusCode = code ?? defaultStatusCode;
+    _error = new FourzeError(...args);
+    this.statusCode = _error.statusCode;
     logger.error(_error);
     return this.send(_error);
   };
@@ -177,8 +187,12 @@ export function createResponse(options: FourzeResponseOptions) {
     return this;
   };
 
-  response.wait = function () {
+  response.done = function () {
     return new Promise((resolve) => {
+      if (this.writableEnded) {
+        resolve();
+        return;
+      }
       this.on("finish", () => {
         resolve();
       });
