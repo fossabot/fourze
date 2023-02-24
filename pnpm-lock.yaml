@@ -290,7 +290,7 @@ importers:
   playgrounds/vite:
     specifiers:
       '@fourze/core': workspace:*
-      '@fourze/middlewares': workspace:0.27.0-beta.0
+      '@fourze/middlewares': workspace:*
       '@fourze/mock': workspace:*
       '@fourze/vite': workspace:*
       '@types/jquery': ^3.5.14
