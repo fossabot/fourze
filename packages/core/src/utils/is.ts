@@ -64,6 +64,10 @@ export function isURL(value: unknown): value is URL {
   return globalThis.URL && value instanceof URL;
 }
 
+export function isError(error: unknown): error is Error {
+  return error instanceof Error;
+}
+
 export function isPrimitive(
   value: unknown
 ): value is string | number | boolean {

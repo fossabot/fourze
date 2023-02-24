@@ -79,11 +79,13 @@ importers:
     specifiers:
       '@types/minimatch': ^5.1.2
       consola: ^2.15.3
+      events: ^3.3.0
       maybe-types: ^0.0.3
       minimatch: ^5.1.0
       query-string: ^7.1.1
     dependencies:
       consola: 2.15.3
+      events: 3.3.0
       maybe-types: 0.0.3
       minimatch: 5.1.0
       query-string: 7.1.1

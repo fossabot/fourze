@@ -91,6 +91,11 @@ export interface UnpluginFourzeOptions {
 
   delay?: DelayMsType
 
+  /**
+   * @default 5000
+   */
+  timeout?: number
+
   allow?: string[]
 
   deny?: string[]
@@ -157,6 +162,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
     allow,
     deny,
     dir,
+    timeout: options.timeout ?? 5000,
     files: options.files
   });
 

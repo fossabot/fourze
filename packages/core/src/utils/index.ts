@@ -11,3 +11,4 @@ export * from "./random";
 export * from "./storage";
 export * from "./html";
 export * from "./string";
+export * from "./events";

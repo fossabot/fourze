@@ -155,7 +155,7 @@ export function defineRouter(
 
       try {
         const _result = await route.handle(request, response);
-        if (!isUndefined(_result)) {
+        if (!isUndefined(_result) && !response.writableEnded) {
           response.send(_result);
         }
       } catch (error: any) {
@@ -165,10 +165,6 @@ export function defineRouter(
       logger.debug(
         `Request matched -> ${normalizeRoute(request.path, method)}.`
       );
-
-      if (!response.writableEnded) {
-        response.end();
-      }
     } else {
       logger.debug(`[${router.name}]`, `Request not matched -> ${normalizeRoute(request.path)}.`);
       await next?.();

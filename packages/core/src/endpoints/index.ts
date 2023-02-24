@@ -1,5 +1,5 @@
 import type { MaybePromise, MaybeRegex } from "maybe-types";
-import { delay, isMatch, isUndef, overload } from "../utils";
+import { delay, isError, isMatch, isUndef, overload } from "../utils";
 import type { FourzeMiddleware, PropType } from "../shared";
 import { defineMiddleware } from "../shared";
 import type { DelayMsType } from "../utils";
@@ -10,9 +10,19 @@ export const JSON_WRAPPER_HEADER = "Fourze-Json-Wrapper";
 
 export function delayHook(ms: DelayMsType): FourzeMiddleware {
   return defineMiddleware("Delay", -1, async (req, res, next) => {
-    const delayMs = res.getHeader(DELAY_HEADER) ?? req.headers[DELAY_HEADER] ?? ms;
-    const time = await delay(delayMs);
-    res.setHeader(DELAY_HEADER, time);
+    const _send = res.send.bind(res);
+
+    res.send = function (...args: any[]) {
+      const delayMs = res.getHeader(DELAY_HEADER) ?? req.headers[DELAY_HEADER] ?? req.meta[DELAY_HEADER] ?? ms;
+      delay(delayMs).then((ms) => {
+        if (!res.writableEnded) {
+          res.setHeader(DELAY_HEADER, ms);
+          _send(...args as Parameters<typeof _send>);
+        }
+      });
+      return res;
+    };
+
     await next?.();
   });
 }
@@ -78,25 +88,21 @@ export function jsonWrapperHook(
   return defineMiddleware("JsonWrapper", -1, async (req, res, next) => {
     const _send = res.send.bind(res);
     res.send = function (payload, contentType) {
-      contentType = contentType ?? req.meta.contentType ?? res.getContentType(payload);
+      contentType = contentType ?? req.meta.contentType ?? res.getContentType();
       const useJsonWrapper = res.getHeader(JSON_WRAPPER_HEADER) as string;
-      const isAllow = (isUndef(useJsonWrapper) || !["false", "0", "off"].includes(useJsonWrapper)) && !isExclude(req.path) && contentType?.startsWith("application/json");
+      const isAllow = (isUndef(useJsonWrapper) || !["false", "0", "off"].includes(useJsonWrapper)) && !isExclude(req.path) && (!contentType || contentType.startsWith("application/json"));
 
       if (isAllow) {
-        payload = resolve(payload) ?? payload;
+        if (isError(payload) && reject) {
+          payload = reject(payload) ?? payload;
+        } else {
+          payload = resolve(payload) ?? payload;
+        }
       }
+
       _send(payload, contentType);
       return res;
     };
-
-    if (reject) {
-      const _sendError = res.sendError.bind(res);
-      res.sendError = function (...args: any[]) {
-        _sendError(...args);
-        _send(reject(res.error), "application/json");
-        return this;
-      };
-    }
 
     await next();
   });

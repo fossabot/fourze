@@ -1,7 +1,7 @@
 import type { OutgoingMessage, ServerResponse } from "http";
 import { createLogger } from "../logger";
 import { PolyfillServerResponse, getHeaderValue } from "../polyfill";
-import { isDef, isObject, isString, isUint8Array, overload } from "../utils";
+import { isDef, isError, isObject, isString, isUint8Array, overload } from "../utils";
 import { FourzeError } from "./error";
 import type { FourzeRequest } from "./request";
 
@@ -42,6 +42,8 @@ export interface FourzeResponse extends FourzeBaseResponse {
   sendError(code: number, error?: string | Error): this
 
   sendError(error?: string | Error): this
+
+  wait(): Promise<void>
 
   readonly res?: OutgoingMessage
 
@@ -86,6 +88,9 @@ export function createResponse(options: FourzeResponseOptions) {
   };
 
   response.send = function (payload: any, contentType?: string) {
+    if (isError(payload)) {
+      payload = payload.message;
+    }
     contentType = contentType ?? this.getContentType(payload);
     switch (contentType) {
       case "application/json":
@@ -126,8 +131,8 @@ export function createResponse(options: FourzeResponseOptions) {
 
     const defaultStatusCode = _error instanceof FourzeError ? _error.statusCode : 500;
     this.statusCode = code ?? defaultStatusCode;
-    logger.error(error);
-    return this;
+    logger.error(_error);
+    return this.send(_error);
   };
 
   response.appendHeader = function (
@@ -168,7 +173,16 @@ export function createResponse(options: FourzeResponseOptions) {
   response.redirect = function (url: string) {
     this.statusCode = 302;
     this.setHeader("Location", url);
+    this.end();
     return this;
+  };
+
+  response.wait = function () {
+    return new Promise((resolve) => {
+      this.on("finish", () => {
+        resolve();
+      });
+    });
   };
 
   Object.defineProperties(response, {

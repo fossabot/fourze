@@ -7,6 +7,7 @@ import {
   createApp,
   createLogger,
   createServiceContext,
+  injectEventEmitter,
   isMatch,
   overload
 } from "@fourze/core";
@@ -19,7 +20,7 @@ import type {
   FourzeServiceContext,
   PropType
 } from "@fourze/core";
-import { injectEventEmitter, isAddressInfo, normalizeAddress } from "./utils";
+import { isAddressInfo, normalizeAddress } from "./utils";
 
 export interface FourzeServerOptions {
   host?: string
@@ -92,7 +93,6 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
             404,
             `Cannot ${request.method} ${request.url ?? "/"}`
           );
-          response.end();
         }
       });
 
@@ -101,7 +101,6 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
       serverApp.emit("error", error, { request, response });
       if (!response.writableEnded) {
         response.sendError(500, "Internal Server Error");
-        response.end();
       }
     }
   }) as FourzeServer;

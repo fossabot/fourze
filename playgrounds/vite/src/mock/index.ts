@@ -2,6 +2,8 @@ import fs from "fs";
 import path from "path";
 import type { FourzeHandle, ObjectProps } from "@fourze/core";
 import {
+  DELAY_HEADER,
+  JSON_WRAPPER_HEADER,
   PolyfillFile,
   createStorage,
   defineRouter,
@@ -107,6 +109,20 @@ export default defineRouter((router) => {
 
   router.get("/item/list", handleSearch);
 
+  router.route("/error", () => {
+    throw new Error("error");
+  });
+
+  router.route("/error-nowrapper", (_, res) => {
+    res.setTimeout(0);
+    res.setHeader(JSON_WRAPPER_HEADER, "false");
+  });
+
+  router.route("/nowrapper", (_, res) => {
+    res.setContentType("text/plain");
+    return "nowrapper";
+  });
+
   router.delete("/item/{id}",
     {
       props: {
@@ -131,7 +147,7 @@ export default defineRouter((router) => {
     if (!fs.existsSync(avatarPath)) {
       avatarPath = path.resolve(__dirname, "./test.webp");
     }
-    res.setHeader("Fourze-Delay", 0);
+    res.setHeader(DELAY_HEADER, 0);
     const f = await fs.promises.readFile(avatarPath);
     res.image(f);
   });

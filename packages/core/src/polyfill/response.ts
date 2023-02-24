@@ -1,12 +1,14 @@
+import EventEmitter from "events";
 import { getHeaderRawValue } from "./header";
 
-export class PolyfillServerResponse {
+export class PolyfillServerResponse extends EventEmitter {
   headers: Record<string, string>;
   _ended: boolean;
   matched: boolean;
   statusCode: number;
 
   constructor() {
+    super();
     this.headers = {};
     this._ended = false;
     this.matched = false;
@@ -33,6 +35,7 @@ export class PolyfillServerResponse {
       cb();
     }
     this._ended = true;
+    this.emit("finish");
     return this;
   }
 

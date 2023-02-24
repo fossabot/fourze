@@ -16,7 +16,6 @@ import {
   ,
   createServiceContext
 } from "./shared";
-import type { DelayMsType } from "./utils";
 import {
   createQuery,
   createSingletonPromise, isMatch,
@@ -35,10 +34,6 @@ export interface FourzeAppOptions {
   modules?: FourzeModule[]
 
   /**
-   *  延时
-   */
-  delay?: DelayMsType
-  /**
    * 允许的路径规则,默认为所有
    * @default []
    */
@@ -50,6 +45,8 @@ export interface FourzeAppOptions {
   deny?: MaybeRegex[]
 
   meta?: FourzeAppMeta
+
+  timeout?: number
 
   setup?: FourzeAppSetup
 
@@ -77,7 +74,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
   const options = isOptions ? args : {};
   const setup = isSetup ? args : options.setup ?? (() => { });
 
-  const { fallback } = options;
+  const { fallback, timeout = 5000 } = options;
 
   const persistenceMiddlewareStore = createQuery<FourzeMiddlewareNode>();
 
@@ -101,6 +98,9 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
 
     try {
       if (app.isAllow(url)) {
+        const timer = setTimeout(() => {
+          response.sendError(408, "Request Timeout");
+        }, timeout);
         const ms = app.match(url);
 
         request.app = app;
@@ -119,6 +119,9 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
           }
         }
         await doNext();
+
+        await response.wait();
+        clearTimeout(timer);
       } else {
         await next?.();
       }
@@ -223,7 +226,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     middlewareStore.reset(persistenceMiddlewareStore);
 
     try {
-    // 初始化app
+      // 初始化app
       const setupReturn = await setup(this);
 
       if (isArray(setupReturn)) {
