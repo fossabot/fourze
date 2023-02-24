@@ -1,7 +1,8 @@
 import type { OutgoingMessage, ServerResponse } from "http";
 import { createLogger } from "../logger";
 import { PolyfillServerResponse, getHeaderValue } from "../polyfill";
-import { isDef, isObject, isString, isUint8Array } from "../utils";
+import { isDef, isObject, isString, isUint8Array, overload } from "../utils";
+import { FourzeError } from "./error";
 import type { FourzeRequest } from "./request";
 
 export interface FourzeResponseOptions {
@@ -36,7 +37,11 @@ export interface FourzeResponse extends FourzeBaseResponse {
 
   setContentType(contentType: string): this
 
+  status(code: number): this
+
   sendError(code: number, error?: string | Error): this
+
+  sendError(error?: string | Error): this
 
   readonly res?: OutgoingMessage
 
@@ -101,9 +106,26 @@ export function createResponse(options: FourzeResponseOptions) {
     return this;
   };
 
-  response.sendError = function (code = 500, error: Error | string) {
-    _error = isString(error) ? new Error(error) : error;
+  response.status = function (code) {
     this.statusCode = code;
+    return this;
+  };
+
+  response.sendError = function (...args: any[]) {
+    const { code, error } = overload({
+      code: {
+        type: Number
+      },
+      error: {
+        type: [String, Error],
+        default: () => "Internal Server Error"
+      }
+    }, args);
+
+    _error = isString(error) ? new Error(error) : error;
+
+    const defaultStatusCode = _error instanceof FourzeError ? _error.statusCode : 500;
+    this.statusCode = code ?? defaultStatusCode;
     logger.error(error);
     return this;
   };

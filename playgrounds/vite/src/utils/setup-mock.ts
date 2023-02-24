@@ -58,10 +58,10 @@ export function successPageWrap<T>(
   return successResponseWrap(slicePage(data, pagination), msg);
 }
 
-export const failResponseWrap = (msg: string) => {
+export const failResponseWrap = (error: Error) => {
   return {
     data: null,
     code: "Error",
-    msg
+    msg: error.message
   };
 };

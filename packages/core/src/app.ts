@@ -26,7 +26,6 @@ import {
   resolves
 } from "./utils";
 import { injectMeta } from "./shared/meta";
-import { FourzeError } from "./shared/error";
 
 export type FourzeAppSetup = (app: FourzeApp) => MaybePromise<void | FourzeModule[] | FourzeAppOptions>;
 
@@ -124,11 +123,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
         await next?.();
       }
     } catch (error: any) {
-      if (error instanceof FourzeError) {
-        response.sendError(error.statusCode, error);
-        return;
-      }
-      response.sendError(500, error);
+      response.sendError(error);
     }
   }) as FourzeApp;
 

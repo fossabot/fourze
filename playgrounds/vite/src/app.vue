@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-  import { getGlobalMockRouter } from "@fourze/mock";
+  import { getGlobalMockApp } from "@fourze/mock";
   import { useAsyncState } from "@vueuse/core";
   import axios from "axios";
   import dayjs from "dayjs";
@@ -18,14 +18,14 @@
     `/api/img/avatar.jpg?t=${t.value} `
   );
 
-  const _mockEnabled = ref(!!getGlobalMockRouter()?.enabled);
+  const _mockEnabled = ref(!!getGlobalMockApp()?.enabled);
 
   const mockEnabled = computed({
     get() {
       return _mockEnabled.value;
     },
     set(value) {
-      const router = getGlobalMockRouter();
+      const router = getGlobalMockApp();
       if (router) {
         if (value) {
           router.enable();

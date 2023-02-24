@@ -159,7 +159,7 @@ export function defineRouter(
           response.send(_result);
         }
       } catch (error: any) {
-        response.sendError(500, error.message);
+        response.sendError(error);
       }
 
       logger.debug(
