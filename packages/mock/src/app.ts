@@ -191,11 +191,11 @@ export function createMockApp(
   return app;
 }
 
-export function getGlobalMockRouter() {
+export function getGlobalMockApp() {
   return globalThis.__FOURZE_MOCK_APP__;
 }
 
-export function isMockRouter(router: any): router is FourzeMockApp {
-  return !!router && router[FOURZE_MOCK_APP_SYMBOL];
+export function isMockApp(app: any): app is FourzeMockApp {
+  return !!app && app[FOURZE_MOCK_APP_SYMBOL];
 }
 
