@@ -48,7 +48,7 @@ export interface SwaggerUIBuildOptions {
 function createMockDocsCode(options: SwaggerOptions = {}) {
   return `
   import { defineRouter } from "@fourze/core";
-  import { createSwaggerMiddleware } from "@fourze/swagger-middleware";
+  import { createSwaggerMiddleware } from "@fourze/middlewares";
   export default defineRouter((router,app) => {
     router.setMeta("swagger",false);
     router.get("/api-docs", createSwaggerMiddleware(app,${JSON.stringify(options)}));
@@ -57,7 +57,7 @@ function createMockDocsCode(options: SwaggerOptions = {}) {
 }
 
 export function getModuleAlias() {
-  return ["@fourze/core", "@fourze/mock", "@fourze/swagger", "@fourze/swagger-middleware"].map(r => {
+  return ["@fourze/core", "@fourze/mock", "@fourze/swagger", "@fourze/middlewares"].map(r => {
     return {
       find: r,
       replacement: require.resolve(r)
