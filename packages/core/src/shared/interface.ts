@@ -3,7 +3,7 @@ import type { MaybePromise, MaybeRegex } from "maybe-types";
 import { overload } from "../utils";
 import type { FourzeContextOptions, FourzeServiceContext } from "./context";
 import type { FourzeAppMeta, FourzeRouteMeta, MetaInstance } from "./meta";
-import type { ObjectProps, PropType } from "./props";
+import type { DefaultData, ObjectProps, PropType } from "./props";
 import type { FourzeRequest } from "./request";
 import type { FourzeResponse } from "./response";
 
@@ -12,7 +12,7 @@ const FOURZE_MIDDLEWARE_SYMBOL = Symbol("FOURZE_MIDDLEWARE_SYMBOL");
 export type FourzeNext<T = any> = () => MaybePromise<T>;
 
 export type FourzeHandle<
-  R = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta
+  R = unknown, Props extends ObjectProps = DefaultData, Meta = FourzeRouteMeta
 > = (
   request: FourzeRequest<Props, Meta>,
   response: FourzeResponse

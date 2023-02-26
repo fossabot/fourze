@@ -3,6 +3,7 @@ import { createLogger } from "./logger";
 import type { FourzeRouteMeta, MetaInstance } from "./shared/meta";
 import { injectMeta } from "./shared/meta";
 import type {
+  DefaultData,
   FourzeApp, FourzeBaseRoute,
   FourzeHandle,
   FourzeMiddleware,
@@ -43,14 +44,14 @@ type FourzeRouteChain<Methods extends string = RequestMethod> = {
    * only once
    */
   [method in Methods]: {
-    <Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta>(
+    <Result = unknown, Props extends ObjectProps = DefaultData, Meta = FourzeRouteMeta>(
       options: Omit<FourzeRouteOptions<Props, Meta>, "path" | "method">,
       handle: FourzeHandle<Result, Props, Meta>
     ): FourzeRouteChain<Exclude<Methods, method>> & {
       route: FourzeRouter["route"]
     }
 
-    <Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta>(
+    <Result = unknown, Props extends ObjectProps = DefaultData, Meta = FourzeRouteMeta>(
       handle: FourzeHandle<Result, Props, Meta>
     ): FourzeRouteChain<Exclude<Methods, method>> & {
       route: FourzeRouter["route"]
@@ -68,15 +69,15 @@ export interface FourzeRouter
 
   route(path: string): FourzeRouteChain
 
-  route<Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta>(path: string, method: RequestMethod, options: FourzeRouteOptions<Props, Meta>, handle: FourzeHandle<Result, Props, Meta>): this
+  route<Result = unknown, Props extends ObjectProps = DefaultData, Meta = FourzeRouteMeta>(path: string, method: RequestMethod, options: FourzeRouteOptions<Props, Meta>, handle: FourzeHandle<Result, Props, Meta>): this
 
   route(path: string, method: RequestMethod, handle: FourzeHandle): this
 
-  route<Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta>(path: string, options: FourzeRouteOptions<Props, Meta>, handle: FourzeHandle<Result, Props, Meta>): this
+  route<Result = unknown, Props extends ObjectProps = DefaultData, Meta = FourzeRouteMeta>(path: string, options: FourzeRouteOptions<Props, Meta>, handle: FourzeHandle<Result, Props, Meta>): this
 
   route(path: string, handle: FourzeHandle): this
 
-  route<Result = unknown, Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta>(route: FourzeBaseRoute<Result, Props, Meta>): this
+  route<Result = unknown, Props extends ObjectProps = DefaultData, Meta = FourzeRouteMeta>(route: FourzeBaseRoute<Result, Props, Meta>): this
 
   route(route: FourzeBaseRoute[]): this
 
@@ -191,7 +192,7 @@ export function defineRouter(
         } as FourzeRouteChain;
 
         for (const method of FOURZE_METHODS) {
-          chain[method] = (...args: [FourzeRouteOptions, FourzeHandle] | [FourzeHandle]) => {
+          chain[method] = (...args: [FourzeRouteOptions<Record<string, any>>, FourzeHandle] | [FourzeHandle]) => {
             const { handle, options } = overload({
               options: {
                 type: Object

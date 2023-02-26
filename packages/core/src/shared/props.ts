@@ -1,17 +1,21 @@
 import { isArray, isConstructor, isFunction, isPlainObject, isUndef } from "../utils";
 import { FourzeError } from "./error";
 
-export type DefaultData = Record<string, unknown>;
+export interface GlobalProps extends Record<string, any> {}
+
+export type DefaultData = Record<string, any>;
 
 export type PropIn = "body" | "query" | "path";
 
-export type ExtractPropTypes<
-  P extends Record<string, any>, In extends PropIn | "any" = "any", O = In extends PropIn ? Pick<P, InKeys<P, In>> : P
-> = {
+export declare type ExtractPropTypes<O> = {
   [K in keyof Pick<O, RequiredKeys<O>>]: InferPropType<O[K]>;
 } & {
   [K in keyof Pick<O, OptionalKeys<O>>]?: InferPropType<O[K]>;
-} & DefaultData;
+} & GlobalProps;
+
+export type ExtractPropTypesWithIn<
+  O, In extends PropIn
+> = ExtractPropTypes<Pick<O, InKeys<O, In>>>;
 
 export type ExtractDefaultPropTypes<P extends Record<string, any>> = {
   [K in keyof Pick<P, DefaultKeys<P>>]: InferPropType<P[K]>;
@@ -251,7 +255,7 @@ export function normalizeProps<T>(
 }
 
 export function withDefaults<
-  T = Record<string, any>, P extends ObjectProps<T> = ObjectProps <T>, D = ExtractPropTypes<P>, Defaults = ExtractDefaultPropTypes<P>
+  T = Record<string, any>, P extends ObjectProps<T> = ObjectProps<T>, D = ExtractPropTypes<P>, Defaults = ExtractDefaultPropTypes<P>
 >(props: Partial<Defaults> & Omit<D, keyof Defaults>, propsOptions: P, propIn?: PropIn): D {
   if (Array.isArray(propsOptions)) {
     return props as D;

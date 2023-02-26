@@ -161,13 +161,12 @@ export default defineRouter((router) => {
       props: {
         file: {
           type: PolyfillFile,
-          required: true,
-          in: "body"
+          required: true
         }
       }
     },
     async (req) => {
-      const file = req.body.file;
+      const file = req.data.file;
       if (!fs.existsSync(path.resolve(__dirname, ".tmp"))) {
         fs.mkdirSync(path.resolve(__dirname, ".tmp"));
       }

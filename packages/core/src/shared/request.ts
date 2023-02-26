@@ -3,7 +3,7 @@ import qs from "query-string";
 import type { PolyfillHeaderInit } from "../polyfill";
 import { decodeFormData, flatHeaders, getHeaderValue } from "../polyfill";
 import { isString, isUint8Array, normalize } from "../utils";
-import type { ExtractPropTypes, ObjectProps } from "./props";
+import type { DefaultData, ExtractPropTypes, ExtractPropTypesWithIn, ObjectProps } from "./props";
 import { validateProps, withDefaults } from "./props";
 import type { FourzeRoute } from "./route";
 import type { FourzeRouteMeta } from "./meta";
@@ -35,7 +35,7 @@ export interface FourzeRequestOptions {
 }
 
 export interface FourzeRequest<
-  Props extends ObjectProps = ObjectProps, Meta = FourzeRouteMeta, Data = ExtractPropTypes<Props>, Query = ExtractPropTypes<Props, "query">, Body = ExtractPropTypes<Props, "body">, Params = ExtractPropTypes<Props, "path">
+  Props extends ObjectProps = DefaultData, Meta = FourzeRouteMeta, Data = ExtractPropTypes<Props>, Query = ExtractPropTypesWithIn<Props, "query">, Body = ExtractPropTypesWithIn<Props, "body">, Params = ExtractPropTypesWithIn<Props, "path">
 > extends IncomingMessage {
   url: string
   method: string
