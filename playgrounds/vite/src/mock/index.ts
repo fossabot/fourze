@@ -112,7 +112,7 @@ export default defineRouter((router) => {
     throw new Error("error");
   });
 
-  router.route("/error-nowrapper", (_, res) => {
+  router.route("/error-no-wrapper", (_, res) => {
     res.setHeader(RESOLVE_HEADER, "false");
   });
 
@@ -121,9 +121,12 @@ export default defineRouter((router) => {
     res.sendError(404, "not found");
   });
 
-  router.route("/nowrapper", (_, res) => {
-    res.setContentType("text/plain");
-    return "nowrapper";
+  router.route("/string-wrapper", (_) => {
+    return "string-wrapper";
+  });
+
+  router.route("/no-wrapper", (_) => {
+    return "no-wrapper";
   });
 
   router.delete("/item/{id}",

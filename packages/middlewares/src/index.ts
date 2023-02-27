@@ -5,3 +5,5 @@ export * from "./resolve";
 export * from "./timeout";
 
 export * from "./swagger";
+
+export * from "./header";
