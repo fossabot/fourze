@@ -112,8 +112,8 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
 
   const base = options.base ?? "/api";
 
-  const delay = options.delay ?? 0;
-  const timeout = options.timeout ?? 5000;
+  const delay = options.delay;
+  const timeout = options.timeout;
 
   const allow = options.allow ?? [];
   const deny = options.deny ?? [];
@@ -169,7 +169,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
     files: options.files
   });
 
-  if (timeout > 0) {
+  if (timeout) {
     hmrApp.use(createTimeoutMiddleware(timeout));
   }
 
