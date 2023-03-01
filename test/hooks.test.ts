@@ -15,7 +15,6 @@ describe("hooks", async () => {
     const app = createMockApp({
       delay: "200-500",
       mode: ["fetch"],
-
     })
       .use("/api", async (req, res, next) => {
         if (req.headers["token"]) {

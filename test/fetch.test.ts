@@ -15,7 +15,7 @@ describe("fetch", async () => {
     const app = createMockApp({
       delay: "200-500",
       mode: ["fetch"],
-      origin: "http://localhost:7609",
+      host: "localhost:7609",
     }).use(async (req, res, next) => {
       res.setHeader("x-test", "abcd");
       res.appendHeader("x-test", "test");

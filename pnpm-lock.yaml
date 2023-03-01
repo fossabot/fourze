@@ -192,8 +192,10 @@ importers:
   packages/middlewares:
     specifiers:
       '@fourze/core': workspace:*
+      maybe-types: ^0.0.3
     dependencies:
       '@fourze/core': link:../core
+      maybe-types: 0.0.3
 
   packages/mock:
     specifiers:

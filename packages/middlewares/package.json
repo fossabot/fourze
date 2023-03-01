@@ -20,7 +20,7 @@
     "author": "chizuki",
     "license": "MIT",
     "dependencies": {
-        "@fourze/core": "workspace:*"
-    },
-    "devDependencies": {}
+        "@fourze/core": "workspace:*",
+        "maybe-types": "^0.0.3"
+    }
 }
