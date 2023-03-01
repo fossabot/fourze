@@ -129,6 +129,10 @@ export default defineRouter((router) => {
     return "no-wrapper";
   });
 
+  router.route("/v1/health", () => {
+    return { status: "ok" };
+  });
+
   router.delete("/item/{id}",
     {
       props: {

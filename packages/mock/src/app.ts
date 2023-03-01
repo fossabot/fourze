@@ -5,6 +5,7 @@ import {
   createApp,
   createLogger,
   defineMiddleware,
+  isArray,
   isDef,
   isNode
 } from "@fourze/core";
@@ -33,7 +34,11 @@ export function createMockApp(
   const autoEnable = options.autoEnable ?? true;
   const activeMode = new Set<FourzeMockRequestMode>(mode);
 
-  const origin = options.origin ?? globalThis.location?.origin ?? "";
+  const _host = options.host ?? globalThis.location?.host;
+
+  const hosts = isArray(_host) ? _host : [_host];
+
+  const protocol = options.protocol;
 
   const injectGlobal = options.global ?? true;
 
@@ -173,11 +178,19 @@ export function createMockApp(
 
   const _service = app.service.bind(app);
 
-  app.service = function (context: FourzeContextOptions, fallback) {
-    logger.debug(`Fourze Mock is processing [${context.url}]`);
+  const resolveUrl = (_url: string) => {
+    const url = new URL(_url, location.origin);
+    if ((hosts.includes(url.host) || hosts.includes(url.origin)) && (!protocol || url.protocol === protocol)) {
+      return `${url.pathname}${url.search}${url.hash}`;
+    }
+    return _url;
+  };
+
+  app.service = async function (context: FourzeContextOptions, fallback) {
+    logger.debug(`Fourze Mock is processing [${context.url}]`, resolveUrl(context.url));
     return _service({
       ...context,
-      url: context.url.replace(origin, "")
+      url: resolveUrl(context.url)
     }, fallback);
   };
 

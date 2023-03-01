@@ -18,10 +18,12 @@
         "consola": "^2.15.3",
         "events": "^3.3.0",
         "maybe-types": "^0.0.3",
-        "minimatch": "^5.1.0",
+        "micromatch": "^4.0.5",
+        "minimatch": "^7.4.1",
         "query-string": "^7.1.1"
     },
     "devDependencies": {
+        "@types/micromatch": "^4.0.2",
         "@types/minimatch": "^5.1.2"
     }
 }

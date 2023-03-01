@@ -5,6 +5,7 @@ describe("shared", async () => {
 
   it("test-isMatch", () => {
     expect(isMatch("/api/hello/test", "/api/*", "/api/hello")).toBe(true);
+    expect(isMatch("/api/hello/test", "*/hello/test", "/api/hello/*")).toBe(true);
     expect(isMatch("http://www.test.com", "http://**.test.com")).toBe(true);
   });
 
@@ -12,7 +13,6 @@ describe("shared", async () => {
 
     const app = createApp({
       base:'/api',
-      delay: "200-500",
       allow: ["/api/test", "/api/hello", "/api/add"],
       deny: ["/api/deny"],
     })

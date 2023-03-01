@@ -1,9 +1,12 @@
-export * from "./delay";
+import { createDelayMiddleware, createFilterMiddleware, createHeaderMiddleware, createResolveMiddleware, createSwaggerMiddleware, createTimeoutMiddleware } from "./middlewares";
 
-export * from "./resolve";
+export const middlewares = {
+  delay: createDelayMiddleware,
+  resolve: createResolveMiddleware,
+  timeout: createTimeoutMiddleware,
+  swagger: createSwaggerMiddleware,
+  header: createHeaderMiddleware,
+  filter: createFilterMiddleware
+} as const;
 
-export * from "./timeout";
-
-export * from "./swagger";
-
-export * from "./header";
+export * from "./middlewares";

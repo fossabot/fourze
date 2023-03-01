@@ -1,10 +1,15 @@
 import { definePlugin } from "@fourze/core";
-import { createHeaderMiddleware, createResolveMiddleware } from "@fourze/middlewares";
+import { middlewares } from "@fourze/middlewares";
 import { failResponseWrap, successResponseWrap } from "../utils/setup-mock";
 
 export default definePlugin((app) => {
-  app.use(createHeaderMiddleware({
+  const { header, resolve, filter } = middlewares;
+  app.use(header({
     "Content-Type": "application/json"
   }));
-  app.use(createResolveMiddleware(successResponseWrap, failResponseWrap));
+  app.use(filter(resolve(successResponseWrap, failResponseWrap), {
+    excludes: [
+      "/v1/health"
+    ]
+  }));
 });

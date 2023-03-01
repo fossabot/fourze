@@ -47,7 +47,10 @@ export default defineConfig({
         pattern: ["*.ts", "*.js"]
       },
       hmr: true,
-      mock: true,
+      mock: {
+        enable: true,
+        host: ["http://localhost:8080"]
+      },
       delay: "200-500",
       swagger: true,
       logLevel: "debug"

@@ -40,6 +40,7 @@ export interface MockOptions {
   enable?: MockEnable
   mode?: FourzeMockAppOptions["mode"]
   injectScript?: boolean
+  host?: string | string[]
 }
 
 export interface UnpluginFourzeOptions {
@@ -220,7 +221,8 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
         if (isClientID(id)) {
           return transformCode(hmrApp.moduleNames, {
             ...options,
-            mode: mockOptions.mode
+            mode: mockOptions.mode,
+            host: mockOptions.host
           });
         }
       },

@@ -1,5 +1,5 @@
-import type { MaybeRegex } from "maybe-types";
 import minimatch from "minimatch";
+import type { MaybeRegex } from "maybe-types";
 import { isRegExp } from "./is";
 
 export function slash(...paths: string[]): string {
@@ -49,7 +49,7 @@ export function isMatch(path: string, ...pattern: MaybeRegex[]) {
     if (isRegExp(r)) {
       return r.test(path);
     }
-    return path.startsWith(r) || minimatch(path, r, { partial: true, matchBase: true });
+    return path.startsWith(r) || minimatch(path, r, { matchBase: true, partial: true });
   });
 }
 

@@ -11,11 +11,9 @@ export interface FourzeMockAppOptions extends Exclude<FourzeAppOptions, "setup">
    */
   mode?: FourzeMockRequestMode[]
 
-  origin?: string
+  host?: string | string[]
 
-  port?: string
-
-  host?: string
+  protocol?: "http" | "https"
 
   autoEnable?: boolean
 

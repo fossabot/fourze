@@ -110,25 +110,26 @@
 
   async function request(options: RequestOptions) {
     const { url, method = "GET", params = {}, data = {}, type = "fetch" } = options;
+    const _url = `http://localhost:8080${url}`;
     switch (type) {
       case "jquery":
         return $.ajax({
           url: querystring.stringifyUrl({
-            url,
+            url: _url,
             query: params
           }),
           data,
           method
         }).then(r => r.data);
       case "axios":
-        return axios(url, {
+        return axios(_url, {
           method,
           params,
           data
         }).then(r => r.data.data);
       case "fetch":
       default:
-        return await fetch(querystring.stringifyUrl({ url, query: params }), {
+        return await fetch(querystring.stringifyUrl({ url: _url, query: params }), {
           body: ["GET", "HEAD", "DELETE"].includes(method.toUpperCase()) ? undefined : JSON.stringify(data),
           method
         }).then(r => r.json()).then(r => r.data);

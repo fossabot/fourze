@@ -157,7 +157,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
           persistenceMiddlewareStore.append(node);
         }
         middlewareStore.append(node);
-        logger.info(`use middleware ${middleware.name} at ${path}`);
+        logger.info(`use middleware [${middleware.name}] at ${path}`);
       } else {
         if (!this.isReadying) {
           persistencePluginStore.append(middleware);
