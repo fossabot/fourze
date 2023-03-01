@@ -110,7 +110,7 @@
 
   async function request(options: RequestOptions) {
     const { url, method = "GET", params = {}, data = {}, type = "fetch" } = options;
-    const _url = `http://localhost:8080${url}`;
+    const _url = mockEnabled.value ? `http://localhost:8080${url}` : url;
     switch (type) {
       case "jquery":
         return $.ajax({
