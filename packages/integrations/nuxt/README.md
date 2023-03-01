@@ -1,6 +1,16 @@
-# Nuxt Module
+# Fourze Nuxt Module
 
-## Development
+## Usage
 
-- Run `npm run dev:prepare` to generate type stubs.
-- Use `npm run dev` to start [playground](./playground) in development mode.
+`pnpm add @fourze/nuxt`
+
+nuxt.config.ts
+```ts
+export default defineNuxtConfig({
+  modules: ["@fourze/nuxt"],
+  fourze: {
+    base: "/api"
+  }
+});
+
+```

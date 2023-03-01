@@ -1,6 +1,39 @@
 <h1 align="center">Fourze</h1>
 <p align="center"> Api route framework for the browser and node.js.</p>
 
+
+`pnpm add @fourze/core`
+
+create a router file `src/mock/example.ts`
+
+```ts
+import { defineRouter } from "@fourze/core";
+export default defineRouter(router => {
+  router.get("/hello", () => {
+    return "hello,world";
+  });
+});
+
+```
+
+configure vite config
+
+`pnpm add @fourze/vite`
+
+```ts
+import fourze from "@fourze/vite";
+export default defineConfig({
+  plugins: [
+    fourze({
+      base: "/api"
+    })
+  ],
+});
+
+```
+
+then you can fetch `/api/hello` to get response.
+
 # Features
 
 -   Simple api route register
@@ -11,33 +44,8 @@
 
 -   Node.js and browser support
 
-# Install
 
-`pnpm add @fourze/core`
 
-or
-
-`pnpm add @fourze/mock`
-
-# Vite
-
-`pnpm add @fourze/vite`
-
-vite.config.ts
-
-```
-
-import fourze from "@fourze/vite"
-
-export default defineConfig({
-    plugins: [
-        fourze({
-            base:'/api'
-        })
-    ],
-})
-
-```
 
 # Nuxt
 
@@ -45,14 +53,13 @@ export default defineConfig({
 
 nuxt.config.ts
 
-```
-
+```ts
 export default defineNuxtConfig({
-    modules: ["@fourze/nuxt"],
-    fourze: {
-        base: "/api"
-    }
-})
+  modules: ["@fourze/nuxt"],
+  fourze: {
+    base: "/api"
+  }
+});
 
 ```
 
@@ -60,50 +67,50 @@ export default defineNuxtConfig({
 
 `pnpm add @fourze/server`
 
-```
-    import { createFourzeServer,createHotRouter } from "@fourze/server"
+```ts
+import { defineRouter } from "@fourze/core";
+import { createServer } from "@fourze/server";
 
-    const server = createFourzeServer({
-        base: "/api"
-    })
-    const router = createHotRouter({
-        dir:"./mock"
-    })
-    server.use(router)
-    server.listen(7609)
+const server = createServer({
+  base: "/api"
+});
+server.use(defineRouter(router => {
+  router.get("/hello", (_, res) => {
+    res.send("hello,world");
+  });
+}));
+server.listen(7609);
 ```
 
 ## Middleware Mode
 
+```ts
+import express from "express";
+import { createServer } from "@fourze/server";
+const middleware = createServer({
+  base: "/api"
+});
+const app = express();
+app.use(middleware);
+app.listen(7609);
+
 ```
 
-    import express from "express"
-    import { createFourzeServer } from "@fourze/server"
-    const middleware = createFourzeServer({
-        base: "/api"
-    })
-    const app = express()
-    app.use(middleware)
-    app.listen(7609)
-
-```
-
-# Register Route
+# Register Router
 
 src/mock/example.ts
 
-```
-
-    import {defineFourze} from "@fourze/core"
-    export default defineFourze(route=>{
-        // base = '/api'
-        route("/user/{id}",(req,res)=>{
-            return {
-                id:req.params.id
-                name:"test"
-            }
-        })
-    })
+```ts
+import { defineRouter } from "@fourze/core";
+export default defineRouter(router => {
+  // base = '/api'
+  router.post("/user/{id}", (req) => {
+    return {
+      id: req.params.id,
+      name: "test"
+    };
+  });
+});
 
 ```
 
@@ -111,7 +118,7 @@ Set `base` to `/api` in vite/nuxt config, then you can fetch `/api/user/1` to ge
 
 Request
 
-` GET /api/user/1`
+` POST /api/user/1`
 
 Response
 
