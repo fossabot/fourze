@@ -7,8 +7,11 @@ export function createDelayMiddleware(ms: DelayMsType): FourzeMiddleware {
   return defineMiddleware("Delay", -1, async (req, res, next) => {
     const _send = res.send.bind(res);
 
+    let isDelaySent = false;
+
     res.send = function (...args: any[]) {
       const delayMs = res.getHeader(DELAY_HEADER) ?? req.headers[DELAY_HEADER] ?? req.meta[DELAY_HEADER] ?? ms;
+      isDelaySent = true;
       delay(delayMs).then((ms) => {
         if (!res.writableEnded) {
           res.setHeader(DELAY_HEADER, ms);
@@ -19,6 +22,9 @@ export function createDelayMiddleware(ms: DelayMsType): FourzeMiddleware {
     };
 
     await next?.();
+    if (isDelaySent) {
+      await res.done();
+    }
   });
 }
 

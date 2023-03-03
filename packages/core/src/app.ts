@@ -114,7 +114,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
           }
         }
         await doNext();
-        await response.done();
+      //  await response.done();
       } else {
         await next?.();
       }
