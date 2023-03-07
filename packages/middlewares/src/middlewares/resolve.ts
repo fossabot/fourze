@@ -1,6 +1,6 @@
 import type { MaybePromise } from "maybe-types";
 import type { FourzeMiddleware, PropType } from "@fourze/core";
-import { defineMiddleware, isError, isUndef, overload } from "@fourze/core";
+import { defineMiddleware, defineOverload, isError, isUndef, overload } from "@fourze/core";
 
 type ResolveFunction = (data: any, contentType?: string | null) => MaybePromise<any>;
 
@@ -42,10 +42,26 @@ export function createResolveMiddleware(
     throw new Error("Missing resolve function");
   }
 
+  const overloadSend = defineOverload({
+    payload: {
+      type: [String, Number, Boolean, Uint8Array, Object, null, undefined] as PropType<any>
+    },
+    statusCode: {
+      type: Number
+    },
+    contentType: {
+      type: String
+    }
+  });
+
   return defineMiddleware("Response-Resolve", -1, async (req, res, next) => {
     const _send = res.send.bind(res);
-    res.send = function (payload, contentType) {
-      contentType = contentType ?? req.meta.contentType ?? res.getContentType(payload);
+    res.send = function (...args: any[]) {
+      let { payload, statusCode, contentType } = overloadSend(args);
+
+      statusCode ??= res.statusCode;
+      contentType ??= res.getContentType(payload);
+
       const useResolve = res.getHeader(RESOLVE_HEADER) as string;
       const isAllow = (isUndef(useResolve) || !["false", "0", "off"].includes(useResolve));
 
@@ -57,7 +73,7 @@ export function createResolveMiddleware(
         }
       }
 
-      _send(payload, contentType);
+      _send(payload, statusCode, contentType);
       return res;
     };
 

@@ -12,6 +12,9 @@ export class FourzeError extends Error {
       this.statusCode = code;
     } else if (isError(code)) {
       super(code.message);
+      if (isFourzeError(code)) {
+        this.statusCode = code.statusCode;
+      }
     } else {
       super(code);
     }

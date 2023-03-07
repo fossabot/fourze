@@ -1,8 +1,8 @@
 import type { OutgoingMessage, ServerResponse } from "http";
-import { createLogger } from "../logger";
 import { PolyfillServerResponse, getHeaderValue } from "../polyfill";
-import { isDef, isObject, isString, isUint8Array } from "../utils";
+import { defineOverload, isDef, isObject, isString, isUint8Array } from "../utils";
 import { FourzeError } from "./error";
+import type { PropType } from "./props";
 import type { FourzeRequest } from "./request";
 
 export interface FourzeResponseOptions {
@@ -38,6 +38,9 @@ export interface FourzeResponse extends FourzeBaseResponse {
    */
   send(payload: any, contentType?: string | null): this
 
+  send(payload: any, statusCode?: number): this
+
+  send(payload: any, statusCode?: number, contentType?: string | null): this
   /**
    * 获取Content-Type
    * @param payload 如果没有指定contentType，则会根据payload的类型自动推断
@@ -86,7 +89,6 @@ export interface FourzeResponse extends FourzeBaseResponse {
 export function createResponse(options: FourzeResponseOptions) {
   const res = options?.response;
   const response = (res ?? (new PolyfillServerResponse())) as FourzeResponse;
-  const logger = createLogger("@fourze/core");
 
   let _payload: any;
   let _error: FourzeError;
@@ -99,7 +101,7 @@ export function createResponse(options: FourzeResponseOptions) {
   };
 
   response.getContentType = function (data) {
-    let contentType: string = getHeaderValue(this.getHeaders(), "Content-Type");
+    let contentType = getHeaderValue(this.getHeaders(), "Content-Type");
     if (!contentType && isDef(data)) {
       if (isUint8Array(data)) {
         contentType = "application/octet-stream";
@@ -112,9 +114,26 @@ export function createResponse(options: FourzeResponseOptions) {
     return contentType;
   };
 
-  response.send = function (payload: any, contentType?: string) {
-    contentType = contentType ?? this.getContentType(payload);
-    switch (contentType) {
+  const overloadSend = defineOverload({
+    payload: {
+      type: [String, Number, Boolean, Uint8Array, Object, null, undefined] as PropType<any>
+    },
+    statusCode: {
+      type: Number
+    },
+    contentType: {
+      type: String
+    }
+  });
+
+  response.send = function (...args: any[]) {
+    let { payload, statusCode, contentType } = overloadSend(args);
+
+    statusCode ??= this.statusCode ?? 200;
+    contentType ??= this.getContentType(payload);
+
+    const normalizedContentType = contentType?.split(";")[0];
+    switch (normalizedContentType) {
       case "application/json":
         payload = JSON.stringify(payload);
         break;
@@ -126,11 +145,10 @@ export function createResponse(options: FourzeResponseOptions) {
         break;
     }
     if (contentType) {
-      response.setContentType(contentType);
+      this.setContentType(contentType);
     }
     _payload = payload;
-    this.end(_payload);
-    return this;
+    return this.status(statusCode).end(payload);
   };
 
   response.status = function (code) {
@@ -140,9 +158,7 @@ export function createResponse(options: FourzeResponseOptions) {
 
   response.sendError = function (...args: any[]) {
     _error = new FourzeError(...args);
-    this.statusCode = _error.statusCode;
-    logger.error(_error);
-    return this.send(_error);
+    return this.send(_error, _error.statusCode);
   };
 
   response.appendHeader = function (
@@ -181,10 +197,9 @@ export function createResponse(options: FourzeResponseOptions) {
   };
 
   response.redirect = function (url: string) {
-    this.statusCode = 302;
-    this.setHeader("Location", url);
-    this.end();
-    return this;
+    return this.setHeader("Location", url)
+      .status(302)
+      .end();
   };
 
   response.done = function () {
@@ -235,7 +250,6 @@ export function createResponse(options: FourzeResponseOptions) {
       },
       enumerable: true
     },
-
     method: {
       get() {
         return options.method;

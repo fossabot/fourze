@@ -1,3 +1,4 @@
+import { FourzeError } from "./error";
 import type { RequestMethod } from "./request";
 
 interface RouteMatcher<T = any> {
@@ -44,6 +45,7 @@ function createRouteNode<T>(options: Partial<RouteNode<T>> = {}): RouteNode<T> {
 export interface RouteMatcherOptions {
   caseSensitive?: boolean
   strictTrailingSlash?: boolean
+  notAllowedRaiseError?: boolean
 }
 
 /**
@@ -68,9 +70,9 @@ export function createRouteMatcher<T>(options: RouteMatcherOptions = {}): RouteM
     add(path: string, method: RequestMethod | "all", payload: any) {
       method = method.toLowerCase() as RequestMethod;
       path = normalizePath(path);
+      const segments = path.split("/");
 
       let currentNode = rootNode;
-      const segments = path.split("/");
       let _unnamedPlaceholderCtr = 0;
       let isStaticRoute = true;
 
@@ -167,7 +169,9 @@ export function createRouteMatcher<T>(options: RouteMatcherOptions = {}): RouteM
       if (data) {
         return [data, paramsFound ? params : null];
       }
-
+      if (currentNode.payload.size > 0 && options.notAllowedRaiseError) {
+        throw new FourzeError(405, "Method Not Allowed");
+      }
       return [null, null];
     },
     remove(path: string, method: RequestMethod | "all" = "all") {

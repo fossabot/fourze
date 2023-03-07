@@ -95,7 +95,7 @@ export function getHeaderValue(
   headers: PolyfillHeaderInit,
   key: string,
   defaultValue?: string
-) {
+): typeof defaultValue extends undefined ? string | undefined : string {
   return getHeader(flatHeaders(headers), key)?.[1] ?? defaultValue;
 }
 

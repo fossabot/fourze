@@ -128,7 +128,9 @@ export function defineRouter(
 
   const meta: Record<string, any> = { ...options.meta };
 
-  const matcher = createRouteMatcher<FourzeRoute>();
+  const matcher = createRouteMatcher<FourzeRoute>({
+    notAllowedRaiseError: true
+  });
 
   const logger = createLogger("@fourze/core");
 
