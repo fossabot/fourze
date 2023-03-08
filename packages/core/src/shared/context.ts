@@ -12,6 +12,7 @@ export interface FourzeContextOptions {
   request?: IncomingMessage
   response?: OutgoingMessage
   contextPath?: string
+  contentTypeParsers?: Record<string, (body: any) => any>
 }
 
 export interface FourzeServiceContext {

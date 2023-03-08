@@ -29,7 +29,6 @@ import {
   isFunction,
   isObject,
   isString,
-  isUndefined,
   normalizeRoute,
   overload
 } from "./utils";
@@ -143,9 +142,13 @@ export function defineRouter(
 
     const { path, method } = request;
 
+    const start = performance.now();
+
     const [route, matches] = matcher.match(path, (method as RequestMethod) ?? "all");
 
-    logger.debug(`Request received -> ${normalizeRoute(request.path)}.`);
+    const end = performance.now();
+
+    logger.debug(`Request received -> ${normalizeRoute(request.path)} by ${Math.round((end - start) * 1000) / 1000}ms.`);
 
     if (route) {
       request.setRoute(route, matches);
@@ -158,9 +161,7 @@ export function defineRouter(
 
       try {
         const _result = await route.handle(request, response);
-        if (!isUndefined(_result) && !response.writableEnded) {
-          response.send(_result);
-        }
+        response.send(_result);
       } catch (error: any) {
         response.sendError(error);
       }

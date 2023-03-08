@@ -7,6 +7,7 @@ import type {
 import type http from "http";
 import type https from "https";
 import {
+  assert,
   createLogger,
   flatHeaders,
   getHeaderValue,
@@ -170,14 +171,12 @@ export function createProxyRequest(app: FourzeMockApp) {
     async _nativeRequest() {
       const protocol = this._options.protocol ?? "http:";
       const nativeRequest = this._options.nativeRequest;
-      if (nativeRequest) {
-        const req = nativeRequest(this._options, (res) => {
-          this.emit("response", res);
-        });
-        req.end();
-      } else {
-        throw new Error(`Unsupported protocol: ${protocol}`);
-      }
+
+      assert(!!nativeRequest, `Unsupported protocol: ${protocol}`);
+      const req = nativeRequest(this._options, (res) => {
+        this.emit("response", res);
+      });
+      req.end();
     }
 
     async _performRequest() {
@@ -213,9 +212,9 @@ export function createProxyRequest(app: FourzeMockApp) {
       const isCallback = isFunction(enc);
       const callback = isCallback ? enc : cb;
       const encoding = (isCallback ? undefined : enc) ?? "utf-8";
-      if (this._ending) {
-        throw new Error("write after end");
-      }
+
+      assert(!this._ending, "Cannot call write after a call to end.");
+      assert(!this.aborted, "Cannot call write after a call to abort.");
 
       if (isString(chunk)) {
         this.buffer.write(chunk, encoding);

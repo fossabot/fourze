@@ -152,6 +152,19 @@ export default defineRouter((router) => {
     }
   );
 
+  router.get("/item/{id}", {
+    props: {
+      id: {
+        type: String,
+        required: true,
+        in: "path"
+      }
+    }
+  }, (req) => {
+    const id = req.params.id;
+    return data.find((item) => item.id === id);
+  });
+
   router.route("/img/avatar.jpg", async (req, res) => {
     let avatarPath = path.resolve(__dirname, ".tmp/avatar.jpg");
     if (!fs.existsSync(avatarPath)) {

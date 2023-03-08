@@ -1,3 +1,5 @@
+import { lru } from "tiny-lru";
+import { assert } from "../utils";
 import { FourzeError } from "./error";
 import type { RequestMethod } from "./request";
 
@@ -46,6 +48,7 @@ export interface RouteMatcherOptions {
   caseSensitive?: boolean
   strictTrailingSlash?: boolean
   notAllowedRaiseError?: boolean
+  cache?: boolean
 }
 
 /**
@@ -55,6 +58,7 @@ export interface RouteMatcherOptions {
 export function createRouteMatcher<T>(options: RouteMatcherOptions = {}): RouteMatcher<T> {
   const rootNode = createRouteNode<T>();
   const staticRoutes = new Map<string, RouteNode>();
+  const cache = lru(1000);
 
   const normalizePath = (path: string) => {
     if (!options.strictTrailingSlash) {
@@ -110,17 +114,29 @@ export function createRouteMatcher<T>(options: RouteMatcherOptions = {}): RouteM
       if (isStaticRoute) {
         staticRoutes.set(path, currentNode);
       }
+      cache.evict();
       return this;
     },
+
     match(path: string, method: RequestMethod | "all" = "all") {
       method = method.toLowerCase() as RequestMethod;
       path = normalizePath(path);
+      const id = `${path}#${method}`;
+
+      if (options.cache) {
+        const cached = cache.get(id);
+        if (cached) {
+          return cached;
+        }
+      }
 
       const staticRoute = staticRoutes.get(path);
       if (staticRoute) {
         const payload = staticRoute.payload.get(method) ?? staticRoute.payload.get("all");
         if (payload) {
-          return [payload, null];
+          const matched = [payload, null];
+          cache.set(id, matched);
+          return matched;
         }
       }
       let currentNode: RouteNode | null = rootNode;
@@ -161,20 +177,21 @@ export function createRouteMatcher<T>(options: RouteMatcherOptions = {}): RouteM
         }
       }
 
-      if (!currentNode) {
-        return [null, null];
+      if (currentNode) {
+        const data = currentNode.payload.get(method) ?? currentNode.payload.get("all");
+        if (data) {
+          const matched = [data, paramsFound ? params : null];
+          cache.set(id, matched);
+          return matched;
+        }
+        assert(currentNode.payload.size < 1 || !options.notAllowedRaiseError, new FourzeError(405, "Method Not Allowed"));
       }
-
-      const data = currentNode.payload.get(method) ?? currentNode.payload.get("all");
-      if (data) {
-        return [data, paramsFound ? params : null];
-      }
-      if (currentNode.payload.size > 0 && options.notAllowedRaiseError) {
-        throw new FourzeError(405, "Method Not Allowed");
-      }
-      return [null, null];
+      const matched = [null, null];
+      cache.set(id, matched);
+      return matched;
     },
     remove(path: string, method: RequestMethod | "all" = "all") {
+      cache.evict();
       method = method.toLowerCase() as RequestMethod;
       path = normalizePath(path);
 

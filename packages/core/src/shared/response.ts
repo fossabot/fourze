@@ -1,6 +1,6 @@
 import type { OutgoingMessage, ServerResponse } from "http";
 import { PolyfillServerResponse, getHeaderValue } from "../polyfill";
-import { defineOverload, isDef, isObject, isString, isUint8Array } from "../utils";
+import { assert, defineOverload, isDef, isObject, isString, isUint8Array } from "../utils";
 import { FourzeError } from "./error";
 import type { FourzeRequest } from "./request";
 
@@ -72,6 +72,8 @@ export interface FourzeResponse extends FourzeBaseResponse {
    */
   done(): Promise<void>
 
+  sent: boolean
+
   readonly res?: OutgoingMessage
 
   readonly request: FourzeRequest
@@ -123,6 +125,7 @@ export function createResponse(options: FourzeResponseOptions) {
   });
 
   response.send = function (payload, ...args: any[]) {
+    response.sent = true;
     let { statusCode, contentType } = overloadSend(args);
 
     statusCode ??= this.statusCode ?? 200;
@@ -210,6 +213,8 @@ export function createResponse(options: FourzeResponseOptions) {
     });
   };
 
+  let _sent = false;
+
   Object.defineProperties(response, {
     [FOURZE_RESPONSE_SYMBOL]: {
       get() {
@@ -249,6 +254,16 @@ export function createResponse(options: FourzeResponseOptions) {
     method: {
       get() {
         return options.method;
+      },
+      enumerable: true
+    },
+    sent: {
+      get() {
+        return _sent;
+      },
+      set(val) {
+        assert(!val || !this.writableEnded, "response has been sent");
+        _sent = val;
       },
       enumerable: true
     }

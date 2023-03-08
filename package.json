@@ -14,6 +14,7 @@
   ],
   "scripts": {
     "bench": "pnpm -C bench run bench",
+    "bench:compare":"pnpm -C bench run compare",
     "build": "pnpm -r --filter=./packages/** build",
     "stub": "pnpm -r --parallel --filter=./packages/**  run stub",
     "lint": "eslint ./packages/ --ext .ts",
