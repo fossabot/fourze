@@ -2,7 +2,6 @@ import type { OutgoingMessage, ServerResponse } from "http";
 import { PolyfillServerResponse, getHeaderValue } from "../polyfill";
 import { defineOverload, isDef, isObject, isString, isUint8Array } from "../utils";
 import { FourzeError } from "./error";
-import type { PropType } from "./props";
 import type { FourzeRequest } from "./request";
 
 export interface FourzeResponseOptions {
@@ -115,9 +114,6 @@ export function createResponse(options: FourzeResponseOptions) {
   };
 
   const overloadSend = defineOverload({
-    payload: {
-      type: [String, Number, Boolean, Uint8Array, Object, null, undefined] as PropType<any>
-    },
     statusCode: {
       type: Number
     },
@@ -126,8 +122,8 @@ export function createResponse(options: FourzeResponseOptions) {
     }
   });
 
-  response.send = function (...args: any[]) {
-    let { payload, statusCode, contentType } = overloadSend(args);
+  response.send = function (payload, ...args: any[]) {
+    let { statusCode, contentType } = overloadSend(args);
 
     statusCode ??= this.statusCode ?? 200;
     contentType ??= this.getContentType(payload);

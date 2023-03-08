@@ -146,7 +146,7 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
               });
             }
 
-            logger.info(`Fourze Server v${FOURZE_VERSION} listening on ${serverApp.origin}}.`);
+            logger.info(`Fourze Server v${FOURZE_VERSION} listening on ${serverApp.origin}.`);
             resolve(server);
             serverApp.emit("ready");
           });
@@ -226,11 +226,13 @@ export function createServerContext(
   return new Promise((resolve, reject) => {
     let body: Buffer = Buffer.alloc(0);
 
-    req.on("data", (chunk: Buffer) => {
+    const readBody = (chunk: Buffer) => {
       body = Buffer.concat([body, chunk]);
-    });
+    };
 
-    req.on("end", () => {
+    req.on("data", readBody);
+
+    req.once("end", () => {
       const context = createServiceContext({
         url: req.url!,
         method: req.method ?? "GET",
@@ -239,11 +241,11 @@ export function createServerContext(
         request: req,
         response: res
       });
-
+      req.off("data", readBody);
       resolve(context);
     });
 
-    req.on("error", reject);
+    req.once("error", reject);
   });
 }
 

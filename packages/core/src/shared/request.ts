@@ -51,8 +51,6 @@ export interface FourzeRequest<
 
   setRoute(route: FourzeRoute, matchParams?: Record<string, any> | null): void
 
-  applyProps(props: Props): void
-
   readonly req?: IncomingMessage
 
   readonly originalPath: string
@@ -154,6 +152,11 @@ export function createRequest(options: FourzeRequestOptions) {
         return true;
       },
       enumerable: true
+    },
+    req: {
+      get() {
+        return options.request;
+      }
     },
     data: {
       get() {

@@ -43,9 +43,6 @@ export function createResolveMiddleware(
   }
 
   const overloadSend = defineOverload({
-    payload: {
-      type: [String, Number, Boolean, Uint8Array, Object, null, undefined] as PropType<any>
-    },
     statusCode: {
       type: Number
     },
@@ -56,8 +53,8 @@ export function createResolveMiddleware(
 
   return defineMiddleware("Response-Resolve", -1, async (req, res, next) => {
     const _send = res.send.bind(res);
-    res.send = function (...args: any[]) {
-      let { payload, statusCode, contentType } = overloadSend(args);
+    res.send = function (payload, ...args: any[]) {
+      let { statusCode, contentType } = overloadSend(args);
 
       statusCode ??= res.statusCode;
       contentType ??= res.getContentType(payload);
