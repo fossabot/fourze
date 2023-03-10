@@ -262,7 +262,7 @@ export function createResponse(options: FourzeResponseOptions) {
         return _sent;
       },
       set(val) {
-        assert(!val || !this.writableEnded, "response has been sent");
+        assert(val || !this.writableEnded, "response has been sent");
         _sent = val;
       },
       enumerable: true

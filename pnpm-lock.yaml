@@ -80,7 +80,9 @@ importers:
       '@types/micromatch': ^4.0.2
       '@types/minimatch': ^5.1.2
       consola: ^2.15.3
+      destr: ^1.2.2
       events: ^3.3.0
+      fast-content-type-parse: ^1.0.0
       maybe-types: ^0.0.3
       micromatch: ^4.0.5
       minimatch: ^7.4.1
@@ -88,7 +90,9 @@ importers:
       tiny-lru: ^10.0.1
     dependencies:
       consola: 2.15.3
+      destr: 1.2.2
       events: 3.3.0
+      fast-content-type-parse: 1.0.0
       maybe-types: 0.0.3
       micromatch: 4.0.5
       minimatch: 7.4.1
@@ -6106,6 +6110,10 @@ packages:
       pathe: 1.1.0
       ufo: 1.0.1
     dev: true
+
+  /fast-content-type-parse/1.0.0:
+    resolution: {integrity: sha512-Xbc4XcysUXcsP5aHUU7Nq3OwvHq97C+WnbkeIefpeYLX+ryzFJlU6OStFJhs6Ol0LkUGpcK+wL0JwfM+FCU5IA==}
+    dev: false
 
   /fast-decode-uri-component/1.0.1:
     resolution: {integrity: sha512-WKgKWg5eUxvRZGwW8FvfbaH7AXSh2cL+3j5fMGzUMCxWBJ3dV3a7Wz8y2f/uQ0e3B6WmodD3oS54jTQ9HVTIIg==}

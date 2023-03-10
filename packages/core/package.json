@@ -16,7 +16,9 @@
     "license": "MIT",
     "dependencies": {
         "consola": "^2.15.3",
+        "destr": "^1.2.2",
         "events": "^3.3.0",
+        "fast-content-type-parse": "^1.0.0",
         "maybe-types": "^0.0.3",
         "micromatch": "^4.0.5",
         "minimatch": "^7.4.1",

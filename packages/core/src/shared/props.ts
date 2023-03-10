@@ -184,6 +184,12 @@ function getType(fn: PropType<any>) {
   return match ? match[1] : "";
 }
 
+/**
+ * Check if a value is an instance of a Prop constructor.
+ * @param type
+ * @param value
+ * @returns
+ */
 export function isInstanceOf<D = any>(type: PropType<D> | PropType<D>[], value: any): value is D {
   if (Array.isArray(type)) {
     return type.some((e) => isInstanceOf(e, value));
@@ -306,7 +312,7 @@ export function validateProps(
     let value = data[key];
     if (propsOption != null) {
       if (isConstructor(propsOption) || Array.isArray(propsOption)) {
-        //
+        // todo: validate
       } else {
         const required = propsOption.required;
         if (isExtends(propsOption.type, Boolean)) {

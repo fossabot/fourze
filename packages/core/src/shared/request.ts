@@ -1,5 +1,8 @@
 import type { IncomingMessage } from "http";
 import qs from "query-string";
+import type { MaybeRegex } from "maybe-types";
+import { safeParse } from "fast-content-type-parse";
+import destr from "destr";
 import type { PolyfillHeaderInit } from "../polyfill";
 import { decodeFormData, flatHeaders, getHeaderValue } from "../polyfill";
 import { isString, isUint8Array, normalize } from "../utils";
@@ -7,7 +10,7 @@ import type { DefaultData, ExtractPropTypes, ExtractPropTypesWithIn, ObjectProps
 import { validateProps, withDefaults } from "./props";
 import type { FourzeRoute } from "./route";
 import type { FourzeRouteMeta } from "./meta";
-import type { FourzeApp } from ".";
+import type { FourzeApp } from "./interface";
 
 const FOURZE_REQUEST_SYMBOL = Symbol("FourzeRequest");
 
@@ -32,6 +35,7 @@ export interface FourzeRequestOptions {
   body?: any
   params?: Record<string, any>
   request?: IncomingMessage
+  contentTypeParsers?: Map<MaybeRegex, (body: any) => any>
 }
 
 export interface FourzeRequest<
@@ -50,6 +54,8 @@ export interface FourzeRequest<
   contextPath: string
 
   setRoute(route: FourzeRoute, matchParams?: Record<string, any> | null): void
+
+  readonly contentType: string
 
   readonly req?: IncomingMessage
 
@@ -94,26 +100,33 @@ export function createRequest(options: FourzeRequestOptions) {
     parseBooleans: true
   });
 
-  const contentType = getHeaderValue(
+  const { type: contentType } = safeParse(getHeaderValue(
     headers,
     "Content-Type",
     "application/json"
-  );
+  ));
 
   const bodyRaw: Buffer | string | Record<string, any>
-      = options.body ?? request.body ?? {};
+    = options.body ?? request.body ?? {};
   let body: Record<string, any> = {};
   if (isUint8Array(bodyRaw) || isString(bodyRaw)) {
     if (bodyRaw.length > 0) {
-      if (contentType.startsWith("application/json")) {
-        body = JSON.parse(bodyRaw.toString("utf-8"));
-      } else if (contentType.startsWith("application/x-www-form-urlencoded")) {
-        body = qs.parse(bodyRaw.toString("utf-8"));
-      }
-
-      if (contentType.startsWith("multipart/form-data")) {
-        const boundary = contentType.split("=")[1];
-        body = decodeFormData(bodyRaw, boundary);
+      switch (contentType) {
+        case "application/json":{
+          body = destr(bodyRaw.toString("utf-8"));
+          break;
+        }
+        case "application/x-www-form-urlencoded":{
+          body = qs.parse(bodyRaw.toString("utf-8"));
+          break;
+        }
+        case "multipart/form-data": {
+          const boundary = contentType.split("=")[1];
+          body = decodeFormData(bodyRaw, boundary);
+          break;
+        }
+        default:
+          break;
       }
     }
   } else {
@@ -156,6 +169,11 @@ export function createRequest(options: FourzeRequestOptions) {
     req: {
       get() {
         return options.request;
+      }
+    },
+    contentType: {
+      get() {
+        return contentType;
       }
     },
     data: {
