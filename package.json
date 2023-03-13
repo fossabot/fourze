@@ -1,7 +1,7 @@
 {
   "name": "@fourze/monorepo",
   "private": true,
-  "version": "0.27.5",
+  "version": "0.27.6",
   "description": "a mock framework",
   "files": [
     "dist/*"
@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "bench": "pnpm -C bench run bench",
-    "bench:compare":"pnpm -C bench run compare",
+    "bench:compare": "pnpm -C bench run compare",
     "build": "pnpm -r --filter=./packages/** build",
     "stub": "pnpm -r --parallel --filter=./packages/**  run stub",
     "lint": "eslint ./packages/ --ext .ts",
