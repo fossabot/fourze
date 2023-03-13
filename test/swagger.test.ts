@@ -12,7 +12,6 @@ describe("shared", async () => {
 
     const app = createApp({
       base: '/api',
-      delay: "200-500",
       allow: ["/api/test", "/api/hello", "/api/add"],
       deny: ["/api/deny"],
     })

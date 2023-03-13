@@ -2,6 +2,7 @@ import {
   createSingletonPromise,
   delay,
   DelayMsType,
+  memoize,
   normalize,
   parseFakerNumber,
   randomArray,
@@ -44,7 +45,7 @@ describe("utils", () => {
   it("test-slash", () => {
     const path = "/hello/world/"
     const base = "/api/"
-    expect(slash(base,path))
+    expect(slash(base, path))
   });
 
   it("test-relativePath", () => {
@@ -64,9 +65,9 @@ describe("utils", () => {
   it("test-resolvePath", () => {
     const path = "https://test.com";
     const base = "/api";
-    const final0 = resolvePath(path,base);
+    const final0 = resolvePath(path, base);
     expect(final0).toBe(path);
-    const finalPath = resolvePath(path,base);
+    const finalPath = resolvePath(path, base);
     expect(finalPath).toEqual(path);
     expect(resolves("//api/hello")).toEqual("/api/hello");
   });
@@ -103,5 +104,19 @@ describe("utils", () => {
     expect(r0).toBe(r1);
     const r2 = await delayFn("300-700")();
     expect(r2).toBe(r0);
+  });
+
+  it("memoize", async () => {
+    const fn = async (a: number, b: number) => performance.now() + a + b;
+    const memoized = memoize(fn);
+    const r = await memoized(1, 2);
+    const r2 = await memoized(1, 2);
+    const r3 = await memoized(2, 3);
+    expect(r).toBe(r2);
+    expect(r).not.toBe(r3);
+    memoized.delete([1, 2]);
+    const r4 = await memoized(1, 2);
+    expect(r4).not.toBe(r);
+    console.log(memoized.cache);
   });
 });
