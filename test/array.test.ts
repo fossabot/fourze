@@ -107,5 +107,6 @@ describe("array", async () => {
     const query2 = createQuery([{ name: "test", order: 1 }, { name: "test2", order: 1 }, { name: "test", order: 1 }, { name: "test2", order: 1 }]);
     expect(query2.select("name").toArray()).toEqual(["test", "test2", "test", "test2"]);
     expect(query2.where("order", 1).select("name").toArray()).toEqual(["test", "test2", "test", "test2"]);
+
   });
 });

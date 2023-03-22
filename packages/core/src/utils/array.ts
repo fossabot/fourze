@@ -25,14 +25,10 @@ export interface ExtraArrayMethods<T> {
 }
 
 export interface MathQuery<T> {
-  max(): T extends number ? T : never
-  max(fn: MapFn<T, number>): T
-  min(): T extends number ? T : never
-  min(fn: MapFn<T, number>): T
-  sum(): T extends number ? T : never
-  sum(fn: MapFn<T, number>): number
-  average(): T extends number ? T : never
-  average(fn: MapFn<T, number>): number
+  max(fn?: MapFn<T, number>): typeof fn extends undefined ? T extends number ? T : never : number
+  min(fn?: MapFn<T, number>): typeof fn extends undefined ? T extends number ? T : never : number
+  sum(fn?: MapFn<T, number>): typeof fn extends undefined ? T extends number ? T : never : number
+  average(fn?: MapFn<T, number>): typeof fn extends undefined ? T extends number ? T : never : number
 }
 
 export interface ArrayQuery<T> extends Iterable<T> {
@@ -170,8 +166,7 @@ export interface CollectionQuery<T> extends CollectionBase<T>, ArrayQuery<T>, Ma
 
   toJSON(): T[]
 
-  // set(index: number, value: T): this
-  // get(index: number): T | undefined
+  toString(): string
 }
 
 export function createPredicate<T, Q>(
@@ -229,10 +224,10 @@ export function createQuery<T>(
     return (item: T) => item;
   };
 
-  const q = new Proxy({
+  const self = new Proxy({
     where(...args: PredicateParameter<T>) {
       let predicate = createPredicate<T, CollectionQuery<T>>(...args);
-      const query = this.clone() as WhereCollectionQuery<T>;
+      const query = self.clone() as WhereCollectionQuery<T>;
       query.and = (...args: PredicateParameter<T>) => {
         predicate = predicate.and(...args);
         return query;
@@ -257,15 +252,15 @@ export function createQuery<T>(
     },
     insert(index: number, ...items: T[]) {
       source.splice(index, 0, ...items);
-      return this;
+      return self;
     },
     append(...items: T[]) {
       source.push(...items);
-      return this;
+      return self;
     },
     prepend(...items: T[]) {
       source.unshift(...items);
-      return this;
+      return self;
     },
     delete(fn: number | PredicateFn<T>, deleteLimit?: number) {
       if (isNumber(fn)) {
@@ -289,7 +284,7 @@ export function createQuery<T>(
           source.splice(indices[i], 1);
         }
       }
-      return this;
+      return self;
     },
     concat(...items: (ConcatArray<T> | T)[]) {
       const newSource = source.concat(...items);
@@ -301,7 +296,7 @@ export function createQuery<T>(
           source[i] = item;
         }
       }
-      return this;
+      return self;
     },
     max(fn?: MapFn<T, number>) {
       if (!fn) {
@@ -322,12 +317,12 @@ export function createQuery<T>(
       return source.map(fn).reduce((a, b) => a + b, 0);
     },
     average(fn?: MapFn<T, number>) {
-      return this.sum(fn) / source.length;
+      return self.sum(fn) / source.length;
     },
 
     distinct<U>(mapFn?: MapFn<T, U> | keyof T) {
       if (isUndef(mapFn)) {
-        return this.reset(new Set(source));
+        return self.reset(new Set(source));
       }
 
       const fn = isFunction(mapFn) ? mapFn : (item: T) => item[mapFn];
@@ -342,12 +337,12 @@ export function createQuery<T>(
           array.push(item);
         }
       }
-      return this.reset(new Set(array));
+      return self.reset(new Set(array));
     },
     intersect(...collections: Iterable<T>[]) {
       const set = new Set(collections.flatMap((c) => Array.from(c)));
       const array = source.filter((item) => set.has(item));
-      return this.reset(array);
+      return self.reset(array);
     },
     chunk(size: number) {
       const array: T[][] = [];
@@ -358,12 +353,12 @@ export function createQuery<T>(
     },
     union(...collections: Iterable<T>[]) {
       source.push(...collections.flatMap((c) => Array.from(c)));
-      return this;
+      return self;
     },
     except(...collections: Iterable<T>[]) {
       const set = new Set(collections.flatMap((c) => Array.from(c)));
       const array = source.filter((item) => !set.has(item));
-      return this.reset(array);
+      return self.reset(array);
     },
     zip<U, R = [T, U]>(
       collection: Iterable<U>,
@@ -391,7 +386,7 @@ export function createQuery<T>(
             return (aVal < bVal && !desc) ? -1 : 1;
           };
       source.sort(compareFn);
-      return this;
+      return self;
     },
     countBy<K>(args: MapParameter<T, K>) {
       const mapFn = normalizeMapFn(args);
@@ -485,7 +480,7 @@ export function createQuery<T>(
     set(index: number, item: T) {
       index = normalizeIndex(index);
       source[index] = item;
-      return this;
+      return self;
     },
     get(index: number) {
       index = normalizeIndex(index);
@@ -493,14 +488,14 @@ export function createQuery<T>(
     },
     clear() {
       source.length = 0;
-      return this;
+      return self;
     },
     clone() {
       return createQuery(source);
     },
     reset(iterable: Iterable<T> = initSource) {
       source.splice(0, source.length, ...iterable);
-      return this;
+      return self;
     },
     toMap(keySelector: MapFn<T, any>, valueSelector?: MapFn<T, any>) {
       const map = new Map();
@@ -515,7 +510,7 @@ export function createQuery<T>(
   }, {
     get(target, prop) {
       if (isString(prop)) {
-        const index = +prop;
+        const index = Number(prop);
         if (!isNaN(index)) {
           return target.get(index);
         }
@@ -535,7 +530,7 @@ export function createQuery<T>(
         case "sort":
           return (...args: any) => {
             source[prop](...args);
-            return target;
+            return self;
           };
         case "includes":
         case "indexOf":
@@ -549,7 +544,7 @@ export function createQuery<T>(
             start = normalizeIndex(start);
             end = normalizeIndex(end);
             source.fill(value, start, end);
-            return target;
+            return self;
           };
         case "flat":
           return (depth?: number) => {
@@ -594,9 +589,9 @@ export function createQuery<T>(
       }
       return false;
     }
-  });
+  }) as unknown as CollectionQuery<T>;
 
-  return q as unknown as CollectionQuery<T>;
+  return self;
 }
 
 export function range(
