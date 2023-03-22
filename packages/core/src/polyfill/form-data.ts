@@ -88,7 +88,9 @@ export function decodeFormData(
       const disposition = decodeFormDataDisposition(line);
       if (disposition) {
         part.name = disposition.name;
-        part.fileName = disposition.filename;
+        if (disposition.filename) {
+          part.fileName = Buffer.from(disposition.filename, "binary").toString("utf-8");
+        }
       }
       line = readLine();
     }
@@ -106,6 +108,10 @@ export function decodeFormData(
 
     if (data.length > 0) {
       part.value = data;
+    }
+
+    if (!part.name) {
+      continue;
     }
 
     if (part.fileName) {

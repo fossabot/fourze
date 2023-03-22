@@ -100,11 +100,13 @@ export function createRequest(options: FourzeRequestOptions) {
     parseBooleans: true
   });
 
-  const { type: contentType } = safeParse(getHeaderValue(
+  const { type: contentType, parameters } = safeParse(getHeaderValue(
     headers,
     "Content-Type",
     "application/json"
   ));
+
+  const charset = (parameters.charset ?? "utf-8") as BufferEncoding;
 
   const bodyRaw: Buffer | string | Record<string, any>
     = options.body ?? request.body ?? {};
@@ -113,15 +115,15 @@ export function createRequest(options: FourzeRequestOptions) {
     if (bodyRaw.length > 0) {
       switch (contentType) {
         case "application/json":{
-          body = destr(bodyRaw.toString("utf-8"));
+          body = destr(bodyRaw.toString(charset));
           break;
         }
         case "application/x-www-form-urlencoded":{
-          body = qs.parse(bodyRaw.toString("utf-8"));
+          body = qs.parse(bodyRaw.toString(charset));
           break;
         }
         case "multipart/form-data": {
-          const boundary = contentType.split("=")[1];
+          const boundary = parameters.boundary;
           body = decodeFormData(bodyRaw, boundary);
           break;
         }

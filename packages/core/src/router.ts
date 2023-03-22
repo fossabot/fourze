@@ -142,13 +142,7 @@ export function defineRouter(
 
     const { path, method } = request;
 
-    const start = performance.now();
-
     const [route, matches] = matcher.match(path, (method as RequestMethod) ?? "all");
-
-    const end = performance.now();
-
-    logger.debug(`Request received -> ${normalizeRoute(request.path)} by ${Math.round((end - start) * 1000) / 1000}ms.`);
 
     if (route) {
       request.setRoute(route, matches);
@@ -170,7 +164,6 @@ export function defineRouter(
         `Request matched -> ${normalizeRoute(request.path, method)}.`
       );
     } else {
-      logger.debug(`[${router.name}]`, `Request not matched -> ${normalizeRoute(request.path)}.`);
       await next?.();
     }
 
