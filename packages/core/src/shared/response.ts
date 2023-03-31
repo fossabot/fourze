@@ -157,7 +157,7 @@ export function createResponse(options: FourzeResponseOptions) {
 
   response.sendError = function (...args: any[]) {
     _error = new FourzeError(...args);
-    return this.send(_error, _error.statusCode);
+    return this.send(_error.baseError, _error.statusCode);
   };
 
   response.appendHeader = function (
