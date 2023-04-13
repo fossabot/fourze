@@ -234,7 +234,7 @@ export function createProxyXMLHttpRequest(app: FourzeMockApp) {
         this.dispatchEvent(new Event("load"));
         this.dispatchEvent(new Event("loadend"));
       } else {
-        logger.debug(`Not found route by ${normalizeRoute(url, method)}.`);
+        logger.warn(`Not found route by ${normalizeRoute(url, method)}.`);
         this.originalSend(payload);
       }
     }

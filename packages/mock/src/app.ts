@@ -181,7 +181,7 @@ export function createMockApp(
   const resolveUrl = (_url: string) => {
     const url = new URL(_url, globalThis.location?.origin ?? "http://localhost");
     if ((hosts.includes(url.host) || hosts.includes(url.origin)) && (!protocol || url.protocol === protocol)) {
-      return `${url.pathname}${url.search}${url.hash}`;
+      _url = `${url.pathname}${url.search}${url.hash}`;
     }
     return _url;
   };

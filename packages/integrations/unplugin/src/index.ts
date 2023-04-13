@@ -139,10 +139,11 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
     ? options.mock
       ? defaultEnableMockOptions
       : defaultDisableMockOptions
-    : options.mock ?? {
-      ...defaultEnableMockOptions,
-      enable: "auto"
-    };
+    : {
+        ...defaultEnableMockOptions,
+        enable: "auto",
+        ...options.mock
+      };
 
   const injectScript = mockOptions.injectScript ?? true;
 
@@ -221,6 +222,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
         if (isClientID(id)) {
           return transformCode(hmrApp.moduleNames, {
             ...options,
+            base,
             mode: mockOptions.mode,
             host: mockOptions.host
           });
