@@ -1,3 +1,4 @@
+import destr from "destr";
 import { assert } from "./error";
 import { isString } from "./is";
 
@@ -25,3 +26,6 @@ export function escapeStringRegexp(str: string) {
     .replace(/-/g, "\\x2d");
 }
 
+export const parseJson = destr;
+
+export const stringifyJson = JSON.stringify;

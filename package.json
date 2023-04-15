@@ -28,11 +28,14 @@
     "coverage": "vitest run --coverage",
     "bump": "pnpm install && pnpm build && vitest run && bumpp \"package.json\" \"!**/node_modules/**\" \"packages/**/package.json\" --commit --push --tag",
     "preinstall": "npx only-allow pnpm",
-    "prepare": "husky install",
+    "prepare": "npx simple-git-hooks",
     "regit": "git fetch --all && git reset --hard origin/main && git pull && git remote prune origin"
   },
   "author": "chizuki",
   "license": "MIT",
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged"
+  },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
       "eslint --fix"
@@ -56,6 +59,7 @@
     "lint-staged": "^13.0.3",
     "node-fetch": "^3.2.10",
     "rimraf": "^3.0.2",
+    "simple-git-hooks": "^2.8.1",
     "typescript": "^4.9.5",
     "unbuild": "^1.1.1",
     "vitest": "^0.29.7"

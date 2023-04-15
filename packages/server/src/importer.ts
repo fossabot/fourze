@@ -4,7 +4,7 @@ import { platform } from "os";
 import { pathToFileURL } from "url";
 import { dirname, extname, join } from "pathe";
 import { normalizeAliases, resolveAlias } from "pathe/utils";
-import { createLogger, escapeStringRegexp } from "@fourze/core";
+import { createLogger, escapeStringRegexp, parseJson } from "@fourze/core";
 import { readFileSync } from "fs-extra";
 import { fileURLToPath, hasESMSyntax, interopDefault, resolvePathSync } from "mlly";
 import createRequire from "create-require";
@@ -12,6 +12,7 @@ import type { PackageJson } from "pkg-types";
 
 import type { Loader, TransformOptions } from "esbuild";
 import { transformSync } from "esbuild";
+
 export interface ModuleImporterOptions {
   esbuild?: TransformOptions
   define?: Record<string, string>
@@ -51,7 +52,7 @@ export function readNearestPackageJSON(path: string): PackageJson | undefined {
     try {
       const pkg = readFileSync(join(path, "package.json"), "utf8");
       try {
-        return JSON.parse(pkg);
+        return parseJson(pkg);
       } catch { }
       break;
     } catch { }

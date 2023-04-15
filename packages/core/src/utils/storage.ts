@@ -1,4 +1,5 @@
 import { isDef, isNode } from "./is";
+import { parseJson } from "./string";
 
 export interface Storage {
   readonly length: number
@@ -97,7 +98,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
       if (fs.existsSync(`${dir}/${id}`)) {
         Object.assign(
           storage,
-          JSON.parse(fs.readFileSync(`.fourze/${id}`, "utf8"))
+          parseJson(fs.readFileSync(`.fourze/${id}`, "utf8"))
         );
       }
     } else {
@@ -105,7 +106,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
       if (_storage.getItem(`fourze.${id}`)) {
         Object.assign(
           storage,
-          JSON.parse(_storage.getItem(`fourze.${id}`) as string)
+          parseJson(_storage.getItem(`fourze.${id}`) as string)
         );
       }
     }

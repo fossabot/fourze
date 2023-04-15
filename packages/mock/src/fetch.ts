@@ -6,7 +6,8 @@ import {
   getHeaderValue,
   isString,
   isURL,
-  normalizeRoute
+  normalizeRoute,
+  parseJson
 } from "@fourze/core";
 import type { FourzeMockApp } from "./shared";
 
@@ -59,7 +60,7 @@ class ProxyFetchResponse implements Response {
   }
 
   async json() {
-    return JSON.parse(String(this.payload));
+    return parseJson(String(this.payload));
   }
 
   clone(): Response {
