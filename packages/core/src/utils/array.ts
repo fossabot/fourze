@@ -1,4 +1,4 @@
-import { isDef, isFunction, isNumber, isString, isUndef } from "./is";
+import { isDef, isFunction, isNumber, isString, isUndef, isUndefined } from "./is";
 import { isKeyOf } from "./object";
 
 export type PredicateFn<T> = (item: T, index: number, source: T[]) => boolean;
@@ -14,12 +14,9 @@ export interface Predicate<T> extends PredicateFn<T> {
   and(...args: PredicateParameter<T>): this
   or(...args: PredicateParameter<T>): this
 }
-export interface WhereCollectionQuery<T>
-  extends CollectionQuery<T>,
-  Predicate<T> { }
 
 export interface ExtraArrayMethods<T> {
-  where(fn: PredicateFn<T>): WhereCollectionQuery<T>
+  where(fn: PredicateFn<T>): CollectionQuery<T>
   select<U>(mapFn: MapFn<T, U>): CollectionQuery<U>
   select(): CollectionQuery<T>
 }
@@ -87,8 +84,8 @@ export interface CollectionBase<T> extends Iterable<T> {
 }
 
 export interface CollectionQuery<T> extends CollectionBase<T>, ArrayQuery<T>, MathQuery<T> {
-  where(fn: PredicateFn<T>): WhereCollectionQuery<T>
-  where<K extends keyof T, V = T[K]>(key: K, ...values: V[]): WhereCollectionQuery<T>
+  where(fn: PredicateFn<T>): CollectionQuery<T>
+  where<K extends keyof T, V = T[K]>(key: K, ...values: V[]): CollectionQuery<T>
 
   select<U>(mapFn: MapFn<T, U>): CollectionQuery<U>
   select<K extends keyof T>(key: K): CollectionQuery<T[K]>
@@ -168,19 +165,18 @@ export interface CollectionQuery<T> extends CollectionBase<T>, ArrayQuery<T>, Ma
 
   toString(): string
 }
+const getPredicateFn = <T>(...args: PredicateParameter<T>) => {
+  const [fn] = args;
+  if (isFunction(fn)) {
+    return fn;
+  }
+  const values = args.slice(1) as T[keyof T][];
+  return (item: T) => values.includes(item[fn]);
+};
 
 export function createPredicate<T, Q>(
   ...args: PredicateParameter<T>
 ): Predicate<T> {
-  const getPredicateFn = (...args: PredicateParameter<T>) => {
-    const [fn] = args;
-    if (isFunction(fn)) {
-      return fn;
-    }
-    const values = args.slice(1) as T[keyof T][];
-    return (item: T) => values.includes(item[fn]);
-  };
-
   const predicate = getPredicateFn(...args) as Predicate<T>;
 
   predicate.and = (...args: PredicateParameter<T>) => {
@@ -202,312 +198,29 @@ export function createPredicate<T, Q>(
   return predicate;
 }
 
+const normalizeMapFn = <T, K = keyof T>(fn: MapParameter<T, K>) => {
+  if (isDef(fn)) {
+    if (isFunction(fn)) {
+      return fn as MapFn<T, K>;
+    }
+    return (item: T) => item[fn as keyof T];
+  }
+  return (item: T) => item;
+};
+
+function normalizeIndex(index: number, length: number) {
+  return index < 0 ? length + index : index;
+}
+
 export function createQuery<T>(
   initSource: Iterable<T> = []
 ): CollectionQuery<T> {
+  const query = new CollectionQueryClass(initSource);
+  return query as unknown as CollectionQuery<T>;
+
   const source = Array.from(initSource);
 
-  const normalizeIndex = (index: number) => {
-    if (index < 0) {
-      return source.length + index;
-    }
-    return index;
-  };
-
-  const normalizeMapFn = <T, K = keyof T>(fn: MapParameter<T, K>) => {
-    if (isDef(fn)) {
-      if (isFunction(fn)) {
-        return fn as MapFn<T, K>;
-      }
-      return (item: T) => item[fn as keyof T];
-    }
-    return (item: T) => item;
-  };
-
-  const self = new Proxy({
-    where(...args: PredicateParameter<T>) {
-      let predicate = createPredicate<T, CollectionQuery<T>>(...args);
-      const query = self.clone() as WhereCollectionQuery<T>;
-      query.and = (...args: PredicateParameter<T>) => {
-        predicate = predicate.and(...args);
-        return query;
-      };
-      query.or = (...args: PredicateParameter<T>) => {
-        predicate = predicate.or(...args);
-        return query;
-      };
-      query.select = (fn?: MapFn<T, any>) => {
-        return createQuery(source.filter(predicate)).select(fn!);
-      };
-      return query;
-    },
-    select<U>(fn?: MapFn<T, U> | keyof T) {
-      if (isDef(fn)) {
-        if (isFunction(fn)) {
-          return createQuery(source.map(fn));
-        }
-        return createQuery(source.map(item => item[fn]));
-      }
-      return createQuery(source);
-    },
-    insert(index: number, ...items: T[]) {
-      source.splice(index, 0, ...items);
-      return self;
-    },
-    append(...items: T[]) {
-      source.push(...items);
-      return self;
-    },
-    prepend(...items: T[]) {
-      source.unshift(...items);
-      return self;
-    },
-    delete(fn: number | PredicateFn<T>, deleteLimit?: number) {
-      if (isNumber(fn)) {
-        fn = normalizeIndex(fn);
-        source.splice(fn, 1);
-      } else {
-        // 顺序批量删除
-
-        const indices: number[] = [];
-
-        for (let i = 0; i < source.length; i++) {
-          if (deleteLimit && indices.length >= deleteLimit) {
-            break;
-          }
-          if (fn(source[i], i, source)) {
-            indices.push(i);
-          }
-        }
-
-        for (let i = indices.length - 1; i >= 0; i--) {
-          source.splice(indices[i], 1);
-        }
-      }
-      return self;
-    },
-    concat(...items: (ConcatArray<T> | T)[]) {
-      const newSource = source.concat(...items);
-      return createQuery(newSource);
-    },
-    replace(fn: PredicateFn<T>, item: T) {
-      for (let i = 0; i < source.length; i++) {
-        if (fn(source[i], i, source)) {
-          source[i] = item;
-        }
-      }
-      return self;
-    },
-    max(fn?: MapFn<T, number>) {
-      if (!fn) {
-        fn = (item) => isNumber(item) ? item : 0;
-      }
-      return Math.max(...source.map(fn));
-    },
-    min(fn?: MapFn<T, number>) {
-      if (!fn) {
-        fn = (item) => isNumber(item) ? item : 0;
-      }
-      return Math.min(...source.map(fn));
-    },
-    sum(fn?: MapFn<T, number>) {
-      if (!fn) {
-        fn = (item) => isNumber(item) ? item : 0;
-      }
-      return source.map(fn).reduce((a, b) => a + b, 0);
-    },
-    average(fn?: MapFn<T, number>) {
-      return self.sum(fn) / source.length;
-    },
-
-    distinct<U>(mapFn?: MapFn<T, U> | keyof T) {
-      if (isUndef(mapFn)) {
-        return self.reset(new Set(source));
-      }
-
-      const fn = isFunction(mapFn) ? mapFn : (item: T) => item[mapFn];
-
-      const set = new Set();
-      const array: T[] = [];
-      for (let i = 0; i < source.length; i++) {
-        const item = source[i];
-        const key = fn(item, i, source);
-        if (!set.has(key)) {
-          set.add(key);
-          array.push(item);
-        }
-      }
-      return self.reset(new Set(array));
-    },
-    intersect(...collections: Iterable<T>[]) {
-      const set = new Set(collections.flatMap((c) => Array.from(c)));
-      const array = source.filter((item) => set.has(item));
-      return self.reset(array);
-    },
-    chunk(size: number) {
-      const array: T[][] = [];
-      for (let i = 0; i < source.length; i += size) {
-        array.push(source.slice(i, i + size));
-      }
-      return createQuery(array);
-    },
-    union(...collections: Iterable<T>[]) {
-      source.push(...collections.flatMap((c) => Array.from(c)));
-      return self;
-    },
-    except(...collections: Iterable<T>[]) {
-      const set = new Set(collections.flatMap((c) => Array.from(c)));
-      const array = source.filter((item) => !set.has(item));
-      return self.reset(array);
-    },
-    zip<U, R = [T, U]>(
-      collection: Iterable<U>,
-      mapFn: (a: T, b: U) => R = (a, b) => [a, b] as R
-    ) {
-      const array = Array.from(collection);
-      const result = source.map((item, index) => mapFn(item, array[index]));
-      return createQuery(result);
-    },
-    orderBy(arg: CompareFn<T> | keyof T, desc = false, nullsFirst = false) {
-      const compareFn = isFunction(arg)
-        ? arg
-        : (a: T, b: T) => {
-            const aVal = a[arg];
-            const bVal = b[arg];
-            if (aVal === bVal) {
-              return 0;
-            }
-            if (isUndef(aVal)) {
-              return nullsFirst ? -1 : 1;
-            }
-            if (isUndef(aVal)) {
-              return nullsFirst ? 1 : -1;
-            }
-            return (aVal < bVal && !desc) ? -1 : 1;
-          };
-      source.sort(compareFn);
-      return self;
-    },
-    countBy<K>(args: MapParameter<T, K>) {
-      const mapFn = normalizeMapFn(args);
-      const map = new Map();
-      for (let i = 0; i < source.length; i++) {
-        const item = source[i];
-        const key = mapFn(item, i, source);
-        const count = map.get(key) ?? 0;
-        map.set(key, count + 1);
-      }
-      const result = Array.from(map.entries());
-      return createQuery(result);
-    },
-    groupBy<K = keyof T>(args: MapParameter<T, K>) {
-      const mapFn = normalizeMapFn(args);
-      const map = new Map();
-      for (let i = 0; i < source.length; i++) {
-        const item = source[i];
-        const key = mapFn(item, i, source);
-        const array = map.get(key) ?? [];
-        array.push(item);
-        map.set(key, array);
-      }
-      const result = Array.from(map.entries());
-      return createQuery(result);
-    },
-    groupJoin<U, K, R>(
-      collection: Iterable<U>,
-      outerKeySelector: MapParameter<T, K>,
-      innerKeySelector: MapParameter<U, K>,
-      resultSelector: (outer: T, inner: U[]) => R
-    ) {
-      const map = new Map();
-      const outerMapFn = normalizeMapFn(outerKeySelector);
-      const innerMapFn = normalizeMapFn(innerKeySelector);
-      for (let i = 0; i < source.length; i++) {
-        const item = source[i];
-        const key = outerMapFn(item, i, source);
-        const array = map.get(key) ?? [];
-        array.push(item);
-        map.set(key, array);
-      }
-      const innerSource = Array.from(collection);
-      const result = Array.from(map.entries()).flatMap(([key, value]) => {
-        const inner = innerSource.filter((item, index) => innerMapFn(item, index, innerSource) === key);
-        return value.map((item: T) => resultSelector(item, inner));
-      });
-
-      return createQuery(result);
-    },
-    crossJoin<U, R>(
-      collection: Iterable<U>,
-      resultSelector: (a: T, b: U) => R = (a, b) => [a, b] as R
-    ) {
-      const array = Array.from(collection);
-      const result = source.flatMap((item) => array.map((i) => resultSelector(item, i)));
-      return createQuery(result);
-    },
-    innerJoin<U, K, R>(
-      collection: Iterable<U>,
-      outerKeySelector: MapFn<T, K>,
-      innerKeySelector: MapFn<U, K>,
-      resultSelector: (a: T, b: U) => R = (a, b) => [a, b] as R
-    ) {
-      const array = Array.from(collection);
-      const innerSource = Array.from(collection);
-      const result = source.flatMap((item, index) => {
-        const key = outerKeySelector(item, index, source);
-        const inner = array.filter((i, iIndex) => innerKeySelector(i, iIndex, innerSource) === key);
-        return inner.map((i) => resultSelector(item, i));
-      });
-      return createQuery(result);
-    },
-    leftJoin<U, K, R>(
-      collection: Iterable<U>,
-      outerKeySelector: MapFn<T, K>,
-      innerKeySelector: MapFn<U, K>,
-      resultSelector: (a: T, b: U | undefined) => R = (a, b) => [a, b] as R
-    ) {
-      const array = Array.from(collection);
-      const result = source.flatMap((item, index) => {
-        const key = outerKeySelector(item, index, source);
-        const inner = array.find((i, iIndex) => innerKeySelector(i, iIndex, array) === key);
-        return [resultSelector(item, inner)];
-      });
-      return createQuery(result);
-    },
-    slice(start: number, end: number) {
-      return createQuery(source.slice(start, end));
-    },
-    set(index: number, item: T) {
-      index = normalizeIndex(index);
-      source[index] = item;
-      return self;
-    },
-    get(index: number) {
-      index = normalizeIndex(index);
-      return source[index];
-    },
-    clear() {
-      source.length = 0;
-      return self;
-    },
-    clone() {
-      return createQuery(source);
-    },
-    reset(iterable: Iterable<T> = initSource) {
-      source.splice(0, source.length, ...iterable);
-      return self;
-    },
-    toMap(keySelector: MapFn<T, any>, valueSelector?: MapFn<T, any>) {
-      const map = new Map();
-      for (let i = 0; i < source.length; i++) {
-        const item = source[i];
-        const key = keySelector(item, i, source);
-        const value = valueSelector ? valueSelector(item, i, source) : item;
-        map.set(key, value);
-      }
-      return map;
-    }
-  }, {
+  const self = new Proxy(query, {
     get(target, prop) {
       if (isString(prop)) {
         const index = Number(prop);
@@ -516,43 +229,12 @@ export function createQuery<T>(
         }
       }
       switch (prop) {
-        case "toString":
-          return () => source.toString();
-        case "toJSON":
-          return () => source;
-        case "toSet":
-          return () => new Set(source);
-        case "toArray":
-          return () => Array.from(source);
-        case Symbol.iterator:
-          return () => source[Symbol.iterator]();
-        case "reverse":
-        case "sort":
-          return (...args: any) => {
-            source[prop](...args);
-            return self;
-          };
-        case "includes":
-        case "indexOf":
-        case "lastIndexOf":
-          return (item: T, fromIndex = -1) => {
-            fromIndex = normalizeIndex(fromIndex);
-            return source[prop](item, fromIndex);
-          };
         case "fill":
           return (value: T, start = 0, end = source.length) => {
-            start = normalizeIndex(start);
-            end = normalizeIndex(end);
+            start = normalizeIndex(start, source.length);
+            end = normalizeIndex(end, source.length);
             source.fill(value, start, end);
             return self;
-          };
-        case "flat":
-          return (depth?: number) => {
-            return createQuery(source.flat(depth));
-          };
-        case "flatMap":
-          return <U>(mapFn: MapFn<T, U | U[]>) => {
-            return createQuery(source.flatMap(mapFn));
           };
       }
       if (isKeyOf(target, prop)) {
@@ -568,10 +250,6 @@ export function createQuery<T>(
           return true;
         }
       }
-      if (prop === "length") {
-        source.length = value;
-        return true;
-      }
       target[prop as Exclude<keyof typeof target, "length">] = value;
       return true;
     },
@@ -579,13 +257,9 @@ export function createQuery<T>(
       if (isString(prop)) {
         let index = +prop;
         if (!isNaN(index)) {
-          index = normalizeIndex(index);
+          index = normalizeIndex(index, source.length);
           return delete source[index];
         }
-      }
-      if (prop === "length") {
-        source.length = 0;
-        return true;
       }
       return false;
     }
@@ -608,4 +282,458 @@ export function range(
 
 export function unique<T>(array: Iterable<T>) {
   return Array.from(new Set(array));
+}
+
+export class CollectionQueryClass<T> implements ArrayLike<T> {
+  source: T[] = [];
+
+  private static proxyHandler: ProxyHandler<CollectionQueryClass<any>> = {
+    get(target, property: string) {
+      if (isKeyOf(target, property)) {
+        return target[property];
+      }
+      return target.get(+property);
+    },
+    set(target, property: string, value): boolean {
+      if (isKeyOf(target, property)) {
+        target[property] = value;
+        return true;
+      }
+      target.set(+property, value);
+      return true;
+    },
+    deleteProperty(target, prop) {
+      if (isString(prop)) {
+        let index = +prop;
+        if (!isNaN(index)) {
+          index = normalizeIndex(index, target.length);
+          return delete target.source[index];
+        }
+      }
+      return false;
+    }
+  };
+
+  constructor(source: Iterable<T> = []) {
+    this.source = Array.isArray(source) ? source : source as T[];
+    return new Proxy(this, CollectionQueryClass.proxyHandler);
+  }
+
+  [n: number]: T;
+
+  where(...args: PredicateParameter<T>) {
+    return createQuery(this.source.filter(createPredicate(...args)));
+  }
+
+  select<U>(mapFn: MapFn<T, U>): CollectionQuery<U>;
+  select<K extends keyof T>(key: K): CollectionQuery<T[K]>;
+  select(): CollectionQuery<T>;
+  select<U>(fn?: MapFn<T, U> | keyof T) {
+    if (isUndefined(fn)) {
+      return createQuery(this.source);
+    }
+    if (isFunction(fn)) {
+      return createQuery(this.source.map(fn));
+    }
+    return createQuery(this.source.map(item => item[fn]));
+  }
+
+  insert(index: number, ...items: T[]) {
+    this.source.splice(index, 0, ...items);
+    return this;
+  }
+
+  append(...items: T[]) {
+    this.source.push(...items);
+    return this;
+  }
+
+  prepend(...items: T[]) {
+    this.source.unshift(...items);
+    return this;
+  }
+
+  delete(fn: number | PredicateFn<T>, deleteLimit?: number) {
+    if (isNumber(fn)) {
+      fn = normalizeIndex(fn, this.length);
+      this.source.splice(fn, 1);
+    } else {
+      // 顺序批量删除
+
+      const indices: number[] = [];
+
+      for (let i = 0; i < this.source.length; i++) {
+        if (deleteLimit && indices.length >= deleteLimit) {
+          break;
+        }
+        if (fn(this.source[i], i, this.source)) {
+          indices.push(i);
+        }
+      }
+
+      for (let i = indices.length - 1; i >= 0; i--) {
+        this.source.splice(indices[i], 1);
+      }
+    }
+    return this;
+  }
+
+  concat(...items: (ConcatArray<T> | T)[]) {
+    const newSource = this.source.concat(...items);
+    return createQuery(newSource);
+  }
+
+  replace(fn: PredicateFn<T>, item: T) {
+    for (let i = 0; i < this.source.length; i++) {
+      if (fn(this.source[i], i, this.source)) {
+        this.source[i] = item;
+      }
+    }
+    return this;
+  }
+
+  max(fn?: MapFn<T, number>) {
+    if (!fn) {
+      fn = (item) => isNumber(item) ? item : 0;
+    }
+    return Math.max(...this.source.map(fn));
+  }
+
+  min(fn?: MapFn<T, number>) {
+    if (!fn) {
+      fn = (item) => isNumber(item) ? item : 0;
+    }
+    return Math.min(...this.source.map(fn));
+  }
+
+  sum(fn?: MapFn<T, number>) {
+    if (!fn) {
+      fn = (item) => isNumber(item) ? item : 0;
+    }
+    return this.source.map(fn).reduce((a, b) => a + b, 0);
+  }
+
+  average(fn?: MapFn<T, number>) {
+    return this.sum(fn) / this.source.length;
+  }
+
+  distinct<U>(mapFn?: MapFn<T, U> | keyof T) {
+    if (isUndef(mapFn)) {
+      return this.reset(new Set(this.source));
+    }
+    const fn = isFunction(mapFn) ? mapFn : (item: T) => item[mapFn];
+
+    const set = new Set();
+    const array: T[] = [];
+    for (let i = 0; i < this.source.length; i++) {
+      const item = this.source[i];
+      const key = fn(item, i, this.source);
+      if (!set.has(key)) {
+        set.add(key);
+        array.push(item);
+      }
+    }
+    return this.reset(new Set(array));
+  }
+
+  intersect(...collections: Iterable<T>[]) {
+    const set = new Set(collections.flatMap((c) => Array.from(c)));
+    const array = this.source.filter((item) => set.has(item));
+    return this.reset(array);
+  }
+
+  chunk(size: number) {
+    const array: T[][] = [];
+    for (let i = 0; i < this.source.length; i += size) {
+      array.push(this.source.slice(i, i + size));
+    }
+    return createQuery(array);
+  }
+
+  union(...collections: Iterable<T>[]) {
+    this.source.push(...collections.flatMap((c) => Array.from(c)));
+    return this;
+  }
+
+  except(...collections: Iterable<T>[]) {
+    const set = new Set(collections.flatMap((c) => Array.from(c)));
+    const array = this.source.filter((item) => !set.has(item));
+    return this.reset(array);
+  }
+
+  zip<U, R = [T, U]>(
+    collection: Iterable<U>,
+    mapFn: (a: T, b: U) => R = (a, b) => [a, b] as R
+  ) {
+    const array = Array.from(collection);
+    const result = this.source.map((item, index) => mapFn(item, array[index]));
+    return createQuery(result);
+  }
+
+  orderBy(arg: CompareFn<T> | keyof T, desc = false, nullsFirst = false) {
+    const compareFn = isFunction(arg)
+      ? arg
+      : (a: T, b: T) => {
+          const aVal = a[arg];
+          const bVal = b[arg];
+          if (aVal === bVal) {
+            return 0;
+          }
+          if (isUndef(aVal)) {
+            return nullsFirst ? -1 : 1;
+          }
+          if (isUndef(aVal)) {
+            return nullsFirst ? 1 : -1;
+          }
+          return (aVal < bVal && !desc) ? -1 : 1;
+        };
+    this.source.sort(compareFn);
+    return this;
+  }
+
+  countBy<K>(args: MapParameter<T, K>) {
+    const mapFn = normalizeMapFn(args);
+    const map = new Map();
+    for (let i = 0; i < this.source.length; i++) {
+      const item = this.source[i];
+      const key = mapFn(item, i, this.source);
+      const count = map.get(key) ?? 0;
+      map.set(key, count + 1);
+    }
+    const result = Array.from(map.entries());
+    return createQuery(result);
+  }
+
+  groupBy<K = keyof T>(args: MapParameter<T, K>) {
+    const mapFn = normalizeMapFn(args);
+    const map = new Map();
+    for (let i = 0; i < this.source.length; i++) {
+      const item = this.source[i];
+      const key = mapFn(item, i, this.source);
+      const array = map.get(key) ?? [];
+      array.push(item);
+      map.set(key, array);
+    }
+    const result = Array.from(map.entries());
+    return createQuery(result);
+  }
+
+  groupJoin<U, K, R>(
+    collection: Iterable<U>,
+    outerKeySelector: MapParameter<T, K>,
+    innerKeySelector: MapParameter<U, K>,
+    resultSelector: (outer: T, inner: U[]) => R
+  ) {
+    const map = new Map();
+    const outerMapFn = normalizeMapFn(outerKeySelector);
+    const innerMapFn = normalizeMapFn(innerKeySelector);
+    for (let i = 0; i < this.source.length; i++) {
+      const item = this.source[i];
+      const key = outerMapFn(item, i, this.source);
+      const array = map.get(key) ?? [];
+      array.push(item);
+      map.set(key, array);
+    }
+    const innerSource = Array.from(collection);
+    const result = Array.from(map.entries()).flatMap(([key, value]) => {
+      const inner = innerSource.filter((item, index) => innerMapFn(item, index, innerSource) === key);
+      return value.map((item: T) => resultSelector(item, inner));
+    });
+
+    return createQuery(result);
+  }
+
+  crossJoin<U, R>(
+    collection: Iterable<U>,
+    resultSelector: (a: T, b: U) => R = (a, b) => [a, b] as R
+  ) {
+    const array = Array.from(collection);
+    const result = this.source.flatMap((item) => array.map((i) => resultSelector(item, i)));
+    return createQuery(result);
+  }
+
+  innerJoin<U, K, R>(
+    collection: Iterable<U>,
+    outerKeySelector: MapFn<T, K>,
+    innerKeySelector: MapFn<U, K>,
+    resultSelector: (a: T, b: U) => R = (a, b) => [a, b] as R
+  ) {
+    const array = Array.from(collection);
+    const innerSource = Array.from(collection);
+    const result = this.source.flatMap((item, index) => {
+      const key = outerKeySelector(item, index, this.source);
+      const inner = array.filter((i, iIndex) => innerKeySelector(i, iIndex, innerSource) === key);
+      return inner.map((i) => resultSelector(item, i));
+    });
+    return createQuery(result);
+  }
+
+  leftJoin<U, K, R>(
+    collection: Iterable<U>,
+    outerKeySelector: MapFn<T, K>,
+    innerKeySelector: MapFn<U, K>,
+    resultSelector: (a: T, b: U | undefined) => R = (a, b) => [a, b] as R
+  ) {
+    const array = Array.from(collection);
+    const result = this.source.flatMap((item, index) => {
+      const key = outerKeySelector(item, index, this.source);
+      const inner = array.find((i, iIndex) => innerKeySelector(i, iIndex, array) === key);
+      return [resultSelector(item, inner)];
+    });
+    return createQuery(result);
+  }
+
+  slice(start: number, end: number) {
+    return createQuery(this.source.slice(start, end));
+  }
+
+  set(index: number, item: T) {
+    index = normalizeIndex(index, this.length);
+    this.source[index] = item;
+    return this;
+  }
+
+  get(index: number) {
+    index = normalizeIndex(index, this.length);
+    return this.source[index];
+  }
+
+  clear() {
+    this.source.length = 0;
+    return this;
+  }
+
+  clone() {
+    return createQuery(this.source);
+  }
+
+  reset(iterable: Iterable<T> = this.source) {
+    this.source.splice(0, this.source.length, ...iterable);
+    return this;
+  }
+
+  toArray() {
+    return Array.from(this.source);
+  }
+
+  toSet() {
+    return new Set(this.source);
+  }
+
+  flat() {
+    const result = this.source.flat();
+    return createQuery(result);
+  }
+
+  flatMap<U>(mapFn: MapFn<T, U[]>) {
+    const result = this.source.flatMap(mapFn);
+    return createQuery(result);
+  }
+
+  reverse() {
+    this.source.reverse();
+    return this;
+  }
+
+  sort(compareFn?: (a: T, b: T) => number) {
+    this.source.sort(compareFn);
+    return this;
+  }
+
+  every(predicate: (value: T, index: number, array: T[]) => unknown) {
+    return this.source.every(predicate);
+  }
+
+  some(predicate: (value: T, index: number, array: T[]) => unknown) {
+    return this.source.some(predicate);
+  }
+
+  find(predicate: (value: T, index: number, array: T[]) => unknown) {
+    return this.source.find(predicate);
+  }
+
+  findIndex(predicate: (value: T, index: number, array: T[]) => unknown) {
+    return this.source.findIndex(predicate);
+  }
+
+  includes(searchElement: T, fromIndex?: number) {
+    return this.source.includes(searchElement, fromIndex);
+  }
+
+  indexOf(searchElement: T, fromIndex?: number) {
+    return this.source.indexOf(searchElement, fromIndex);
+  }
+
+  lastIndexOf(searchElement: T, fromIndex?: number) {
+    return this.source.lastIndexOf(searchElement, fromIndex);
+  }
+
+  forEach(callbackfn: (value: T, index: number, array: T[]) => void) {
+    this.source.forEach(callbackfn);
+    return this;
+  }
+
+  map<U>(mapFn: MapFn<T, U>) {
+    const result = this.source.map(mapFn);
+    return createQuery(result);
+  }
+
+  filter(predicate: (value: T, index: number, array: T[]) => unknown) {
+    const result = this.source.filter(predicate);
+    return createQuery(result);
+  }
+
+  splice(start: number, deleteCount?: number, ...items: T[]) {
+    if (deleteCount === undefined) {
+      deleteCount = this.source.length - start;
+    }
+    this.source.splice(start, deleteCount, ...items);
+    return this;
+  }
+
+  get length() {
+    return this.source.length;
+  }
+
+  set length(value: number) {
+    this.source.length = value;
+  }
+
+  first() {
+    return this.source[0];
+  }
+
+  last() {
+    return this.source[this.source.length - 1];
+  }
+
+  toMap(keySelector: MapFn<T, any>, valueSelector?: MapFn<T, any>) {
+    const map = new Map();
+    for (let i = 0; i < this.source.length; i++) {
+      const item = this.source[i];
+      const key = keySelector(item, i, this.source);
+      const value = valueSelector ? valueSelector(item, i, this.source) : item;
+      map.set(key, value);
+    }
+    return map;
+  }
+
+  [Symbol.iterator]() {
+    return this.source[Symbol.iterator]();
+  }
+}
+
+export function deleteBy<T>(collection: T[], ...predicate: PredicateParameter<T>) {
+  const fn = getPredicateFn(...predicate);
+  for (let i = collection.length - 1; i >= 0; i--) {
+    if (fn(collection[i], i, collection)) {
+      collection.splice(i, 1);
+    }
+  }
+  return collection;
+}
+
+export function restoreArray<T>(collection: T[], newCollection: T[]) {
+  collection.splice(0, collection.length, ...newCollection);
+  return collection;
 }

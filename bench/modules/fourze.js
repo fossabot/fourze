@@ -1,15 +1,16 @@
-import { defineRouter } from "@fourze/core";
+import { createServer } from "http";
+import { connect } from "@fourze/server";
+import { createApp } from "@fourze/core";
 
-import { createServer } from "@fourze/server";
+const app = createApp();
 
-const router = defineRouter(router => {
-  router.get("/", () => {
-    return {
-      hello: "world"
-    };
-  });
-});
+const server = createServer(connect(app.use((req, res) => {
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ hello: "world" }));
+})));
 
-const server = createServer();
-server.use(router);
 server.listen(3000);
+
+process.on("SIGINT", () => {
+  server.close();
+});

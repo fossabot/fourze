@@ -30,13 +30,13 @@ export function defineOverload<Config extends OverloadConfig>(
 ) {
   return (args: any[]): ExtractPropTypes<Config> => {
     const result: any = {};
-    const parameters = Array.from(args);
+    const parameters = args;
     for (const name in config) {
       const props = config[name];
       const types: PropType<any>[] = [];
       let required = false;
       let transform: ((value: any) => any) | undefined;
-      let match: (value: any) => boolean | undefined;
+      let match: ((value: any) => boolean) | undefined;
       let defaultValue: ((value: any) => any) | undefined;
       if (isFunction(props)) {
         types.push(props);
@@ -48,6 +48,7 @@ export function defineOverload<Config extends OverloadConfig>(
           required = !!props.required || !!props.default;
           transform = props.transform;
           defaultValue = isFunction(props.default) ? props.default : () => props.default;
+          match = props.match;
         }
       }
 
@@ -61,16 +62,15 @@ export function defineOverload<Config extends OverloadConfig>(
         return isInstanceOf(types, value);
       }
 
-      const value = parameters.shift();
+      const value = parameters[0];
 
       if (matchValue(value)) {
         result[name] = transform ? transform(value) : value;
+        parameters.shift();
         continue;
       } else if (defaultValue) {
         result[name] = defaultValue(result);
       }
-
-      parameters.unshift(value);
     }
     if (Object.keys(result).length === Object.keys(config).length) {
       return result;

@@ -4,13 +4,16 @@ import { isRegExp } from "./is";
 
 export function slash(...paths: string[]): string {
   let path = paths
-    .filter((p) => !!p)
     .map((p) => p.replace(/\\/g, "/"))
     .join("/")
     .replace(/\/+/g, "/");
 
   if (path.length > 1 && path.endsWith("/")) {
     path = path.slice(0, -1);
+  }
+
+  if (!path.startsWith("/")) {
+    path = "/".concat(path);
   }
 
   return path;
@@ -29,19 +32,24 @@ export function resolvePath(_path: string, ..._base: string[]): string {
 export function relativePath(path: string, base?: string): string | null {
   if (!hasProtocol(path)) {
     if (base) {
+      if (base.endsWith("/")) {
+        base = base.slice(0, -1);
+      }
       if (path.startsWith(base)) {
-        path = path.replace(new RegExp(`^${slash(base)}`), "/");
+        path = path.slice(base.length);
       } else {
         return null;
       }
     }
-    return slash(path);
+    return path;
   }
   return null;
 }
 
+const protocolReg = /^(\w+):\/\//i;
+
 export function hasProtocol(path: string) {
-  return /^\w+:\/\//i.test(path);
+  return protocolReg.test(path);
 }
 
 export function isMatch(path: string, ...pattern: MaybeRegex[]) {

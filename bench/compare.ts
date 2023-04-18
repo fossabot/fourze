@@ -130,7 +130,7 @@ function compareResults(markdown: boolean) {
 
     table.push([
       bold(beBold, chalk.blue(result.server)),
-      bold(beBold, version),
+      bold(beBold, version ?? "N/A"),
       bold(beBold, formatHasRouter(hasRouter)),
       bold(beBold, requests ? requests.toFixed(1) : "N/A"),
       bold(beBold, latency ? latency.toFixed(2) : "N/A"),

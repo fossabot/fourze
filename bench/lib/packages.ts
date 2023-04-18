@@ -3,9 +3,13 @@ import path from "path";
 import pkgJson from "../package.json";
 
 const packages = {
-  fourze: { hasRouter: true, package: "@fourze/core" },
-  express: { hasRouter: true },
-  fastify: { checked: true, hasRouter: true }
+  "fourze": { checked: true, hasRouter: true, package: "@fourze/core" },
+  "fourze-router": { checked: true, hasRouter: true, package: "@fourze/core" },
+  "express": { checked: true, hasRouter: true },
+  "fastify": { checked: true, hasRouter: true },
+  "koa": { checked: true, hasRouter: true },
+  "connect": { hasRouter: true },
+  "nodehttp": { checked: true, hasRouter: false, version: process.version.slice(1) }
 };
 
 const require = createRequire(import.meta.url);

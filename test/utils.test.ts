@@ -56,9 +56,9 @@ describe("utils", () => {
     const base = "/abc";
     const normalBase = "/"
     expect(relativePath(path, base)).toBe("/def/ghi");
-    expect(relativePath(path2, base)).toBe("/def/ghi");
+    expect(relativePath(path2, base)).toBe("/def/ghi/");
     expect(relativePath(path3, base)).toBe("/");
-    expect(relativePath(path4, base)).toBe("/");
+    expect(relativePath(path4, base)).toBe("");
     expect(relativePath(path, normalBase)).toBe("/abc/def/ghi");
   });
 

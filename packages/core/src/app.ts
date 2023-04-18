@@ -17,12 +17,12 @@ import {
   createServiceContext
 } from "./shared";
 import {
-  createQuery,
-  createSingletonPromise, isMatch,
+  createSingletonPromise, deleteBy, isMatch,
   isObject,
   isString,
   relativePath,
-  resolves
+  resolves,
+  restoreArray
 } from "./utils";
 import { injectMeta } from "./shared/meta";
 
@@ -74,17 +74,17 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
 
   const { fallback } = options;
 
-  const persistenceMiddlewareStore = createQuery<FourzeMiddlewareNode>();
+  const persistenceMiddlewareStore: FourzeMiddlewareNode[] = [];
 
-  const persistencePluginStore = createQuery<FourzePlugin>();
+  const persistencePluginStore: FourzePlugin[] = [];
 
-  const middlewareStore = createQuery<FourzeMiddlewareNode>();
+  const middlewareStore: FourzeMiddlewareNode[] = [];
 
-  const pluginStore = createQuery<FourzePlugin>();
+  const pluginStore: FourzePlugin[] = [];
 
-  const denys = createQuery<MaybeRegex>();
+  const denys: MaybeRegex[] = [];
 
-  const allows = createQuery<MaybeRegex>();
+  const allows: MaybeRegex[] = [];
 
   const meta = { ...options.meta };
 
@@ -130,9 +130,8 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     if (url) {
       return middlewareStore
         .sort((a, b) => a.order - b.order)
-        .where((r) => isMatch(url, r.path))
-        .select(r => [r.path, r.middleware] as [string, FourzeMiddleware])
-        .toArray();
+        .filter((r) => isMatch(url, r.path))
+        .map(r => [r.path, r.middleware] as [string, FourzeMiddleware]);
     }
     return [];
   };
@@ -154,15 +153,15 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
       if (typeof middleware === "function") {
         const node = { path, middleware, order: middleware.order ?? middlewareStore.length };
         if (!this.isReadying) {
-          persistenceMiddlewareStore.append(node);
+          persistenceMiddlewareStore.push(node);
         }
-        middlewareStore.append(node);
+        middlewareStore.push(node);
         logger.info(`use middleware [${middleware.name}] at ${path}`);
       } else {
         if (!this.isReadying) {
-          persistencePluginStore.append(middleware);
+          persistencePluginStore.push(middleware);
         }
-        pluginStore.append(middleware);
+        pluginStore.push(middleware);
       }
     }
     middlewareStore.sort((a, b) => a.order - b.order);
@@ -171,8 +170,8 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
 
   app.remove = function (arg: FourzeMiddleware | string) {
     if (isString(arg)) {
-      middlewareStore.delete((r) => r.middleware.name === arg);
-      persistenceMiddlewareStore.delete((r) => r.middleware.name === arg);
+      deleteBy(middlewareStore, (r) => r.middleware.name === arg);
+      deleteBy(persistenceMiddlewareStore, (r) => r.middleware.name === arg);
     }
     return this;
   };
@@ -200,12 +199,12 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
   };
 
   app.allow = function (...rules: MaybeRegex[]) {
-    allows.append(...rules);
+    allows.push(...rules);
     return this;
   };
 
   app.deny = function (...rules: MaybeRegex[]) {
-    denys.append(...rules);
+    denys.push(...rules);
     return this;
   };
 
@@ -216,8 +215,8 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
 
   const ready = createSingletonPromise(async function (this: FourzeApp) {
     _isReadying = true;
-    pluginStore.reset(persistencePluginStore);
-    middlewareStore.reset(persistenceMiddlewareStore);
+
+    restoreArray(middlewareStore, persistenceMiddlewareStore);
 
     try {
       // 初始化app
@@ -246,7 +245,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     }
 
     // 装载插件
-    const installPlugins = pluginStore.select(async r => {
+    const installPlugins = pluginStore.map(async r => {
       if (r.install) {
         try {
           await r.install(this);
@@ -259,7 +258,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     await Promise.all(installPlugins);
 
     // 初始化中间件
-    const setupMiddlewares = middlewareStore.select(async (r) => {
+    const setupMiddlewares = middlewareStore.map(async (r) => {
       if (r.middleware.setup) {
         try {
           await r.middleware.setup(this);
@@ -290,7 +289,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
   Object.defineProperties(app, {
     middlewares: {
       get() {
-        return middlewareStore.select(r => r.middleware).toArray();
+        return middlewareStore.map(r => r.middleware);
       },
       enumerable: true
     },

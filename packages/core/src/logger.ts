@@ -14,6 +14,17 @@ export enum FourzeLogLevel {
   Verbose = Infinity
 }
 
+export const noopLogger = {
+  log: () => {},
+  info: () => {},
+  success: () => {},
+  warn: () => {},
+  error: () => {},
+  fatal: () => {},
+  debug: () => {},
+  trace: () => {}
+};
+
 export type FourzeLogLevelKey = Lowercase<keyof typeof LogLevel>;
 
 export type FourzeLogger = Consola;
@@ -23,6 +34,7 @@ let globalLoggerLevel: FourzeLogLevelKey | FourzeLogLevel = "info";
 const loggerStore = new Map<string, FourzeLogger>();
 
 export function createLogger(scope: string) {
+  // return noopLogger as unknown as FourzeLogger;
   let logger = loggerStore.get(scope);
   if (!logger) {
     logger = consola.withScope(scope);

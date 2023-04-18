@@ -2,10 +2,9 @@ import type { IncomingMessage } from "http";
 import qs from "query-string";
 import type { MaybeRegex } from "maybe-types";
 import { safeParse } from "fast-content-type-parse";
-import destr from "destr";
 import type { PolyfillHeaderInit } from "../polyfill";
 import { decodeFormData, flatHeaders, getHeaderValue } from "../polyfill";
-import { isString, isUint8Array, normalize } from "../utils";
+import { isString, isUint8Array, normalize, parseJson, relativePath } from "../utils";
 import type { DefaultData, ExtractPropTypes, ExtractPropTypesWithIn, ObjectProps } from "./props";
 import { validateProps, withDefaults } from "./props";
 import type { FourzeRoute } from "./route";
@@ -115,7 +114,7 @@ export function createRequest(options: FourzeRequestOptions) {
     if (bodyRaw.length > 0) {
       switch (contentType) {
         case "application/json":{
-          body = destr(bodyRaw.toString(charset));
+          body = parseJson(bodyRaw.toString(charset));
           break;
         }
         case "application/x-www-form-urlencoded":{
@@ -230,7 +229,7 @@ export function createRequest(options: FourzeRequestOptions) {
     },
     path: {
       get() {
-        return normalize(originalPath.replace(new RegExp(`^${_contextPath}`), ""));
+        return normalize(relativePath(originalPath, _contextPath) ?? "/");
       },
       enumerable: true
     },

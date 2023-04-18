@@ -1,6 +1,7 @@
 import type { OutgoingMessage, ServerResponse } from "http";
+import { safeParse } from "fast-content-type-parse";
 import { PolyfillServerResponse, getHeaderValue } from "../polyfill";
-import { assert, defineOverload, isDef, isObject, isString, isUint8Array } from "../utils";
+import { assert, defineOverload, isDef, isNumber, isObject, isString, isUint8Array } from "../utils";
 import { FourzeError } from "./error";
 import type { FourzeRequest } from "./request";
 
@@ -126,13 +127,21 @@ export function createResponse(options: FourzeResponseOptions) {
 
   response.send = function (payload, ...args: any[]) {
     response.sent = true;
+
     let { statusCode, contentType } = overloadSend(args);
+
+    if (isNumber(args[0])) {
+      statusCode = args[0];
+      contentType = args[1];
+    } else if (isString(args[0])) {
+      contentType = args[0];
+    }
 
     statusCode ??= this.statusCode ?? 200;
     contentType ??= this.getContentType(payload);
 
-    const normalizedContentType = contentType?.split(";")[0];
-    switch (normalizedContentType) {
+    const normalizedContentType = contentType ? safeParse(contentType) : undefined;
+    switch (normalizedContentType?.type) {
       case "application/json":
         payload = JSON.stringify(payload);
         break;

@@ -15,6 +15,7 @@
     "@types/autocannon": "^7.9.0",
     "@types/cli-table": "^0.3.1",
     "@types/inquirer": "^9.0.3",
+    "@types/koa": "^2.13.6",
     "tsx": "^3.12.1"
   },
   "dependencies": {
@@ -22,9 +23,11 @@
     "@fourze/server": "workspace:*",
     "autocannon-compare": "^0.4.0",
     "cli-table": "^0.3.11",
+    "connect": "^3.7.0",
     "consola": "^2.15.3",
     "express": "^4.18.1",
     "fastify": "^4.11.0",
-    "inquirer": "^9.1.4"
+    "inquirer": "^9.1.4",
+    "koa": "^2.14.2"
   }
 }

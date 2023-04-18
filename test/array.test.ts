@@ -33,7 +33,7 @@ describe("array", async () => {
 
     query.append(...["test4", "test5", "test6"]);
     expect(query.length).toEqual(3);
-    expect(query[0]).toEqual("test4");
+    expect(query.get(0)).toEqual("test4");
     expect(query.get(1)).toEqual("test5");
     expect(query.get(2)).toEqual("test6");
 
