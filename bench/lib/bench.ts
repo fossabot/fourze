@@ -33,15 +33,23 @@ const doBench = async (opts, handler: string) => {
 };
 
 let index = 0;
-const start = async (opts, list) => {
-  if (list.length === index) {
+const start = async (opts, module: string[] | string) => {
+  if (typeof module === "string") {
+    module = [module];
+  }
+
+  if (module.length === index) {
     return true;
   }
 
+  for (let i = 0; i < module.length; i++) {
+    await doBench(opts, module[i]);
+  }
+
   try {
-    await doBench(opts, list[index]);
+    await doBench(opts, module[index]);
     index += 1;
-    return start(opts, list);
+    return start(opts, module);
   } catch (error) {
     return console.error(error);
   }

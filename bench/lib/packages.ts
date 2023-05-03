@@ -37,6 +37,7 @@ export function list(extra = false) {
       return extra === !!packages[c].extra
         ? Object.assign({}, packages[c], { name: c })
         : null;
+      return null;
     })
     .filter((c) => c);
 }

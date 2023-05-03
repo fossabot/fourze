@@ -10,7 +10,7 @@
   import Loading from "./components/base/loading.vue";
   import Table from "./components/base/table";
   import type { TableColumns } from "./components/hooks/table";
-  import Button from "@/components/base/button.vue";
+  import HiButton from "@/components/base/button.vue";
 
   const t = ref(0);
 
@@ -93,9 +93,9 @@
       width: 160,
       render({ record }) {
         return <div class="space-x-2">
-                <Button size="small">Edit</Button>
-                <Button size="small" class="!bg-red-400" onClick={() => deleteById(record.id)}>Delete</Button>
-            </div>;
+        <HiButton size="small">Edit</HiButton>
+        <HiButton size="small" class="!bg-red-400" onClick={() => deleteById(record.id)}>Delete</HiButton>
+      </div>;
       }
     }
   ];
@@ -179,9 +179,9 @@
       <div class="flex space-x-4 items-center">
         <img :style="{ width: '120px', height: '120px' }" :src="avatarUrl">
         <div>
-          <Button @click="upload">
+          <HiButton @click="upload">
             Upload
-          </Button>
+          </HiButton>
         </div>
       </div>
     </div>
@@ -196,9 +196,9 @@
             Mock Data:
           </div>
           <HiSelection
-            v-model="mockEnabled"
-            item-class="px-4 py-1 select-none cursor-pointer" active-class="bg-light-blue-300 text-white"
-            unactive-class="text-light-blue-300" class="flex space-x-4 items-center"
+            v-model="mockEnabled" item-class="px-4 py-1 select-none cursor-pointer"
+            active-class="bg-light-blue-300 text-white" unactive-class="text-light-blue-300"
+            class="flex space-x-4 items-center"
           >
             <HiItem :value="true">
               Enable
@@ -213,9 +213,9 @@
             Request Type:
           </div>
           <HiSelection
-            v-model="args.type"
-            item-class="px-4 py-1 select-none cursor-pointer" active-class="bg-light-blue-300 text-white"
-            unactive-class="text-light-blue-300" class="flex space-x-4 items-center"
+            v-model="args.type" item-class="px-4 py-1 select-none cursor-pointer"
+            active-class="bg-light-blue-300 text-white" unactive-class="text-light-blue-300"
+            class="flex space-x-4 items-center"
           >
             <HiItem value="fetch">
               Fetch
@@ -233,8 +233,8 @@
             <Table :data="state.items" :columns="columns" row-key="id" />
           </div>
           <Pagination
-            v-model:page="args.page"
-            button-class="px-2 bg-light-blue-300 text-white cursor-pointer select-none" :total-page="state.totalPageCount"
+            v-model:page="args.page" button-class="px-2 bg-light-blue-300 text-white cursor-pointer select-none"
+            :total-page="state.totalPageCount"
           />
         </Loading>
       </div>

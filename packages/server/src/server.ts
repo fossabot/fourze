@@ -74,8 +74,8 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
     }
   }, args);
 
-  let _host = options.host ?? "localhost";
-  let _port = options.port ?? 7609;
+  let _host = options.host;
+  let _port = options.port;
   let _server = options.server;
   let _origin: string | null = null;
 
@@ -124,7 +124,7 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
     return _server;
   };
 
-  serverApp.listen = async function (port: number, hostname = "localhost") {
+  serverApp.listen = async function (port?: number, hostname?: string) {
     _port = port ?? _port;
     _host = hostname ?? _host;
     _server = _server ?? _createServer();

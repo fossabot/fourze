@@ -1,13 +1,23 @@
 import inquirer from "inquirer";
+import { program } from "commander";
 import { choices, list } from "./lib/packages";
 import bench from "./lib/bench";
 
-const argv = process.argv.slice(2);
-
-run().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+const argv = program
+  .option("-t --target <module>", "module to benchmark")
+  .option("-A --all", "run all modules")
+  .action((command) => {
+    if (command.target) {
+      bench({
+        all: false,
+        connections: 100,
+        pipelining: 10,
+        duration: 40
+      }, command.target);
+    } else {
+      return run();
+    }
+  }).parse(process.argv).args;
 
 async function run() {
   const options = await getBenchmarkOptions();
