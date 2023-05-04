@@ -17,8 +17,9 @@ import type {
   FourzeLogger,
   FourzeMiddleware,
   FourzeMiddlewareHandler,
-  FourzeServiceContext,
-  PropType
+  FourzeModule,
+  FourzeServiceContext
+  , PropType
 } from "@fourze/core";
 import { isAddressInfo, normalizeAddress } from "./utils";
 
@@ -43,9 +44,9 @@ export interface FourzeServer extends EventEmitter, CommonMiddleware {
 
   listen(port?: number, host?: string): Promise<Server>
 
-  use(path: string, ...middlewares: FourzeMiddleware[]): this
+  use(path: string, ...modules: FourzeModule[]): this
 
-  use(...middleware: FourzeMiddleware[]): this
+  use(...modules: FourzeModule[]): this
 
   close(): Promise<void>
 }
@@ -164,9 +165,9 @@ export function createServer(...args: [FourzeApp, FourzeServerOptions] | [Fourze
   };
 
   serverApp.use = function (
-    ...args: [string, ...FourzeMiddleware[]] | FourzeMiddleware[]
+    ...args: [string, ...FourzeModule[]] | FourzeModule[]
   ) {
-    app.use(...args as FourzeMiddleware[]);
+    app.use(...args as FourzeModule[]);
     return this;
   };
 

@@ -131,7 +131,7 @@ export interface FourzePluginInstall {
 export interface FourzePlugin {
   name?: string
   install: FourzePluginInstall
-  readonly [FOURZE_PLUGIN_SYMBOL]: boolean
+  readonly [FOURZE_PLUGIN_SYMBOL]: true
 }
 
 export function definePlugin(install: FourzePluginInstall): FourzePlugin;
@@ -152,7 +152,7 @@ export function definePlugin(...args: [FourzePluginInstall] | [string, FourzePlu
     name,
     install,
     get [FOURZE_PLUGIN_SYMBOL]() {
-      return true;
+      return true as const;
     }
   };
 }
@@ -163,4 +163,8 @@ export function isFourzePlugin(obj: any): obj is FourzePlugin {
 
 export function isFourzeModule(obj: any): obj is FourzeModule {
   return isFourzePlugin(obj) || isFourzeMiddleware(obj);
+}
+
+export function setup(fn: (app: FourzeApp) => MaybePromise<void>) {
+  return definePlugin(fn);
 }
