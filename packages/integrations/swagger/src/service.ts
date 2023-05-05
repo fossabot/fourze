@@ -1,5 +1,5 @@
-import type { FourzeApp, FourzeMiddleware, FourzeNext, FourzeRequest, FourzeResponse } from "@fourze/core";
-import { resolves } from "@fourze/core";
+import type { FourzeApp, FourzeMiddleware } from "@fourze/core";
+import { createApp } from "@fourze/core";
 import { getAbsoluteFSPath } from "swagger-ui-dist";
 import { createSwaggerMiddleware } from "@fourze/middlewares";
 import type { SwaggerOptions } from "@fourze/middlewares";
@@ -17,33 +17,32 @@ export function service(
 ): FourzeMiddleware {
   const base = options.base ?? "/swagger-ui/";
   const documentPath = options.documentPath ?? "/api-docs";
-  const documentUrl = resolves(base, documentPath);
 
   const swaggerUISourcePath = getAbsoluteFSPath();
 
   const { staticFile } = require("@fourze/server") as typeof import("@fourze/server");
 
-  const render = staticFile(swaggerUISourcePath, base);
+  const render = staticFile(swaggerUISourcePath, {
+    maybes: []
+  });
+
   const docsMiddleware = createSwaggerMiddleware(app, options);
 
-  return async (req: FourzeRequest, res: FourzeResponse, next: FourzeNext) => {
-    if (req.path.startsWith(base)) {
-      if (req.path === documentUrl) {
-        docsMiddleware(req, res, () => {});
-        return;
-      }
+  const swaggerApp = createApp();
 
-      return render(req, res, () => {
-        res.send(
-          renderIndexHtml(base, {
-            url: documentUrl
-          }),
-          "text/html"
-        );
-      });
+  const renderIndex: FourzeMiddleware = (req, res, next) => {
+    if (req.path === "/" || req.path === "/index.html") {
+      res.send(renderIndexHtml(base), "text/html");
+    } else {
+      next?.();
     }
-    return next();
   };
+
+  swaggerApp.use(documentPath, docsMiddleware);
+  swaggerApp.use(base, render);
+  swaggerApp.use(base, renderIndex);
+
+  return swaggerApp;
 }
 
 export const getSwaggerFSPath = getAbsoluteFSPath;

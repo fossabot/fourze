@@ -155,7 +155,9 @@ export function defineRouter(
 
       try {
         const _result = await route.handle(request, response);
-        response.send(_result);
+        if (!response.sent) {
+          response.send(_result);
+        }
       } catch (error: any) {
         response.sendError(error);
       }

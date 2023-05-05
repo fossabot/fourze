@@ -14,10 +14,10 @@ import {
   isFourzeComponent,
   isFunction,
   isObject,
-  isString,
-  relativePath
+  isString
 } from "@fourze/core";
 import mime from "mime";
+import micromatch from "micromatch";
 import { createImporter } from "./importer";
 
 export interface FourzeRendererOptions {
@@ -64,12 +64,52 @@ export interface FourzeRendererContext {
   logger: FourzeLogger
 }
 
-export function staticFile(dir: string, contextPath = "/"): FourzeMiddleware {
+export interface FourzeStaticFileOptions {
+  maybes?: string[]
+  includes?: string[]
+  excludes?: string[]
+}
+
+function hasFile(file: string) {
+  return fs.existsSync(file) && fs.statSync(file).isFile();
+}
+
+function findMaybeFile(
+  target: string,
+  maybes: string[] = []
+): string | null {
+  if (hasFile(target)) {
+    return target;
+  }
+  for (const maybe of maybes) {
+    const filePath = path.normalize(path.join(target, maybe));
+    if (hasFile(filePath)) {
+      return filePath;
+    }
+  }
+  return null;
+}
+
+export function staticFile(dir: string, options: FourzeStaticFileOptions = {}): FourzeMiddleware {
+  const maybes = options.maybes ?? ["index.html", "index.htm"];
+  const includes = options.includes ?? [];
+  const excludes = options.excludes ?? [];
+  const isMatch = (file: string | null): file is string => {
+    if (!file) {
+      return false;
+    }
+    if (includes.length) {
+      return micromatch.isMatch(file, includes);
+    }
+    if (excludes.length) {
+      return !micromatch.isMatch(file, excludes);
+    }
+    return true;
+  };
   return function (req: FourzeRequest, res: FourzeResponse, next?: FourzeNext) {
-    const _path = relativePath(req.path, contextPath) ?? "";
-    const filePath = path.join(dir, _path);
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      res.send(fs.readFileSync(filePath), mime.getType(filePath));
+    const file = findMaybeFile(path.join(dir, req.path), maybes);
+    if (isMatch(file)) {
+      res.send(fs.readFileSync(file), mime.getType(file));
     } else if (next) {
       next();
     } else {

@@ -1,7 +1,7 @@
 import type { OutgoingMessage, ServerResponse } from "http";
 import { safeParse } from "fast-content-type-parse";
 import { PolyfillServerResponse, getHeaderValue } from "../polyfill";
-import { assert, defineOverload, isDef, isNumber, isObject, isString, isUint8Array } from "../utils";
+import { assert, defineOverload, isDef, isNumber, isObject, isString, isUint8Array, isUndefined } from "../utils";
 import { FourzeError } from "./error";
 import type { FourzeRequest } from "./request";
 
@@ -147,7 +147,7 @@ export function createResponse(options: FourzeResponseOptions) {
         break;
       case "text/plain":
       case "text/html":
-        payload = payload.toString();
+        payload = payload?.toString();
         break;
       default:
         break;
@@ -155,8 +155,10 @@ export function createResponse(options: FourzeResponseOptions) {
     if (contentType) {
       this.setContentType(contentType);
     }
-    _payload = payload;
-    return this.status(statusCode).end(payload);
+    if (!isUndefined(payload)) {
+      _payload = payload;
+    }
+    return this.status(statusCode).end(_payload);
   };
 
   response.status = function (code) {

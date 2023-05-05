@@ -6,7 +6,11 @@ import { service } from "@fourze/swagger";
 import { describe, expect, it } from "vitest";
 import axios from "axios";
 
-describe("shared", async () => {
+describe("swagger", async () => {
+  // it("test-swagger-build", async () => {
+
+  // });
+
   it("test-swagger", async () => {
     const app = createApp({
       base: "/api",
@@ -52,5 +56,9 @@ describe("shared", async () => {
     const response = await axios.get(url);
 
     expect(response.status).toEqual(200);
+
+    const docs = await axios.get(`${origin ?? ""}/api-docs`);
+
+    expect(docs.status).toEqual(200);
   });
 });

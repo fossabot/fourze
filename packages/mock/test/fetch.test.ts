@@ -4,8 +4,29 @@ import nodeFetch from "node-fetch";
 import { describe, expect, it } from "vitest";
 
 describe("fetch", async () => {
+  globalThis.fetch = nodeFetch as typeof globalThis.fetch;
+
+  it("mock-base", async () => {
+    const app = createMockApp({
+      delay: "200-500",
+      mode: ["fetch"],
+      base: "/api"
+    });
+    app.use(defineRouter(router => {
+      router.route("/hello", () => {
+        return {
+          name: "test"
+        };
+      });
+    }));
+    await app.ready();
+    const data = await fetch("/api/hello").then(r => r.json());
+    expect(data).toEqual({
+      name: "test"
+    });
+  });
+
   it("mock-fetch", async () => {
-    globalThis.fetch = nodeFetch as typeof globalThis.fetch;
     const testData = {
       name: "test",
       count: randomInt(200)
