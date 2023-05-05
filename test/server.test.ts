@@ -1,6 +1,6 @@
 import { Server } from 'http';
-import { defineRouter, delay, randomInt } from "@fourze/core";
-import { connect, createServer, normalizeAddress, resolveHostname, resolveServerUrls } from "@fourze/server";
+import { createApp, defineRouter, delay, randomInt } from "@fourze/core";
+import { connect, createHmrApp, createServer, normalizeAddress, resolveHostname, resolveServerUrls } from "@fourze/server";
 import express from "connect";
 import axios from "axios";
 import { describe, expect, it } from "vitest";
@@ -20,14 +20,13 @@ describe("server", async () => {
       count: randomInt(200),
     };
 
-    const router = defineRouter({}).get("/api/test", () => {
+    const router = defineRouter({}).get("/test", () => {
       return {
         ...testData,
       };
     });
 
-
-    server.use(router);
+    server.use("/api", router);
 
     await server.listen();
 
@@ -43,8 +42,6 @@ describe("server", async () => {
     const port = 0;
 
     const app = express();
-
-
 
     const testData = {
       name: "test",

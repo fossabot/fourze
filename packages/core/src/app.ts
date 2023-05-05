@@ -90,13 +90,13 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
 
   const app = (async (request, response, next?: FourzeNext) => {
     next = next ?? fallback;
-    const { url } = request;
+    const { path } = request;
 
     await app.ready();
 
     try {
-      if (app.isAllow(url)) {
-        const ms = app.match(url);
+      if (app.isAllow(path)) {
+        const ms = app.match(path);
 
         request.app = app;
         response.setHeader("X-Powered-By", `Fourze/v${FOURZE_VERSION}`);
@@ -106,7 +106,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
         async function doNext() {
           const [path, middleware] = ms.shift() ?? [];
           if (middleware) {
-            request.contextPath = resolves(app.base, path);
+            request.contextPath = resolves(app.base, oldContextPath, path);
             await middleware(request, response, doNext);
           } else {
             request.contextPath = oldContextPath;
