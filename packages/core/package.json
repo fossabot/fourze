@@ -1,6 +1,6 @@
 {
     "name": "@fourze/core",
-    "version": "0.27.12",
+    "version": "0.28.0",
     "description": "",
     "main": "dist/index.cjs",
     "module": "dist/index.mjs",
