@@ -27,7 +27,7 @@ export interface SwaggerUIBuildOptions {
   distPath?: string
 
   /**
-   *  主项目的根路径
+   *  api的base
    *  @default "/"
    */
   base?: string
@@ -72,7 +72,9 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
   const tmpDir = path.join(process.cwd(), ".fourze-swagger");
 
   // 固定加上swagger-ui的路径
-  const base = options.base ?? "/";
+  const uiBase = options.vite?.base ?? "/";
+
+  const apiBase = options.base ?? "/";
 
   const uiPath = "/swagger-ui/";
 
@@ -87,11 +89,11 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
   const moduleNames = app.moduleNames.concat(["./docs"]);
 
   await fs.outputFile(path.join(tmpDir, "mock.ts"), createMockClient(moduleNames, {
-    base: app.base
+    base: apiBase
   }));
 
-  await fs.outputFile(path.join(tmpDir, "index.html"), renderIndexHtml(resolves(base, uiPath), {
-    url: resolves(app.base, "/api-docs"),
+  await fs.outputFile(path.join(tmpDir, "index.html"), renderIndexHtml(resolves(uiBase, uiPath), {
+    url: resolves(apiBase, "/api-docs"),
     script: [
       {
         src: "mock.ts",
@@ -109,7 +111,7 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
   // 打包接口文档 这里会有更好的方案吗???
 
   await viteBuild(mergeConfig(options.vite ?? {}, defineConfig({
-    base: resolves(base, uiPath),
+    base: resolves(uiBase, uiPath),
     root: tmpDir,
     build: {
       outDir: path.join(distPath, uiPath),

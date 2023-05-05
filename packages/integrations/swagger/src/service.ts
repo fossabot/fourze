@@ -21,7 +21,7 @@ export function service(
 
   const swaggerUISourcePath = getAbsoluteFSPath();
 
-  const { staticFile } = require("@fourze/server");
+  const { staticFile } = require("@fourze/server") as typeof import("@fourze/server");
 
   const render = staticFile(swaggerUISourcePath, base);
   const docsMiddleware = createSwaggerMiddleware(app, options);

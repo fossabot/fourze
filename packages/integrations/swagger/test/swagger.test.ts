@@ -1,29 +1,27 @@
-import { connect, normalizeAddress } from '@fourze/server';
-import express from 'express';
+import type { Server } from "http";
+import { connect, normalizeAddress } from "@fourze/server";
+import express from "express";
 import { createApp, defineRouter, randomInt } from "@fourze/core";
 import { service } from "@fourze/swagger";
 import { describe, expect, it } from "vitest";
-import axios from 'axios';
-import { Server } from 'http';
+import axios from "axios";
 
 describe("shared", async () => {
-
   it("test-swagger", async () => {
-
     const app = createApp({
-      base: '/api',
+      base: "/api",
       allow: ["/api/test", "/api/hello", "/api/add"],
-      deny: ["/api/deny"],
-    })
+      deny: ["/api/deny"]
+    });
 
     const router = defineRouter({}).get("/test", {
       meta: {
-        summary: "test",
+        summary: "test"
       }
     }, () => {
       return {
         name: "test",
-        count: randomInt(200),
+        count: randomInt(200)
       };
     });
 
@@ -46,14 +44,13 @@ describe("shared", async () => {
     });
 
     const origin = normalizeAddress(server.address(), {
-      protocol: "http",
+      protocol: "http"
     });
 
     const url = `${origin ?? ""}/swagger-ui/index.html`;
 
-    const response = await axios.get(url)
+    const response = await axios.get(url);
 
     expect(response.status).toEqual(200);
-
   });
 });

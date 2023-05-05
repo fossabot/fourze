@@ -1,12 +1,8 @@
-import { createApp, defineRouter, randomInt, setLoggerLevel } from "@fourze/core";
-import { createServer } from "@fourze/server";
-import axios from "axios";
 import { describe, expect, it } from "vitest";
-import { createRouteMatcher } from "../packages/core/src/shared/matcher";
+import { createRouteMatcher } from "../src/shared/matcher";
 
 describe("matcher", async () => {
   it("mock-matcher", async () => {
-
     const matcher = createRouteMatcher<string>();
 
     matcher.add("/hello/1", "get", "hello-1");
@@ -20,5 +16,4 @@ describe("matcher", async () => {
     expect(matcher.match("/hello/3", "get")).toEqual(["hello-3", null]);
     expect(matcher.match("/hello/3", "post")).toEqual(["hello-3", null]);
   });
-
 });

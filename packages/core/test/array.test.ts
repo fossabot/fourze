@@ -1,5 +1,5 @@
-import { createQuery } from "@fourze/core";
 import { describe, expect, it } from "vitest";
+import { createQuery } from "../src/utils/array";
 
 describe("array", async () => {
   it("mock-query", async () => {
@@ -12,7 +12,6 @@ describe("array", async () => {
     expect(query.get(1)).toEqual("test2");
     expect(query.get(2)).toEqual("test3");
     expect(query.get(3)).toEqual(undefined);
-
 
     expect(query.length).toEqual(3);
 
@@ -46,15 +45,12 @@ describe("array", async () => {
     expect(delete query[-1]).toBeTruthy();
     expect(query.length).toEqual(3);
     expect(query[2]).toEqual(undefined);
-
   });
 
-
   it("mock-query-2", async () => {
-
-    const magnus = { name: "Hedlund, Magnus" }
-    const terry = { name: "Adams, Terry" }
-    const charlotte = { name: "Weiss, Charlotte" }
+    const magnus = { name: "Hedlund, Magnus" };
+    const terry = { name: "Adams, Terry" };
+    const charlotte = { name: "Weiss, Charlotte" };
 
     const barley = { name: "Barley", owner: terry };
     const boots = { name: "Boots", owner: terry };
@@ -68,7 +64,7 @@ describe("array", async () => {
       return {
         name: person.name,
         pets: petCollection.map((pet) => pet.name)
-      }
+      };
     });
 
     expect(query.length).toEqual(3);
@@ -78,7 +74,6 @@ describe("array", async () => {
   });
 
   it("mock-query-math", async () => {
-
     const query = createQuery([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     expect(query.sum()).toEqual(55);
     expect(query.average()).toEqual(5.5);
@@ -95,18 +90,14 @@ describe("array", async () => {
   });
 
   it("mock-query-where", async () => {
-
     const query = createQuery([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-
 
     expect(query.where((x) => x > 5).select().length).toEqual(5);
 
-
-    query.sort().select()
+    query.sort().select();
 
     const query2 = createQuery([{ name: "test", order: 1 }, { name: "test2", order: 1 }, { name: "test", order: 1 }, { name: "test2", order: 1 }]);
     expect(query2.select("name").toArray()).toEqual(["test", "test2", "test", "test2"]);
     expect(query2.where("order", 1).select("name").toArray()).toEqual(["test", "test2", "test", "test2"]);
-
   });
 });

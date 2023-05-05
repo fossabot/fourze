@@ -1,7 +1,7 @@
+import type { DelayMsType } from "@fourze/core";
 import {
   createSingletonPromise,
   delay,
-  DelayMsType,
   memoize,
   normalize,
   parseFakerNumber,
@@ -31,7 +31,7 @@ describe("utils", () => {
       (index) => {
         return {
           name: `item-${index}`,
-          count: randomInt("200-500"),
+          count: randomInt("200-500")
         };
       },
       12,
@@ -43,18 +43,18 @@ describe("utils", () => {
   });
 
   it("test-slash", () => {
-    const path = "/hello/world/"
-    const base = "/api/"
-    expect(slash(base, path))
+    const path = "/hello/world/";
+    const base = "/api/";
+    expect(slash(base, path));
   });
 
   it("test-relativePath", () => {
     const path = "/abc/def/ghi";
     const path2 = "/abc/def/ghi/";
     const path3 = "/abc/";
-    const path4 = "/abc"
+    const path4 = "/abc";
     const base = "/abc";
-    const normalBase = "/"
+    const normalBase = "/";
     expect(relativePath(path, base)).toBe("/def/ghi");
     expect(relativePath(path2, base)).toBe("/def/ghi/");
     expect(relativePath(path3, base)).toBe("/");
@@ -73,9 +73,9 @@ describe("utils", () => {
   });
 
   it("test-normalize", () => {
-    expect(normalize("")).toEqual("/")
-    expect(normalize("//abc")).toEqual("/abc")
-    expect(normalize("//abc/")).toEqual("/abc")
+    expect(normalize("")).toEqual("/");
+    expect(normalize("//abc")).toEqual("/abc");
+    expect(normalize("//abc/")).toEqual("/abc");
     expect(normalize("\/\\/\/abc\\//a\\//c")).toEqual("/abc/a/c");
   });
 
@@ -117,6 +117,5 @@ describe("utils", () => {
     memoized.delete([1, 2]);
     const r4 = await memoized(1, 2);
     expect(r4).not.toBe(r);
-    console.log(memoized.cache);
   });
 });

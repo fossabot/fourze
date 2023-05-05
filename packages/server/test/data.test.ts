@@ -1,4 +1,4 @@
-import { createApp, defineRouter, randomInt, setLoggerLevel } from "@fourze/core";
+import { defineRouter, randomInt, setLoggerLevel } from "@fourze/core";
 import { createServer } from "@fourze/server";
 import axios from "axios";
 import { describe, expect, it } from "vitest";
@@ -7,15 +7,13 @@ describe("data", async () => {
   it("mock-data", async () => {
     const testData = {
       name: "test",
-      count: randomInt(200),
+      count: randomInt(200)
     };
     setLoggerLevel("debug");
 
-
-
     const server = createServer({
       host: "localhost",
-      port: 0,
+      port: 0
     });
 
     const router = defineRouter({})
@@ -25,7 +23,7 @@ describe("data", async () => {
         }
       }, (req) => {
         return {
-          name: req.data.name,
+          name: req.data.name
         };
       })
       .route("/hello-2", "get", () => {
@@ -45,19 +43,18 @@ describe("data", async () => {
             name: {
               type: String,
               required: true,
-              in: "body",
-            },
+              in: "body"
+            }
           }
         },
         (req) => {
           return {
-            name: req.body.name,
+            name: req.body.name
           };
         }
       ).get("/avatar.jpg", (req, res) => {
-        res.image(Buffer.from([0, 0, 0, 0]))
+        res.image(Buffer.from([0, 0, 0, 0]));
       });
-
 
     server.use(router);
 
@@ -65,7 +62,7 @@ describe("data", async () => {
 
     const axiosInstance = axios.create({
       baseURL: server.origin
-    })
+    });
 
     const { name } = await axiosInstance
       .post<typeof testData>("/hello", testData)
@@ -73,7 +70,7 @@ describe("data", async () => {
 
     expect(name).toEqual(testData.name);
 
-    const contentType = await axiosInstance("/avatar.jpg").then(r => r.headers["content-type"])
-    expect(contentType).toEqual("image/jpeg")
+    const contentType = await axiosInstance("/avatar.jpg").then(r => r.headers["content-type"]);
+    expect(contentType).toEqual("image/jpeg");
   });
 });

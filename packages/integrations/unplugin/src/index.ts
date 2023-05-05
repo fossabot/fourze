@@ -193,7 +193,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
       async writeBundle() {
         if (generateDocument) {
           await build(hmrApp, {
-            base: viteConfig.base,
+            base,
             distPath: viteConfig.build?.outDir,
             vite: {
               ...viteConfig

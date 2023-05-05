@@ -1,6 +1,6 @@
-import { Server } from 'http';
-import { createApp, defineRouter, delay, randomInt } from "@fourze/core";
-import { connect, createHmrApp, createServer, normalizeAddress, resolveHostname, resolveServerUrls } from "@fourze/server";
+import type { Server } from "http";
+import { createApp, defineRouter, randomInt } from "@fourze/core";
+import { connect, createServer, normalizeAddress } from "@fourze/server";
 import express from "connect";
 import axios from "axios";
 import { describe, expect, it } from "vitest";
@@ -10,23 +10,26 @@ describe("server", async () => {
     const host = "localhost";
     const port = 0;
 
-    const server = createServer({
+    const app = createApp({
+      base: "/api"
+    });
+    const server = createServer(app, {
       host,
-      port,
+      port
     });
 
     const testData = {
       name: "test",
-      count: randomInt(200),
+      count: randomInt(200)
     };
 
     const router = defineRouter({}).get("/test", () => {
       return {
-        ...testData,
+        ...testData
       };
     });
 
-    server.use("/api", router);
+    server.use(router);
 
     await server.listen();
 
@@ -45,13 +48,12 @@ describe("server", async () => {
 
     const testData = {
       name: "test",
-      count: randomInt(200),
+      count: randomInt(200)
     };
-
 
     const router = defineRouter({}).get("/test", () => {
       return {
-        ...testData,
+        ...testData
       };
     });
 
@@ -61,24 +63,19 @@ describe("server", async () => {
       const server = app.listen(port, host, () => {
         resolve(server);
       });
-    })
-
+    });
 
     const origin = normalizeAddress(server.address(), {
       protocol: "http",
-      hostname: host,
+      hostname: host
     });
 
-
-
     const url = `${origin ?? ""}/api/test`;
-    console.log(url);
 
     const returnData = await axios
       .get<typeof testData>(url)
       .then((r) => r.data);
 
     expect(returnData).toEqual(testData);
-
   });
 });

@@ -8,26 +8,26 @@ describe("fetch", async () => {
     globalThis.fetch = nodeFetch as typeof globalThis.fetch;
     const testData = {
       name: "test",
-      count: randomInt(200),
+      count: randomInt(200)
     };
     setLoggerLevel("debug");
 
     const app = createMockApp({
       delay: "200-500",
       mode: ["fetch"],
-      host: "localhost:7609",
+      host: "localhost:7609"
     }).use(async (req, res, next) => {
       res.setHeader("x-test", "abcd");
       res.appendHeader("x-test", "test");
       await next?.();
-    })
+    });
 
     const router = defineRouter(router => {
-      router.route("/hello", (req, res) => {
+      router.route("/hello", () => {
         return {
-          ...testData,
+          ...testData
         };
-      })
+      });
     });
 
     app.use(router);
