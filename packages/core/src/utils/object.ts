@@ -32,7 +32,9 @@ export function aliasObjectMap<R = any, T extends Record<string, any> = Record<s
   const rs = Object.keys(alias).reduce((prev, key) => {
     const propKey = alias[key];
     if (isString(propKey)) {
-      prev[key] = obj[propKey];
+      if (isKeyOf(obj, propKey)) {
+        prev[key] = obj[propKey];
+      }
     } else if (isFunction(propKey)) {
       prev[key] = propKey(obj);
     } else {

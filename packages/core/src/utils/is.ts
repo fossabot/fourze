@@ -57,7 +57,7 @@ export function isRegExp(value: unknown): value is RegExp {
 }
 
 export function isFormData(value: unknown): value is FormData {
-  return value != null && !!globalThis.FormData && value instanceof FormData;
+  return isDef(value) && !!globalThis.FormData && value instanceof FormData;
 }
 
 export function isURL(value: unknown): value is URL {

@@ -1,5 +1,5 @@
 import type { MaybeArray, MaybeNumber } from "maybe-types";
-import { isFunction, isPrimitive, isString } from "./is";
+import { isPrimitive, isString } from "./is";
 import { randomInt, randomItem } from "./random";
 
 export type BaseValueType = number | string | boolean | null | undefined;
@@ -67,16 +67,8 @@ export function parseFakerDynamic(
     const value = val.split("|");
     return parseFakerDynamic(randomItem(value), context);
   }
-
-  if (/^\w[\w\d_]*\(\)$/g.test(val)) {
-    const fnName = val.slice(0, -2);
-    const fn = context[fnName];
-    if (isFunction(val)) {
-      return fn();
-    }
-  }
-  if (/^\w[\w\d_]*$/g.test(val)) {
-    const field = context[val];
+  if (val.startsWith("$")) {
+    const field = getContextValue(context, val.slice(1));
     return field;
   }
 
@@ -85,6 +77,10 @@ export function parseFakerDynamic(
   }
 
   if (/^"[^"]*"$/g.test(val)) {
+    return val.slice(1, -1);
+  }
+
+  if (/^`[^`]*`$/g.test(val)) {
     return val.slice(1, -1);
   }
 
@@ -120,12 +116,12 @@ export function parseFakerValue(
 /**
  *
  *  {
- *    a :"100",
- *    b :"300-600",
- *    c : "8799",
+ *    a :"{100}",
+ *    b :"{300-600}",
+ *    c : "{8799}",
  *    d : ["100",30,"400-900"],
  *    e : {
- *       a :"100-300"
+ *       a :"{100-300}"
  *    }
  *  }
  *

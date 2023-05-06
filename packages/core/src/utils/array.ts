@@ -217,55 +217,6 @@ export function createQuery<T>(
 ): CollectionQuery<T> {
   const query = new CollectionQueryClass(initSource);
   return query as unknown as CollectionQuery<T>;
-
-  const source = Array.from(initSource);
-
-  const self = new Proxy(query, {
-    get(target, prop) {
-      if (isString(prop)) {
-        const index = Number(prop);
-        if (!isNaN(index)) {
-          return target.get(index);
-        }
-      }
-      switch (prop) {
-        case "fill":
-          return (value: T, start = 0, end = source.length) => {
-            start = normalizeIndex(start, source.length);
-            end = normalizeIndex(end, source.length);
-            source.fill(value, start, end);
-            return self;
-          };
-      }
-      if (isKeyOf(target, prop)) {
-        return target[prop];
-      }
-      return source[prop as keyof Array<T>];
-    },
-    set(target, prop, value) {
-      if (isString(prop)) {
-        const index = +prop;
-        if (!isNaN(index)) {
-          target.set(index, value);
-          return true;
-        }
-      }
-      target[prop as Exclude<keyof typeof target, "length">] = value;
-      return true;
-    },
-    deleteProperty(target, prop) {
-      if (isString(prop)) {
-        let index = +prop;
-        if (!isNaN(index)) {
-          index = normalizeIndex(index, source.length);
-          return delete source[index];
-        }
-      }
-      return false;
-    }
-  }) as unknown as CollectionQuery<T>;
-
-  return self;
 }
 
 export function range(

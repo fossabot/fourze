@@ -6,7 +6,7 @@ export function transformTemplate(
   template: string,
   data: Record<string, any>
 ): string {
-  return template.replace(/<% (.+?) %>/g, (_, name) => {
+  return template.replace(/<%(.*?)%>/g, (_, name) => {
     return data[name.trim()] ?? "";
   });
 }
@@ -29,3 +29,8 @@ export function escapeStringRegexp(str: string) {
 export const parseJson = destr;
 
 export const stringifyJson = JSON.stringify;
+
+export function normalizeRoute(path: string, method = "GET") {
+  method = method.toUpperCase();
+  return `[${method}] ${path}`;
+}
