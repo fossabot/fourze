@@ -1,7 +1,7 @@
-import type { Consola } from "consola";
-import consola, { LogLevel } from "consola";
+import type { ConsolaInstance, LogType } from "consola";
+import { consola } from "consola";
 
-export enum FourzeLogLevel {
+export const enum FourzeLogLevel {
   Fatal = 0,
   Error = 0,
   Warn = 1,
@@ -10,8 +10,8 @@ export enum FourzeLogLevel {
   Success = 3,
   Debug = 4,
   Trace = 5,
-  Silent = -Infinity,
-  Verbose = Infinity
+  Silent = -1,
+  Verbose = 999
 }
 
 export const noopLogger = {
@@ -25,21 +25,21 @@ export const noopLogger = {
   trace: () => {}
 };
 
-export type FourzeLogLevelKey = Lowercase<keyof typeof LogLevel>;
+export type FourzeLogLevelKey = LogType;
 
-export type FourzeLogger = Consola;
+export type FourzeLogger = ConsolaInstance;
 
 let globalLoggerLevel: FourzeLogLevelKey | FourzeLogLevel = "info";
 
 const loggerStore = new Map<string, FourzeLogger>();
 
-export function createLogger(scope: string) {
+export function createLogger(tag: string) {
   // return noopLogger as unknown as FourzeLogger;
-  let logger = loggerStore.get(scope);
+  let logger = loggerStore.get(tag);
   if (!logger) {
-    logger = consola.withScope(scope);
-    loggerStore.set(scope, logger);
-    setLoggerLevel(globalLoggerLevel, scope);
+    logger = consola.withTag(tag);
+    loggerStore.set(tag, logger);
+    setLoggerLevel(globalLoggerLevel, tag);
   }
   return logger;
 }
@@ -52,38 +52,36 @@ export function setLoggerLevel(
     switch (level) {
       case "fatal":
       case "error":
-      case LogLevel.Fatal:
-      case LogLevel.Error:
+      case FourzeLogLevel.Fatal:
         logger.level = 0;
         break;
       case "warn":
-      case LogLevel.Warn:
+      case FourzeLogLevel.Warn:
         logger.level = 1;
         break;
       case "log":
-      case LogLevel.Log:
+      case FourzeLogLevel.Log:
         logger.level = 2;
         break;
       case "info":
       case "success":
-      case LogLevel.Info:
-      case LogLevel.Success:
+      case FourzeLogLevel.Success:
         logger.level = 3;
         break;
       case "debug":
-      case LogLevel.Debug:
+      case FourzeLogLevel.Debug:
         logger.level = 4;
         break;
       case "trace":
-      case LogLevel.Trace:
+      case FourzeLogLevel.Trace:
         logger.level = 5;
         break;
       case "silent":
-      case LogLevel.Silent:
+      case FourzeLogLevel.Silent:
         logger.level = -Infinity;
         break;
       case "verbose":
-      case LogLevel.Verbose:
+      case FourzeLogLevel.Verbose:
         logger.level = Infinity;
         break;
     }
