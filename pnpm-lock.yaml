@@ -96,8 +96,8 @@ importers:
         specifier: ^3.7.0
         version: 3.7.0
       consola:
-        specifier: ^2.15.3
-        version: 2.15.3
+        specifier: ^3.1.0
+        version: 3.1.0
       express:
         specifier: ^4.18.1
         version: 4.18.1
@@ -130,8 +130,8 @@ importers:
   packages/core:
     dependencies:
       consola:
-        specifier: ^2.15.3
-        version: 2.15.3
+        specifier: ^3.1.0
+        version: 3.1.0
       destr:
         specifier: ^1.2.2
         version: 1.2.2
@@ -4703,7 +4703,6 @@ packages:
 
   /consola@3.1.0:
     resolution: {integrity: sha512-rrrJE6rP0qzl/Srg+C9x/AE5Kxfux7reVm1Wh0wCjuXvih6DqZgqDZe8auTD28fzJ9TF0mHlSDrPpWlujQRo1Q==}
-    dev: true
 
   /console-control-strings@1.1.0:
     resolution: {integrity: sha512-ty/fTekppD2fIwRvnZAVdeOiGd1c7YXEixbgJTNzqcxJWKQnjJ/V1bNEEE6hygpM3WjwHFUVK6HTjWSzV4a8sQ==}
