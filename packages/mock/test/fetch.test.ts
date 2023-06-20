@@ -16,7 +16,7 @@ test("mock-base", async () => {
     });
   }));
   await app.ready();
-  const data = await fetch("/api/hello").then(r => r.json());
+  const data = await app.fetch("/api/hello").then(r => r.json());
   expect(data).toEqual({
     name: "test"
   });
@@ -51,7 +51,7 @@ test("mock-fetch", async () => {
 
   await app.ready();
 
-  const fetchReturn = await fetch("http://localhost:7609/hello");
+  const fetchReturn = await app.fetch("http://localhost:7609/hello");
 
   const fetchReturnHeaders = fetchReturn.headers.get("x-test");
 

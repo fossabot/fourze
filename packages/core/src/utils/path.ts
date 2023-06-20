@@ -1,5 +1,6 @@
 import minimatch from "minimatch";
 import type { MaybeRegex } from "maybe-types";
+import { resolveURL } from "ufo";
 import { isRegExp } from "./is";
 
 export function slash(...paths: string[]): string {
@@ -17,16 +18,6 @@ export function slash(...paths: string[]): string {
   }
 
   return path;
-}
-
-export function resolvePath(_path: string, ..._base: string[]): string {
-  if (!hasProtocol(_path)) {
-    if (!_path.startsWith("//")) {
-      return resolves(..._base, _path);
-    }
-    return normalize(_path);
-  }
-  return _path;
 }
 
 export function relativePath(path: string, base?: string): string | null {
@@ -76,17 +67,9 @@ export function normalize(path: string) {
   return path;
 }
 
-/**
- * 格式化路径 必须以‘/’开始，结尾去除'/',不得有重复的'/'
- * @example /abc/edf
- * @param paths
- * @returns
- */
-export function resolves(...args: (string | undefined)[]): string {
-  const paths = args.filter((p) => !!p && p !== "/") as string[];
-  if (paths.length) {
-    return normalize(paths.map(normalize).join(""));
+export function resolves(...paths: string[]) {
+  if (paths.length === 0) {
+    return "/";
   }
-  return "/";
+  return resolveURL(paths[0], ...paths.slice(1));
 }
-

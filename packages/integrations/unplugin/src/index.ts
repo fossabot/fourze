@@ -298,7 +298,7 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
           server.use(hmrApp);
           if (options.swagger !== false) {
             const swaggerMiddleware = service(hmrApp, {
-              base: resolves(viteConfig.base, "/swagger-ui/"),
+              base: viteConfig.base ? resolves(viteConfig.base, "/swagger-ui/") : "/swagger-ui/",
               ...swaggerOptions
             });
             server.use(swaggerMiddleware);

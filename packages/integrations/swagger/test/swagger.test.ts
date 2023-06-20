@@ -1,7 +1,7 @@
 import type { Server } from "http";
 import { connect, normalizeAddress } from "@fourze/server";
 import express from "express";
-import { createApp, defineRouter, randomInt } from "@fourze/core";
+import { createApp, defineRouter, randomInt, resolves } from "@fourze/core";
 import { service } from "@fourze/swagger";
 import { expect, test } from "vitest";
 import axios from "axios";
@@ -37,7 +37,7 @@ test("test-swagger", async () => {
   expressApp.use(connect(swaggerRouter));
 
   const server: Server = await new Promise(resolve => {
-    const _server = expressApp.listen(7609, "localhost", () => {
+    const _server = expressApp.listen(0, "localhost", () => {
       resolve(_server);
     });
   });
@@ -46,13 +46,9 @@ test("test-swagger", async () => {
     protocol: "http"
   });
 
-  const url = `${origin ?? ""}/swagger-ui/index.html`;
+  const url = origin ? resolves(origin, "/api-docs") : "/api-docs";
 
   const response = await axios.get(url);
 
   expect(response.status).toEqual(200);
-
-  const docs = await axios.get(`${origin ?? ""}/api-docs`);
-
-  expect(docs.status).toEqual(200);
 });

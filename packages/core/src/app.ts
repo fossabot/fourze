@@ -101,15 +101,13 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
         request.app = app;
         response.setHeader("X-Powered-By", `Fourze/v${FOURZE_VERSION}`);
 
-        const oldContextPath = request.contextPath;
-
         async function doNext() {
-          const [path, middleware] = ms.shift() ?? [];
-          if (middleware) {
-            request.contextPath = resolves(app.base, oldContextPath, path);
-            await middleware(request, response, doNext);
+          const nextNode = ms.shift();
+          if (nextNode) {
+            const [path, middleware] = nextNode;
+            const req = request.withScope(resolves(app.base, path));
+            await middleware(req, response, doNext);
           } else {
-            request.contextPath = oldContextPath;
             await next?.();
           }
         }
@@ -316,4 +314,3 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
 
   return app;
 }
-

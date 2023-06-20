@@ -3,7 +3,15 @@ import { program } from "commander";
 import { choices, list } from "./lib/packages";
 import bench from "./lib/bench";
 
-const argv = program
+let argv: string[] = [];
+
+const run = async () => {
+  const options = await getBenchmarkOptions();
+  const modules = options.all ? choices : await select();
+  return bench(options, modules);
+};
+
+argv = program
   .option("-t --target <module>", "module to benchmark")
   .option("-A --all", "run all modules")
   .action((command) => {
@@ -19,13 +27,7 @@ const argv = program
     }
   }).parse(process.argv).args;
 
-async function run() {
-  const options = await getBenchmarkOptions();
-  const modules = options.all ? choices : await select();
-  return bench(options, modules);
-}
-
-function parseArgv() {
+const parseArgv = async () => {
   const [all, connections, pipelining, duration] = argv;
   return {
     all: all === "y",
@@ -33,7 +35,8 @@ function parseArgv() {
     pipelining: +pipelining,
     duration: +duration
   };
-}
+};
+
 async function getBenchmarkOptions() {
   if (argv.length) {
     return parseArgv();

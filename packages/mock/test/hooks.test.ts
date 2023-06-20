@@ -52,7 +52,7 @@ test("test-hooks", async () => {
 
   await app.ready();
 
-  const res = await fetch("/api/test", {
+  const res = await app.fetch("/api/test", {
     headers: {
       token: data.token
     }
@@ -60,14 +60,9 @@ test("test-hooks", async () => {
 
   expect(res.token).toEqual(data.token.toUpperCase());
 
-  const res2 = await fetch("/api/test", { method: "post" });
+  const res2 = await app.fetch("/api/test", { method: "post" });
 
   const resToken = res2.headers.get("token");
-
-  // 请求一个swagger示例的json接口
-  const res3 = await fetch("http://petstore.swagger.io/v2/pet/findByStatus?status=available").then(r => r.json());
-
-  expect(res3).toBeInstanceOf(Array);
 
   expect(resToken).toEqual(data.token);
 

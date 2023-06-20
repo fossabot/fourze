@@ -45,7 +45,12 @@ then you can fetch `/api/hello` to get response.
 -   Node.js and browser support
 
 
-
+# Development
+```shell
+pnpm install
+pnpm build
+pnpm play:vite
+```
 
 # Nuxt
 

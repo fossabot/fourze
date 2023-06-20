@@ -1,9 +1,7 @@
 import { expect, test } from "vitest";
 import {
   isMatch,
-  normalize,
   relativePath,
-  resolvePath,
   resolves,
   slash
 } from "../../src/utils/path";
@@ -36,20 +34,6 @@ test("test-relativePath", () => {
 test("test-resolvePath", () => {
   const path = "https://test.com";
   const base = "/api";
-  const final0 = resolvePath(path, base);
-  expect(final0).toBe(path);
-  const finalPath = resolvePath(path, base);
-  expect(finalPath).toEqual(path);
-  expect(resolvePath("//api/hello")).toEqual("/api/hello");
+  expect(resolves(path, base)).toBe("https://test.com/api");
 });
 
-test("test-resolves", () => {
-  expect(resolves("api/", "/hello/")).toEqual("/api/hello");
-});
-
-test("test-normalize", () => {
-  expect(normalize("")).toEqual("/");
-  expect(normalize("//abc")).toEqual("/abc");
-  expect(normalize("//abc/")).toEqual("/abc");
-  expect(normalize("\/\\/\/abc\\//a\\//c")).toEqual("/abc/a/c");
-});

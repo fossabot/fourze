@@ -76,7 +76,7 @@ export function defineRoute<
     }
   }
 
-  path = resolves(base, path);
+  path = base ? resolves(base, path) : path;
 
   return {
     method,

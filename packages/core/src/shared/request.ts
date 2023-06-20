@@ -2,9 +2,10 @@ import type { IncomingMessage } from "http";
 import qs from "query-string";
 import type { MaybeRegex } from "maybe-types";
 import { safeParse } from "fast-content-type-parse";
+import { getQuery, parseURL } from "ufo";
 import type { PolyfillHeaderInit } from "../polyfill";
 import { decodeFormData, flatHeaders, getHeaderValue } from "../polyfill";
-import { isString, isUint8Array, normalize, parseJson, relativePath } from "../utils";
+import { isString, isUint8Array, memoize, parseJson, relativePath } from "../utils";
 import type { DefaultData, ExtractPropTypes, ExtractPropTypesWithIn, ObjectProps } from "./props";
 import { validateProps, withDefaults } from "./props";
 import type { FourzeRoute } from "./route";
@@ -33,6 +34,7 @@ export interface FourzeRequestOptions {
   headers?: PolyfillHeaderInit
   body?: any
   params?: Record<string, any>
+  query?: Record<string, any>
   request?: IncomingMessage
   contentTypeParsers?: Map<MaybeRegex, (body: any) => any>
 }
@@ -53,6 +55,8 @@ export interface FourzeRequest<
   contextPath: string
 
   setRoute(route: FourzeRoute, matchParams?: Record<string, any> | null): void
+
+  withScope(scope: string): FourzeRequest<Props, Meta, Data, Query, Body, Params>
 
   readonly contentType: string
 
@@ -95,9 +99,9 @@ export function createRequest(options: FourzeRequestOptions) {
 
   request.headers = headers;
 
-  const { query = {}, url: originalPath } = qs.parseUrl(request.url, {
-    parseBooleans: true
-  });
+  const { search, pathname } = parseURL(request.url);
+
+  const query = getQuery(search);
 
   const { type: contentType, parameters } = safeParse(getHeaderValue(
     headers,
@@ -138,8 +142,6 @@ export function createRequest(options: FourzeRequestOptions) {
 
   const params = { ...options.params };
 
-  let _contextPath = "/";
-
   let _route: FourzeRoute | undefined;
 
   /**
@@ -159,6 +161,13 @@ export function createRequest(options: FourzeRequestOptions) {
     Object.assign(_defaultsProps, data);
     validateProps(route.props, data);
   };
+
+  request.withScope = memoize((scope) => {
+    return createRequest({
+      ...options,
+      url: relativePath(request.url, scope) ?? request.url
+    });
+  });
 
   Object.defineProperties(request, {
     [FOURZE_REQUEST_SYMBOL]: {
@@ -218,24 +227,15 @@ export function createRequest(options: FourzeRequestOptions) {
       },
       enumerable: true
     },
-    contextPath: {
-      get() {
-        return _contextPath ?? "/";
-      },
-      set(val) {
-        _contextPath = val;
-      },
-      enumerable: true
-    },
     path: {
       get() {
-        return normalize(relativePath(originalPath, _contextPath) ?? "/");
+        return pathname;
       },
       enumerable: true
     },
     originalPath: {
       get() {
-        return originalPath;
+        return pathname;
       },
       enumerable: true
     }
