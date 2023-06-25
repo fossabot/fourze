@@ -128,3 +128,26 @@ Request
 Response
 
 `{"id":"1","name":"test"}`
+
+
+# Thanks
+This project is heavily inspired by the following awesome projects.
+
+- [Mock.js](https://github.com/nuysoft/Mock.git)
+
+- [express](https://github.com/expressjs/express.git)
+
+- [Fastify](https://github.com/fastify/fastify.git)
+
+- [axios](https://github.com/axios/axios.git)
+
+- [Vue.js](https://github.com/vuejs/vue.git)
+
+- [VueUse](https://github.com/vueuse/vueuse.git)
+
+- [radix3](https://github.com/unjs/radix3.git)
+
+- [jiti](https://github.com/unjs/jiti.git)
+
+
+

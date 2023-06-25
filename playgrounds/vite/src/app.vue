@@ -8,15 +8,11 @@
   import { computed, reactive, ref, watch } from "vue";
   import { HiItem, HiSelection } from "hoci";
   import Loading from "./components/base/loading.vue";
-  import Table from "./components/base/table";
+  import Table from "./components/base/table.vue";
   import type { TableColumns } from "./components/hooks/table";
   import HiButton from "@/components/base/button.vue";
 
   const t = ref(0);
-
-  const avatarUrl = computed(() =>
-    `/api/img/avatar.jpg?t=${t.value} `
-  );
 
   const _mockEnabled = ref(!!getGlobalMockApp()?.enabled);
 
@@ -171,21 +167,6 @@
 
 <template>
   <div class="px-4">
-    <div class="">
-      <div class=" font-bold py-2 text-2xl text-light-blue-400">
-        Image Upload/Load
-      </div>
-
-      <div class="flex space-x-4 items-center">
-        <img :style="{ width: '120px', height: '120px' }" :src="avatarUrl">
-        <div>
-          <HiButton @click="upload">
-            Upload
-          </HiButton>
-        </div>
-      </div>
-    </div>
-
     <div>
       <div>
         <div class=" font-bold mt-4 py-2 text-2xl text-light-blue-400">

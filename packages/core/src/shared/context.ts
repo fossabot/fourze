@@ -20,7 +20,7 @@ export interface FourzeServiceContext {
   response: FourzeResponse
 }
 
-export function createServiceContext(options: FourzeContextOptions) {
+export function createServiceContext(options: FourzeContextOptions): FourzeServiceContext {
   const { url, method = "GET", headers = {}, body } = options;
   const request = createRequest({
     url,

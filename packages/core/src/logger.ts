@@ -1,7 +1,7 @@
-import type { ConsolaInstance, LogType } from "consola";
-import { consola } from "consola";
+import consola from "consola";
+import type { Consola } from "consola";
 
-export const enum FourzeLogLevel {
+export enum FourzeLogLevel {
   Fatal = 0,
   Error = 0,
   Warn = 1,
@@ -25,9 +25,9 @@ export const noopLogger = {
   trace: () => {}
 };
 
-export type FourzeLogLevelKey = LogType;
+export type FourzeLogLevelKey = Uncapitalize<keyof typeof FourzeLogLevel>;
 
-export type FourzeLogger = ConsolaInstance;
+export type FourzeLogger = Consola;
 
 let globalLoggerLevel: FourzeLogLevelKey | FourzeLogLevel = "info";
 

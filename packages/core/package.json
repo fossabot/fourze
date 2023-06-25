@@ -8,6 +8,7 @@
     "files": [
         "dist/"
     ],
+    "type": "module",
     "scripts": {
         "build": "unbuild",
         "stub": "unbuild --stub"
@@ -15,7 +16,7 @@
     "author": "chizuki",
     "license": "MIT",
     "dependencies": {
-        "consola": "^3.1.0",
+        "consola": "^2.15.3",
         "destr": "^2.0.0",
         "events": "^3.3.0",
         "fast-content-type-parse": "^1.0.0",

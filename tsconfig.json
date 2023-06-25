@@ -31,12 +31,5 @@
             ]
         }
     },
-    "include": [
-        "playgrounds/**/*.ts",
-        "playgrounds/**/*.d.ts",
-        "playgrounds/**/*.tsx",
-        "packages/**/*.ts",
-        "test/**/*.ts"
-    ],
     "exclude": ["node_modules", "dist"]
 }
