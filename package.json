@@ -45,7 +45,7 @@
     ]
   },
   "devDependencies": {
-    "@curev/eslint-config": "^0.0.11",
+    "@curev/eslint-config": "^0.0.12",
     "@fourze/core": "workspace:*",
     "@fourze/mock": "workspace:*",
     "@fourze/server": "workspace:*",

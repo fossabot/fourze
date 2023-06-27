@@ -12,8 +12,6 @@
   import type { TableColumns } from "./components/hooks/table";
   import HiButton from "@/components/base/button.vue";
 
-  const t = ref(0);
-
   const _mockEnabled = ref(!!getGlobalMockApp()?.enabled);
 
   const mockEnabled = computed({
@@ -32,26 +30,6 @@
       _mockEnabled.value = value;
     }
   });
-
-  function upload() {
-    const fileElement = document.createElement("input");
-    fileElement.type = "file";
-    fileElement.onchange = async () => {
-      if (fileElement.files) {
-        const formData = new FormData();
-        formData.append("file", fileElement.files[0]);
-        formData.append("name", "avatar");
-        await axios.post("/api/upload/avatar", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            "X-Fourze-Mock": "off" // disable mock.
-          }
-        });
-        t.value = new Date().getTime();
-      }
-    };
-    fileElement.click();
-  }
 
   const args = reactive({
     type: "fetch" as "fetch" | "axios" | "jquery",
