@@ -2,13 +2,20 @@ import { createRequire } from "module";
 import path from "path";
 import pkgJson from "../package.json";
 
-const packages = {
+const packages: Record<string, {
+  checked?: boolean
+  hasRouter?: boolean
+  package?: string
+  version?: string
+  extra?: boolean
+}> = {
   "fourze": { checked: true, hasRouter: true, package: "@fourze/core" },
   "fourze-router": { checked: true, hasRouter: true, package: "@fourze/core" },
   "express": { checked: true, hasRouter: true },
   "fastify": { checked: true, hasRouter: true },
   "koa": { checked: true, hasRouter: true },
   "connect": { hasRouter: true },
+  "h3": { checked: true, hasRouter: false },
   "nodehttp": { checked: true, hasRouter: false, version: process.version.slice(1) }
 };
 
@@ -17,7 +24,7 @@ const require = createRequire(import.meta.url);
 const _choices: string[] = [];
 Object.keys(packages).forEach((pkg) => {
   if (!packages[pkg].version) {
-    const module = pkgJson.dependencies[pkg] ? pkg : packages[pkg].package;
+    const module = pkgJson.dependencies[pkg as keyof typeof pkgJson.dependencies] ? pkg : packages[pkg].package;
     if (!module) {
       console.warn(`No package found for ${pkg}`);
       return;

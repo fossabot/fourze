@@ -224,6 +224,7 @@ export function createApp(
     _isReadying = true;
 
     restoreArray(middlewareStore, persistenceMiddlewareStore);
+    restoreArray(pluginStore, persistencePluginStore);
 
     try {
       // 初始化app

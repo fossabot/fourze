@@ -107,12 +107,12 @@ function compareResults(markdown: boolean) {
     .sort((a, b) => parseFloat(b.requests.mean) - parseFloat(a.requests.mean));
 
   const outputResults: any[] = [];
-  const formatThroughput = (throughput) =>
+  const formatThroughput = (throughput: number) =>
     throughput ? (throughput / 1024 / 1024).toFixed(2) : "N/A";
 
   for (const result of results) {
     const beBold = result.server === "fourze";
-    const { hasRouter, version } = info(result.server) || {};
+    const { hasRouter = false, version } = info(result.server) || {};
     const {
       requests: { average: requests },
       latency: { average: latency },
