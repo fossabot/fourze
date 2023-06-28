@@ -1,6 +1,6 @@
 {
   "name": "@fourze/swagger-middleware",
-  "version": "0.28.2",
+  "version": "0.28.3",
   "description": "",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
