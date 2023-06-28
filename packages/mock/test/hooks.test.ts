@@ -56,9 +56,11 @@ test("test-hooks", async () => {
     headers: {
       token: data.token
     }
-  }).then(r => r.json());
+  });
 
-  expect(res.token).toEqual(data.token.toUpperCase());
+  const { token } = await res.json();
+
+  expect(token).toEqual(data.token.toUpperCase());
 
   const res2 = await app.fetch("/api/test", { method: "post" });
 

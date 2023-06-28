@@ -2,10 +2,10 @@ import type { IncomingMessage } from "http";
 import qs from "query-string";
 import type { MaybeRegex } from "maybe-types";
 import { safeParse } from "fast-content-type-parse";
-import { getQuery, parseURL } from "ufo";
+import { getQuery, parseURL, withoutBase } from "ufo";
 import type { PolyfillHeaderInit } from "../polyfill";
 import { decodeFormData, flatHeaders, getHeaderValue } from "../polyfill";
-import { isString, isUint8Array, memoize, parseJson, relativePath } from "../utils";
+import { isString, isUint8Array, parseJson } from "../utils";
 import type { DefaultData, ExtractPropTypes, ExtractPropTypesWithIn, ObjectProps } from "./props";
 import { validateProps, withDefaults } from "./props";
 import type { FourzeRoute } from "./route";
@@ -35,6 +35,7 @@ export interface FourzeRequestOptions {
   body?: any
   params?: Record<string, any>
   query?: Record<string, any>
+  meta?: Record<string, any>
   request?: IncomingMessage
   contentTypeParsers?: Map<MaybeRegex, (body: any) => any>
 }
@@ -90,7 +91,7 @@ export function createRequest(options: FourzeRequestOptions) {
   request.url = options.url ?? request.url;
   request.method = request.method ?? "GET";
 
-  request.meta = {};
+  request.meta = options.meta ?? {};
 
   const headers = {
     ...flatHeaders(request.headers),
@@ -162,12 +163,13 @@ export function createRequest(options: FourzeRequestOptions) {
     validateProps(route.props, data);
   };
 
-  request.withScope = memoize((scope) => {
+  request.withScope = (scope) => {
     return createRequest({
       ...options,
-      url: relativePath(request.url, scope) ?? request.url
+      meta: request.meta,
+      url: withoutBase(request.url, scope) ?? request.url
     });
-  });
+  };
 
   Object.defineProperties(request, {
     [FOURZE_REQUEST_SYMBOL]: {

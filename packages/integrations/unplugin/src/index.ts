@@ -1,6 +1,6 @@
 import path from "path";
 import type { DelayMsType, FourzeLogLevelKey, RequestMethod } from "@fourze/core";
-import { createLogger, isBoolean, resolves, setLoggerLevel } from "@fourze/core";
+import { createLogger, isBoolean, setLoggerLevel, withBase } from "@fourze/core";
 import { createDelayMiddleware, createTimeoutMiddleware } from "@fourze/middlewares";
 import { createUnplugin } from "unplugin";
 
@@ -8,10 +8,10 @@ import type { FourzeMockAppOptions } from "@fourze/mock";
 import type {
   FourzeProxyOption
 } from "@fourze/server";
-import { createHmrApp, createServer, defineEnvs } from "@fourze/server";
+import { connect, createHmrApp, createServer, defineEnvs } from "@fourze/server";
 
 import { build, getModuleAlias, service } from "@fourze/swagger";
-import type { InlineConfig } from "vite";
+import { type InlineConfig } from "vite";
 import { createMockClient } from "@fourze/mock";
 
 const PLUGIN_NAME = "unplugin-fourze";
@@ -163,7 +163,6 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
   //   );
 
   const hmrApp = createHmrApp({
-    base,
     allow,
     deny,
     dir,
@@ -193,12 +192,14 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
       async writeBundle() {
         if (generateDocument) {
           await build(hmrApp, {
-            base,
             distPath: viteConfig.build?.outDir,
             vite: {
               ...viteConfig
             },
-            defaultMethod: swaggerOptions.defaultMethod
+            swagger: {
+              basePath: base,
+              ...swaggerOptions
+            }
           });
         }
       },
@@ -294,24 +295,16 @@ const createFourzePlugin = createUnplugin((options: UnpluginFourzeOptions = {}) 
             hmrApp.watch(watcher);
           }
 
-          const server = createServer();
-          server.use(hmrApp);
           if (options.swagger !== false) {
+            const uiBase = withBase("/swagger-ui", viteConfig.base ?? "/");
             const swaggerMiddleware = service(hmrApp, {
-              base: viteConfig.base ? resolves(viteConfig.base, "/swagger-ui/") : "/swagger-ui/",
+              uiBase,
+              basePath: base,
               ...swaggerOptions
             });
-            server.use(swaggerMiddleware);
+            middlewares.use(uiBase, connect(swaggerMiddleware));
           }
-          if (options.server?.port) {
-            try {
-              server.listen(port, host);
-            } catch (error) {
-              logger.error("Server listen failed.", error);
-            }
-          } else {
-            middlewares.use(server);
-          }
+          middlewares.use(base, connect(hmrApp));
         }
       }
     }

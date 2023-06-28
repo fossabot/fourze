@@ -1,17 +1,9 @@
 import { expect, test } from "vitest";
 import {
   isMatch,
-  relativePath,
-  resolves,
-  slash
+  withBase,
+  withoutBase
 } from "../../src/utils/path";
-
-test("test-slash", () => {
-  const path = "/hello/world/";
-  const base = "/api/";
-  expect(slash(base, path)).toBe("/api/hello/world");
-  expect(slash("api/hello")).toBe("/api/hello");
-});
 
 test("test-isMatch", () => {
   expect(isMatch("/api/hello/test", "/api/*", "/api/hello")).toBe(true);
@@ -22,18 +14,22 @@ test("test-relativePath", () => {
   const path2 = "/abc/def/ghi/";
   const path3 = "/abc/";
   const path4 = "/abc";
+  const path5 = "/abc/abc.js";
   const base = "/abc";
   const normalBase = "/";
-  expect(relativePath(path, base)).toBe("/def/ghi");
-  expect(relativePath(path2, base)).toBe("/def/ghi/");
-  expect(relativePath(path3, base)).toBe("/");
-  expect(relativePath(path4, base)).toBe("");
-  expect(relativePath(path, normalBase)).toBe("/abc/def/ghi");
+  expect(withoutBase(path, base)).toBe("/def/ghi");
+  expect(withoutBase(path2, base)).toBe("/def/ghi/");
+  expect(withoutBase(path3, base)).toBe("/");
+  expect(withoutBase(path4, base)).toBe("/");
+  expect(withoutBase(path5, base)).toBe("/abc.js");
+  expect(withoutBase(path, normalBase)).toBe("/abc/def/ghi");
 });
 
 test("test-resolvePath", () => {
-  const path = "https://test.com";
-  const base = "/api";
-  expect(resolves(path, base)).toBe("https://test.com/api");
+  const base = "https://test.com";
+  const path = "/api";
+  expect(withBase(path, base)).toBe("https://test.com/api");
+
+  expect(withBase("/swagger-ui.css", "/swagger-ui/")).toBe("/swagger-ui/swagger-ui.css");
 });
 

@@ -1,5 +1,5 @@
 import type { Server } from "http";
-import { createApp, defineRouter, randomInt, resolves } from "@fourze/core";
+import { createApp, defineRouter, randomInt, withBase } from "@fourze/core";
 import { connect, createServer, normalizeAddress } from "@fourze/server";
 import express from "connect";
 import axios from "axios";
@@ -33,7 +33,7 @@ test("run-server", async () => {
   await server.listen();
 
   const returnData = await axios
-    .get<typeof testData>(resolves(server.origin, "/api/test"))
+    .get<typeof testData>(withBase("/api/test", server.origin))
     .then((r) => r.data);
 
   expect(returnData).toEqual(testData);

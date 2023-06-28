@@ -29,7 +29,7 @@ export type FourzeLogLevelKey = Uncapitalize<keyof typeof FourzeLogLevel>;
 
 export type FourzeLogger = Consola;
 
-let globalLoggerLevel: FourzeLogLevelKey | FourzeLogLevel = "info";
+let globalLoggerLevel: FourzeLogLevelKey | FourzeLogLevel = "fatal";
 
 const loggerStore = new Map<string, FourzeLogger>();
 

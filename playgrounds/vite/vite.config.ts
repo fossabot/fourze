@@ -11,9 +11,9 @@ import windicss from "vite-plugin-windicss";
 import tsconfig from "./tsconfig.json";
 
 export default defineConfig({
-  base: "/test",
+  base: "./test",
   server: {
-    port: 8000,
+    port: 7609,
     host: "0.0.0.0",
     fs: {
       strict: false

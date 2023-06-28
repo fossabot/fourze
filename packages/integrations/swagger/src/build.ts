@@ -4,9 +4,9 @@ import type { FourzeHmrApp } from "@fourze/server";
 import type { InlineConfig } from "vite";
 import { defineConfig, mergeConfig, build as viteBuild } from "vite";
 import fs from "fs-extra";
-import { type RequestMethod, resolves } from "@fourze/core";
+import { withBase } from "@fourze/core";
 import { createMockClient } from "@fourze/mock";
-import type { SwaggerOptions } from "@fourze/middlewares";
+import type { SwaggerOptions } from "@fourze/swagger-middleware";
 import { getSwaggerFSPath } from "./service";
 import { renderIndexHtml } from "./ui";
 
@@ -25,29 +25,23 @@ export interface SwaggerUIBuildOptions {
    */
   distPath?: string
 
-  /**
-   *  api的base
-   *  @default "/"
-   */
-  base?: string
-
   assetsFilter?: (src: string) => boolean
 
   vite?: InlineConfig
+
+  swagger?: SwaggerOptions
 
   /**
    * @default ".fourze-swagger"
    */
   tmpDir?: string
 
-  defaultMethod?: RequestMethod
-
 }
 
 function createMockDocsCode(options: SwaggerOptions = {}) {
   return `
   import { defineRouter } from "@fourze/core";
-  import { createSwaggerMiddleware } from "@fourze/middlewares";
+  import { createSwaggerMiddleware } from "@fourze/swagger-middleware";
   export default defineRouter((router,app) => {
     router.setMeta("swagger",false);
     router.get("/api-docs", createSwaggerMiddleware(app,${JSON.stringify(options)}));
@@ -56,7 +50,7 @@ function createMockDocsCode(options: SwaggerOptions = {}) {
 }
 
 export function getModuleAlias() {
-  return ["@fourze/core", "@fourze/mock", "@fourze/swagger", "@fourze/middlewares"].map(r => {
+  return ["@fourze/core", "@fourze/mock", "@fourze/swagger", "@fourze/swagger-middleware"].map(r => {
     return {
       find: r,
       replacement: require.resolve(r)
@@ -73,7 +67,7 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
   // 固定加上swagger-ui的路径
   const uiBase = options.vite?.base ?? "/";
 
-  const apiBase = options.base ?? "/";
+  const apiBase = options.swagger?.basePath ?? "/";
 
   const uiPath = "/swagger-ui/";
 
@@ -82,7 +76,9 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
   const mockDocsPath = path.join(tmpDir, "docs.ts");
 
   await fs.outputFile(mockDocsPath, createMockDocsCode({
-    defaultMethod: options.defaultMethod
+    defaultMethod: options.swagger?.defaultMethod,
+    basePath: apiBase,
+    ...options.swagger
   }));
 
   const moduleNames = app.moduleNames.concat(["./docs"]);
@@ -91,8 +87,8 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
     base: apiBase
   }));
 
-  await fs.outputFile(path.join(tmpDir, "index.html"), renderIndexHtml(resolves(uiBase, uiPath), {
-    url: resolves(apiBase, "/api-docs"),
+  await fs.outputFile(path.join(tmpDir, "index.html"), renderIndexHtml(withBase(uiPath, uiBase), {
+    url: withBase("/api-docs", apiBase),
     script: [
       {
         src: "mock.ts",
@@ -110,7 +106,7 @@ export async function build(app: FourzeHmrApp, options: SwaggerUIBuildOptions = 
   // 打包接口文档 这里会有更好的方案吗???
 
   await viteBuild(mergeConfig(options.vite ?? {}, defineConfig({
-    base: resolves(uiBase, uiPath),
+    base: withBase(uiPath, uiBase),
     root: tmpDir,
     build: {
       outDir: path.join(distPath, uiPath),

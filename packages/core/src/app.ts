@@ -1,4 +1,5 @@
 import type { MaybePromise, MaybeRegex } from "maybe-types";
+import { withBase, withTrailingSlash, withoutBase, withoutTrailingSlash } from "ufo";
 import { isArray, isFunction, isUndef } from "./utils/is";
 import { createLogger } from "./logger";
 import type {
@@ -11,22 +12,20 @@ import type {
   FourzeNext,
   FourzePlugin
 } from "./shared";
+import { FOURZE_VERSION, createServiceContext } from "./shared";
 import {
-  FOURZE_VERSION
-  ,
-  createServiceContext
-} from "./shared";
-import {
-  createSingletonPromise, deleteBy, isMatch,
+  createSingletonPromise,
+  deleteBy,
+  isMatch,
   isObject,
   isString,
-  relativePath,
-  resolves,
   restoreArray
 } from "./utils";
 import { injectMeta } from "./shared/meta";
 
-export type FourzeAppSetup = (app: FourzeApp) => MaybePromise<void | FourzeModule[] | FourzeAppOptions>;
+export type FourzeAppSetup = (
+  app: FourzeApp
+) => MaybePromise<void | FourzeModule[] | FourzeAppOptions>;
 
 export interface FourzeAppOptions {
   base?: string
@@ -63,14 +62,16 @@ export function createApp(setup: FourzeAppSetup): FourzeApp;
 
 export function createApp(options: FourzeAppOptions): FourzeApp;
 
-export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeApp {
+export function createApp(
+  args: FourzeAppOptions | FourzeAppSetup = {}
+): FourzeApp {
   const isSetup = isFunction(args);
   const isRoutes = Array.isArray(args);
   const isOptions = !isSetup && !isRoutes && isObject(args);
   const logger = createLogger("@fourze/core");
 
   const options = isOptions ? args : {};
-  const setup = isSetup ? args : options.setup ?? (() => { });
+  const setup = isSetup ? args : options.setup ?? (() => {});
 
   const { fallback } = options;
 
@@ -105,14 +106,14 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
           const nextNode = ms.shift();
           if (nextNode) {
             const [path, middleware] = nextNode;
-            const req = request.withScope(resolves(app.base, path));
+            const req = request.withScope(withBase(path, app.base));
             await middleware(req, response, doNext);
           } else {
             await next?.();
           }
         }
         await doNext();
-      //  await response.done();
+        //  await response.done();
       } else {
         await next?.();
       }
@@ -129,7 +130,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
       return middlewareStore
         .sort((a, b) => a.order - b.order)
         .filter((r) => isMatch(url, r.path))
-        .map(r => [r.path, r.middleware] as [string, FourzeMiddleware]);
+        .map((r) => [r.path, r.middleware] as [string, FourzeMiddleware]);
     }
     return [];
   };
@@ -140,7 +141,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
   ) {
     const arg0 = args[0];
     const isPath = isString(arg0);
-    const path = isPath ? arg0 : "/";
+    const path = withoutTrailingSlash(isPath ? arg0 : "/");
     const ms = (isPath ? args.slice(1) : args) as FourzeModule[];
 
     for (let i = 0; i < ms.length; i++) {
@@ -149,7 +150,11 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
         continue;
       }
       if (typeof middleware === "function") {
-        const node = { path, middleware, order: middleware.order ?? middlewareStore.length };
+        const node = {
+          path,
+          middleware,
+          order: middleware.order ?? middlewareStore.length
+        };
         if (!this.isReadying) {
           persistenceMiddlewareStore.push(node);
         }
@@ -174,7 +179,11 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     return this;
   };
 
-  app.service = async function (this: FourzeApp, options: FourzeContextOptions, next?: FourzeHandle) {
+  app.service = async function (
+    this: FourzeApp,
+    options: FourzeContextOptions,
+    next?: FourzeHandle
+  ) {
     const { request, response } = createServiceContext(options);
     await this(request, response, async () => {
       await next?.(request, response);
@@ -225,6 +234,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
       } else if (setupReturn) {
         Object.assign(options, setupReturn);
       }
+      options.base = withTrailingSlash(options.base);
     } catch (e) {
       logger.error(e);
     }
@@ -243,7 +253,7 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
     }
 
     // 装载插件
-    const installPlugins = pluginStore.map(async r => {
+    const installPlugins = pluginStore.map(async (r) => {
       if (r.install) {
         try {
           await r.install(this);
@@ -281,13 +291,13 @@ export function createApp(args: FourzeAppOptions | FourzeAppSetup = {}): FourzeA
   };
 
   app.relative = function (url: string) {
-    return relativePath(url, this.base);
+    return withoutBase(url, this.base);
   };
 
   Object.defineProperties(app, {
     middlewares: {
       get() {
-        return middlewareStore.map(r => r.middleware);
+        return middlewareStore.map((r) => r.middleware);
       },
       enumerable: true
     },

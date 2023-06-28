@@ -1,6 +1,5 @@
 import type { FourzeApp, FourzeMiddleware, FourzeRouter, ObjectProps, PropType, RequestMethod } from "@fourze/core";
 import { createQuery, isFunction, isRouter, normalizeProps } from "@fourze/core";
-import { RESOLVE_HEADER } from "../resolve";
 import type { SwaggerOptions, SwaggerParameter, SwaggerPathSchema } from "./types";
 
 function getParameterType(type: PropType<any>): string | string[] {
@@ -124,14 +123,14 @@ export function createSwaggerMiddleware(
       swagger: "2.0",
       info: options.info,
       host: options.host,
-      basePath: app.base,
+      basePath: options.basePath,
       schemes: options.schemas ?? ["http", "https"],
       consumes: options.consumes ?? ["application/json"],
       produces: options.produces ?? ["application/json"],
       paths: getPaths(),
       tags
     };
-    res.setHeader(RESOLVE_HEADER, "off");
+    res.setHeader("Fourze-Response-Resolve", "off");
     res.send(docs, "application/json");
   };
 }

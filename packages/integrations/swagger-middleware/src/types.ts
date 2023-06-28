@@ -61,4 +61,5 @@ export interface SwaggerOptions {
   consumes?: string[]
   produces?: string[]
   host?: string
+  basePath?: string
 }

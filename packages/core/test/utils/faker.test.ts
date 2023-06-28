@@ -22,6 +22,9 @@ test("test-faker-object", () => {
     g: "{false}",
     h: "{null}",
     i: "{undefined}",
+    j: {
+      $type: "number"
+    },
     tof: "{true|false}",
     num: "{100|200|300}",
     mixin: "{'a'|b|c}-{100-200|300-600|700-900}"

@@ -5,15 +5,15 @@ import net from "net";
 
 import type { AddressInfo } from "net";
 import type { Server } from "http";
-import { isNumber, isString, slash } from "@fourze/core";
+import { isNumber, isString, normalizeURL } from "@fourze/core";
 import { loopbackHosts, wildcardHosts } from "./constants";
 
 export const isWindows = os.platform() === "win32";
 /**
- *  copy from @vitejs/vite by @yyx990803 (Evan You) (MIT License)
+ *  port @vitejs/vite by @yyx990803 (Evan You) (MIT License)
  */
 export function normalizePath(id: string) {
-  return path.posix.normalize(isWindows ? slash(id) : id);
+  return path.posix.normalize(isWindows ? normalizeURL(id) : id);
 }
 
 export function defineEnvs(

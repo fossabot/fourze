@@ -1,7 +1,7 @@
 import type { Server } from "http";
 import { connect, normalizeAddress } from "@fourze/server";
 import express from "express";
-import { createApp, defineRouter, randomInt, resolves } from "@fourze/core";
+import { createApp, defineRouter, randomInt, withBase } from "@fourze/core";
 import { service } from "@fourze/swagger";
 import { expect, test } from "vitest";
 import axios from "axios";
@@ -46,7 +46,7 @@ test("test-swagger", async () => {
     protocol: "http"
   });
 
-  const url = origin ? resolves(origin, "/api-docs") : "/api-docs";
+  const url = origin ? withBase("/api-docs", origin) : "/api-docs";
 
   const response = await axios.get(url);
 

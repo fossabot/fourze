@@ -1,9 +1,9 @@
-import { resolves } from "../utils";
+import { withBase } from "../utils";
 import type { DefaultData, ObjectProps } from "./props";
 import type { RequestMethod } from "./request";
 import { FOURZE_METHODS } from "./request";
 import type { FourzeRouteMeta } from "./meta";
-import type { FourzeHandle } from ".";
+import type { FourzeHandle } from "./interface";
 
 const FOURZE_ROUTE_SYMBOL = Symbol("FourzeRoute");
 
@@ -76,7 +76,7 @@ export function defineRoute<
     }
   }
 
-  path = base ? resolves(base, path) : path;
+  path = base ? withBase(path, base) : path;
 
   return {
     method,

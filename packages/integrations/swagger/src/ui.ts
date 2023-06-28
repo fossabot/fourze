@@ -1,5 +1,5 @@
 import type { RenderHtmlOptions } from "@fourze/core";
-import { isFunction, renderHtml, resolves, transformTemplate } from "@fourze/core";
+import { isFunction, renderHtml, transformTemplate, withBase } from "@fourze/core";
 
 const defaultStyleTemplate = `
 html {
@@ -85,7 +85,7 @@ export interface RenderSwaggerUIOptions extends RenderHtmlOptions {
 export function renderIndexHtml(root: string, options: RenderSwaggerUIOptions = {}) {
   const scriptContent = transformTemplate(defaultScriptTemplate, {
     initOptions: stringifyOptions({
-      url: options.url ?? "/api-docs"
+      url: options.url ?? withBase("/api-docs", root)
     })
   });
 
@@ -93,12 +93,14 @@ export function renderIndexHtml(root: string, options: RenderSwaggerUIOptions = 
     language: options.language ?? "en",
     favicon: options.favicon ?? `${root}/favicon-32x32.png`,
     script: [
-      resolves(root, "/swagger-ui-bundle.js"),
-      resolves(root, "/swagger-ui-standalone-preset.js"),
+      withBase("/swagger-ui-bundle.js", root),
+      withBase("/swagger-ui-standalone-preset.js", root),
       ...(options.script ?? [])
     ],
     style: [
-      resolves(root, "/swagger-ui.css"),
+      withBase("/favicon-16x16.png", root),
+      withBase("/favicon-32x32.png", root),
+      withBase("/swagger-ui.css", root),
       ...(options.style ?? [])
     ],
     title: "Swagger UI",
