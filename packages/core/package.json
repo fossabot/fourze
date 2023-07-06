@@ -16,7 +16,7 @@
     "author": "chizuki",
     "license": "MIT",
     "dependencies": {
-        "consola": "^2.15.3",
+        "consola": "^3.2.3",
         "destr": "^2.0.0",
         "events": "^3.3.0",
         "fast-content-type-parse": "^1.0.0",
